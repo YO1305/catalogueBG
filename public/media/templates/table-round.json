@@ -1,0 +1,25 @@
+{
+  "areas": [
+    {
+      "id": "cloth",
+      "label": "Скатерть",
+      "psdLayerPath": "Скатерть",
+      "soWidthPx": 920,
+      "soHeightPx": 662,
+      "transform": [
+        290,
+        400,
+        1210,
+        400,
+        1210,
+        840,
+        290,
+        840
+      ],
+      "pxPerCm": 5.75,
+      "realWidthCm": 160,
+      "fill": true
+    }
+  ],
+  "engine": "webgl"
+}

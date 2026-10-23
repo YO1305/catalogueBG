@@ -1,0 +1,25 @@
+{
+  "areas": [
+    {
+      "id": "cushion",
+      "label": "Подушка",
+      "psdLayerPath": "Подушка",
+      "soWidthPx": 680,
+      "soHeightPx": 490,
+      "transform": [
+        480,
+        300,
+        1040,
+        270,
+        1100,
+        740,
+        420,
+        770
+      ],
+      "pxPerCm": 11.333333333333334,
+      "realWidthCm": 60,
+      "fill": true
+    }
+  ],
+  "engine": "webgl"
+}

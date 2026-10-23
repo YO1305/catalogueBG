@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-manrope), "Segoe UI", sans-serif;
+  --font-display: var(--font-prata), Georgia, serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  --color-paper: #f3eee6;
+  --color-ink: #1c1915;
+  --color-majolica: #163a66;
+  --color-gold: #a6843d;
+  --color-sand: #e7e0d4;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background: var(--color-sand);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.catalog-root {
+  --paper: #f4efe6;
+  --ink: #1c1915;
+  --muted: #6f675c;
+  --line: rgba(28, 25, 21, 0.14);
+  --accent: #163a66;
+  --gold: #a6843d;
+  background:
+    radial-gradient(circle at top, rgba(166, 132, 61, 0.16), transparent 32%),
+    #e6dfd2;
+  color: var(--ink);
+}
+
+.catalog-root[data-theme="dark"] {
+  --paper: #221f1b;
+  --ink: #f6f1e8;
+  --muted: #c3b8a8;
+  --line: rgba(246, 241, 232, 0.16);
+  --accent: #e6d3a1;
+  --gold: #e6d3a1;
+  background: #100e0c;
+}
+
+.paper-page {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.lift {
+  transition: transform 180ms ease;
+}
+
+.lift:hover {
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lift,
+  .lift:hover {
+    transition: none;
+    transform: none;
+  }
+}
+
+.cursor-zoom {
+  cursor: zoom-in;
+}

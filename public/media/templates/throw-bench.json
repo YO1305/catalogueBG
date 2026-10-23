@@ -1,0 +1,25 @@
+{
+  "areas": [
+    {
+      "id": "throw",
+      "label": "Покрывало",
+      "psdLayerPath": "Покрывало",
+      "soWidthPx": 1000,
+      "soHeightPx": 720,
+      "transform": [
+        300,
+        420,
+        1220,
+        380,
+        1260,
+        820,
+        260,
+        860
+      ],
+      "pxPerCm": 5.555555555555555,
+      "realWidthCm": 180,
+      "fill": true
+    }
+  ],
+  "engine": "webgl"
+}

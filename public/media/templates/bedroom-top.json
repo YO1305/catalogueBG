@@ -1,0 +1,25 @@
+{
+  "areas": [
+    {
+      "id": "top",
+      "label": "Полотно",
+      "psdLayerPath": "Полотно",
+      "soWidthPx": 780,
+      "soHeightPx": 562,
+      "transform": [
+        360,
+        220,
+        1140,
+        220,
+        1140,
+        820,
+        360,
+        820
+      ],
+      "pxPerCm": 3.5454545454545454,
+      "realWidthCm": 220,
+      "fill": true
+    }
+  ],
+  "engine": "webgl"
+}

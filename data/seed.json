@@ -1,0 +1,3749 @@
+{
+  "collections": [
+    {
+      "id": "internal",
+      "name": {
+        "ru": "Внутренний рынок",
+        "en": "Domestic market",
+        "uz": "Ichki bozor"
+      },
+      "slug": "internal",
+      "order": 1,
+      "active": true,
+      "catalogSlug": "kurpacha-2026"
+    },
+    {
+      "id": "euro",
+      "name": {
+        "ru": "Евро коллекция",
+        "en": "Euro collection",
+        "uz": "Yevro kolleksiya"
+      },
+      "slug": "euro",
+      "order": 2,
+      "active": true,
+      "catalogSlug": "euro-sateen"
+    },
+    {
+      "id": "fashion",
+      "name": {
+        "ru": "Fashion",
+        "en": "Fashion",
+        "uz": "Fashion"
+      },
+      "slug": "fashion",
+      "order": 3,
+      "active": true,
+      "catalogSlug": "fashion-poland"
+    }
+  ],
+  "fabricTypes": [
+    {
+      "id": "poplin",
+      "name": {
+        "ru": "Поплин",
+        "en": "Poplin",
+        "uz": "Poplin"
+      },
+      "suggestedProductTypes": [
+        "kpb",
+        "duvet",
+        "sheet",
+        "pillowcase"
+      ],
+      "order": 1,
+      "active": true
+    },
+    {
+      "id": "sateen",
+      "name": {
+        "ru": "Сатин",
+        "en": "Sateen",
+        "uz": "Satin"
+      },
+      "suggestedProductTypes": [
+        "kpb",
+        "duvet",
+        "sheet",
+        "pillowcase"
+      ],
+      "order": 2,
+      "active": true
+    },
+    {
+      "id": "stripe-sateen",
+      "name": {
+        "ru": "Страйп-сатин",
+        "en": "Stripe sateen",
+        "uz": "Stripe satin"
+      },
+      "suggestedProductTypes": [
+        "kpb",
+        "duvet",
+        "sheet",
+        "pillowcase"
+      ],
+      "order": 3,
+      "active": true
+    },
+    {
+      "id": "flannel",
+      "name": {
+        "ru": "Фланель",
+        "en": "Flannel",
+        "uz": "Flanel"
+      },
+      "suggestedProductTypes": [
+        "kpb",
+        "robe"
+      ],
+      "order": 4,
+      "active": true
+    },
+    {
+      "id": "calico",
+      "name": {
+        "ru": "Бязь",
+        "en": "Calico",
+        "uz": "Byaz"
+      },
+      "suggestedProductTypes": [
+        "kpb",
+        "sheet"
+      ],
+      "order": 5,
+      "active": true
+    },
+    {
+      "id": "waffle",
+      "name": {
+        "ru": "Вафельное полотно",
+        "en": "Waffle fabric",
+        "uz": "Vafel mato"
+      },
+      "suggestedProductTypes": [
+        "towel",
+        "tea-towel"
+      ],
+      "order": 6,
+      "active": true
+    },
+    {
+      "id": "terry",
+      "name": {
+        "ru": "Махра",
+        "en": "Terry",
+        "uz": "Mahra"
+      },
+      "suggestedProductTypes": [
+        "towel"
+      ],
+      "order": 7,
+      "active": true
+    },
+    {
+      "id": "duck",
+      "name": {
+        "ru": "Дак",
+        "en": "Duck canvas",
+        "uz": "Dak"
+      },
+      "suggestedProductTypes": [
+        "tablecloth",
+        "napkins"
+      ],
+      "order": 8,
+      "active": true
+    },
+    {
+      "id": "kurpacha-fabric",
+      "name": {
+        "ru": "Ткань для курпачи",
+        "en": "Kurpacha fabric",
+        "uz": "Ko'rpacha matosi"
+      },
+      "suggestedProductTypes": [
+        "kurpacha",
+        "pillow"
+      ],
+      "order": 9,
+      "active": true
+    },
+    {
+      "id": "twill",
+      "name": {
+        "ru": "Твил",
+        "en": "Twill",
+        "uz": "Tvil"
+      },
+      "suggestedProductTypes": [
+        "robe",
+        "roll"
+      ],
+      "order": 10,
+      "active": true
+    }
+  ],
+  "productTypes": [
+    {
+      "id": "kpb",
+      "name": {
+        "ru": "КПБ",
+        "en": "Bed linen set",
+        "uz": "To'shak jihozi"
+      },
+      "suggestedFor": [
+        "poplin",
+        "sateen",
+        "stripe-sateen",
+        "calico",
+        "flannel"
+      ],
+      "order": 1,
+      "active": true
+    },
+    {
+      "id": "duvet",
+      "name": {
+        "ru": "Пододеяльник",
+        "en": "Duvet cover",
+        "uz": "Ko'rpa jildi"
+      },
+      "suggestedFor": [
+        "sateen",
+        "stripe-sateen",
+        "poplin"
+      ],
+      "order": 2,
+      "active": true
+    },
+    {
+      "id": "sheet",
+      "name": {
+        "ru": "Простыня",
+        "en": "Flat sheet",
+        "uz": "Choyshab"
+      },
+      "suggestedFor": [
+        "poplin",
+        "sateen",
+        "calico"
+      ],
+      "order": 3,
+      "active": true
+    },
+    {
+      "id": "pillowcase",
+      "name": {
+        "ru": "Наволочка",
+        "en": "Pillowcase",
+        "uz": "Yostiq jildi"
+      },
+      "suggestedFor": [
+        "poplin",
+        "sateen",
+        "stripe-sateen"
+      ],
+      "order": 4,
+      "active": true
+    },
+    {
+      "id": "blanket",
+      "name": {
+        "ru": "Одеяло/покрывало",
+        "en": "Blanket",
+        "uz": "Adyol"
+      },
+      "suggestedFor": [
+        "sateen"
+      ],
+      "order": 5,
+      "active": true
+    },
+    {
+      "id": "mattress-cover",
+      "name": {
+        "ru": "Наматрасник",
+        "en": "Mattress cover",
+        "uz": "Matras qoplamasi"
+      },
+      "suggestedFor": [
+        "calico"
+      ],
+      "order": 6,
+      "active": true
+    },
+    {
+      "id": "kurpacha",
+      "name": {
+        "ru": "Курпача",
+        "en": "Kurpacha",
+        "uz": "Ko'rpacha"
+      },
+      "suggestedFor": [
+        "kurpacha-fabric"
+      ],
+      "order": 7,
+      "active": true
+    },
+    {
+      "id": "pillow",
+      "name": {
+        "ru": "Декоративная подушка",
+        "en": "Cushion",
+        "uz": "Yostiq"
+      },
+      "suggestedFor": [
+        "kurpacha-fabric",
+        "twill",
+        "sateen"
+      ],
+      "order": 8,
+      "active": true
+    },
+    {
+      "id": "towel",
+      "name": {
+        "ru": "Полотенце",
+        "en": "Towel",
+        "uz": "Sochiq"
+      },
+      "suggestedFor": [
+        "waffle",
+        "terry"
+      ],
+      "order": 9,
+      "active": true
+    },
+    {
+      "id": "tea-towel",
+      "name": {
+        "ru": "Кухонное полотенце",
+        "en": "Tea towel",
+        "uz": "Oshxona sochig'i"
+      },
+      "suggestedFor": [
+        "waffle"
+      ],
+      "order": 10,
+      "active": true
+    },
+    {
+      "id": "tablecloth",
+      "name": {
+        "ru": "Скатерть",
+        "en": "Tablecloth",
+        "uz": "Dasturxon"
+      },
+      "suggestedFor": [
+        "duck"
+      ],
+      "order": 11,
+      "active": true
+    },
+    {
+      "id": "napkins",
+      "name": {
+        "ru": "Салфетки",
+        "en": "Napkins",
+        "uz": "Salfetkalar"
+      },
+      "suggestedFor": [
+        "duck"
+      ],
+      "order": 12,
+      "active": true
+    },
+    {
+      "id": "mitt",
+      "name": {
+        "ru": "Прихватка/рукавица",
+        "en": "Oven mitt",
+        "uz": "Tutqich"
+      },
+      "suggestedFor": [
+        "waffle"
+      ],
+      "order": 13,
+      "active": true
+    },
+    {
+      "id": "robe",
+      "name": {
+        "ru": "Пижама/халат",
+        "en": "Robe",
+        "uz": "Xalat"
+      },
+      "suggestedFor": [
+        "twill",
+        "flannel"
+      ],
+      "order": 14,
+      "active": true
+    },
+    {
+      "id": "roll",
+      "name": {
+        "ru": "Рулон ткани",
+        "en": "Fabric roll",
+        "uz": "Mato ruloni"
+      },
+      "suggestedFor": [
+        "twill",
+        "sateen",
+        "poplin"
+      ],
+      "order": 15,
+      "active": true
+    }
+  ],
+  "templates": [
+    {
+      "id": "bedroom-light",
+      "productTypes": [
+        "kpb",
+        "duvet",
+        "sheet",
+        "pillowcase"
+      ],
+      "name": "Спальня светлая, вид 3/4",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/bedroom-light-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/bedroom-light-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/bedroom-light.json"
+      },
+      "areas": [
+        {
+          "id": "duvet",
+          "label": "Пододеяльник",
+          "psdLayerPath": "Пододеяльник",
+          "soWidthPx": 850,
+          "soHeightPx": 612,
+          "transform": [
+            430,
+            360,
+            1180,
+            330,
+            1240,
+            800,
+            390,
+            830
+          ],
+          "pxPerCm": 4.25,
+          "realWidthCm": 200,
+          "fill": true
+        },
+        {
+          "id": "pillow-l",
+          "label": "Подушка левая",
+          "psdLayerPath": "Подушка левая",
+          "soWidthPx": 280,
+          "soHeightPx": 202,
+          "transform": [
+            470,
+            280,
+            720,
+            270,
+            740,
+            430,
+            460,
+            450
+          ],
+          "pxPerCm": 5.6,
+          "realWidthCm": 50,
+          "fill": true
+        },
+        {
+          "id": "pillow-r",
+          "label": "Подушка правая",
+          "psdLayerPath": "Подушка правая",
+          "soWidthPx": 320,
+          "soHeightPx": 230,
+          "transform": [
+            860,
+            270,
+            1160,
+            250,
+            1180,
+            410,
+            880,
+            440
+          ],
+          "pxPerCm": 6.4,
+          "realWidthCm": 50,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/bedroom-light-thumb.webp",
+      "isDefault": true,
+      "order": 1
+    },
+    {
+      "id": "bedroom-dark",
+      "productTypes": [
+        "kpb"
+      ],
+      "name": "Спальня тёмная",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/bedroom-dark-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/bedroom-dark-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/bedroom-dark.json"
+      },
+      "areas": [
+        {
+          "id": "duvet",
+          "label": "Пододеяльник",
+          "psdLayerPath": "Пододеяльник",
+          "soWidthPx": 850,
+          "soHeightPx": 612,
+          "transform": [
+            430,
+            360,
+            1180,
+            330,
+            1240,
+            800,
+            390,
+            830
+          ],
+          "pxPerCm": 4.25,
+          "realWidthCm": 200,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/bedroom-dark-thumb.webp",
+      "isDefault": false,
+      "order": 2
+    },
+    {
+      "id": "bedroom-top",
+      "productTypes": [
+        "duvet",
+        "sheet"
+      ],
+      "name": "Кровать сверху",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/bedroom-top-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/bedroom-top-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/bedroom-top.json"
+      },
+      "areas": [
+        {
+          "id": "top",
+          "label": "Полотно",
+          "psdLayerPath": "Полотно",
+          "soWidthPx": 780,
+          "soHeightPx": 562,
+          "transform": [
+            360,
+            220,
+            1140,
+            220,
+            1140,
+            820,
+            360,
+            820
+          ],
+          "pxPerCm": 3.5454545454545454,
+          "realWidthCm": 220,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/bedroom-top-thumb.webp",
+      "isDefault": true,
+      "order": 3
+    },
+    {
+      "id": "kurpacha-room",
+      "productTypes": [
+        "kurpacha"
+      ],
+      "name": "Курпача в комнате",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/kurpacha-room-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/kurpacha-room-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/kurpacha-room.json"
+      },
+      "areas": [
+        {
+          "id": "body",
+          "label": "Курпача",
+          "psdLayerPath": "Курпача",
+          "soWidthPx": 1040,
+          "soHeightPx": 749,
+          "transform": [
+            280,
+            460,
+            1220,
+            420,
+            1280,
+            860,
+            240,
+            900
+          ],
+          "pxPerCm": 5.2,
+          "realWidthCm": 200,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/kurpacha-room-thumb.webp",
+      "isDefault": true,
+      "order": 4
+    },
+    {
+      "id": "kurpacha-terrace",
+      "productTypes": [
+        "kurpacha"
+      ],
+      "name": "Курпача на террасе",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/kurpacha-terrace-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/kurpacha-terrace-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/kurpacha-terrace.json"
+      },
+      "areas": [
+        {
+          "id": "body",
+          "label": "Курпача",
+          "psdLayerPath": "Курпача",
+          "soWidthPx": 980,
+          "soHeightPx": 706,
+          "transform": [
+            300,
+            480,
+            1200,
+            450,
+            1240,
+            880,
+            260,
+            900
+          ],
+          "pxPerCm": 4.9,
+          "realWidthCm": 200,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/kurpacha-terrace-thumb.webp",
+      "isDefault": false,
+      "order": 5
+    },
+    {
+      "id": "pillow-sofa",
+      "productTypes": [
+        "pillow"
+      ],
+      "name": "Подушка на диване",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/pillow-sofa-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/pillow-sofa-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/pillow-sofa.json"
+      },
+      "areas": [
+        {
+          "id": "cushion",
+          "label": "Подушка",
+          "psdLayerPath": "Подушка",
+          "soWidthPx": 680,
+          "soHeightPx": 490,
+          "transform": [
+            480,
+            300,
+            1040,
+            270,
+            1100,
+            740,
+            420,
+            770
+          ],
+          "pxPerCm": 11.333333333333334,
+          "realWidthCm": 60,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/pillow-sofa-thumb.webp",
+      "isDefault": true,
+      "order": 6
+    },
+    {
+      "id": "pillow-bed",
+      "productTypes": [
+        "pillow",
+        "pillowcase"
+      ],
+      "name": "Подушка на кровати",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/pillow-bed-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/pillow-bed-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/pillow-bed.json"
+      },
+      "areas": [
+        {
+          "id": "cushion",
+          "label": "Подушка",
+          "psdLayerPath": "Подушка",
+          "soWidthPx": 660,
+          "soHeightPx": 475,
+          "transform": [
+            500,
+            280,
+            1080,
+            260,
+            1120,
+            700,
+            460,
+            730
+          ],
+          "pxPerCm": 13.2,
+          "realWidthCm": 50,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/pillow-bed-thumb.webp",
+      "isDefault": false,
+      "order": 7
+    },
+    {
+      "id": "towel-bath",
+      "productTypes": [
+        "towel"
+      ],
+      "name": "Полотенце в ванной",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/towel-bath-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/towel-bath-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/towel-bath.json"
+      },
+      "areas": [
+        {
+          "id": "towel",
+          "label": "Полотенце",
+          "psdLayerPath": "Полотенце",
+          "soWidthPx": 400,
+          "soHeightPx": 288,
+          "transform": [
+            620,
+            160,
+            980,
+            160,
+            1000,
+            860,
+            600,
+            860
+          ],
+          "pxPerCm": 5.714285714285714,
+          "realWidthCm": 70,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/towel-bath-thumb.webp",
+      "isDefault": true,
+      "order": 8
+    },
+    {
+      "id": "towel-spa",
+      "productTypes": [
+        "towel"
+      ],
+      "name": "Стопка полотенец",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/towel-spa-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/towel-spa-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/towel-spa.json"
+      },
+      "areas": [
+        {
+          "id": "stack",
+          "label": "Стопка",
+          "psdLayerPath": "Стопка",
+          "soWidthPx": 720,
+          "soHeightPx": 518,
+          "transform": [
+            420,
+            360,
+            1100,
+            340,
+            1120,
+            760,
+            400,
+            780
+          ],
+          "pxPerCm": 8,
+          "realWidthCm": 90,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/towel-spa-thumb.webp",
+      "isDefault": false,
+      "order": 9
+    },
+    {
+      "id": "tea-towel",
+      "productTypes": [
+        "tea-towel"
+      ],
+      "name": "Кухонное полотенце",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/tea-towel-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/tea-towel-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/tea-towel.json"
+      },
+      "areas": [
+        {
+          "id": "towel",
+          "label": "Полотенце",
+          "psdLayerPath": "Полотенце",
+          "soWidthPx": 360,
+          "soHeightPx": 259,
+          "transform": [
+            640,
+            180,
+            980,
+            180,
+            990,
+            780,
+            630,
+            780
+          ],
+          "pxPerCm": 7.2,
+          "realWidthCm": 50,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/tea-towel-thumb.webp",
+      "isDefault": true,
+      "order": 10
+    },
+    {
+      "id": "table-rect",
+      "productTypes": [
+        "tablecloth"
+      ],
+      "name": "Стол со скатертью",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/table-rect-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/table-rect-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/table-rect.json"
+      },
+      "areas": [
+        {
+          "id": "cloth",
+          "label": "Скатерть",
+          "psdLayerPath": "Скатерть",
+          "soWidthPx": 1140,
+          "soHeightPx": 821,
+          "transform": [
+            260,
+            380,
+            1240,
+            350,
+            1320,
+            860,
+            180,
+            890
+          ],
+          "pxPerCm": 6.333333333333333,
+          "realWidthCm": 180,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/table-rect-thumb.webp",
+      "isDefault": true,
+      "order": 11
+    },
+    {
+      "id": "table-round",
+      "productTypes": [
+        "tablecloth"
+      ],
+      "name": "Круглый стол",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/table-round-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/table-round-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/table-round.json"
+      },
+      "areas": [
+        {
+          "id": "cloth",
+          "label": "Скатерть",
+          "psdLayerPath": "Скатерть",
+          "soWidthPx": 920,
+          "soHeightPx": 662,
+          "transform": [
+            290,
+            400,
+            1210,
+            400,
+            1210,
+            840,
+            290,
+            840
+          ],
+          "pxPerCm": 5.75,
+          "realWidthCm": 160,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/table-round-thumb.webp",
+      "isDefault": false,
+      "order": 12
+    },
+    {
+      "id": "throw-bench",
+      "productTypes": [
+        "blanket"
+      ],
+      "name": "Покрывало на скамье",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/throw-bench-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/throw-bench-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/throw-bench.json"
+      },
+      "areas": [
+        {
+          "id": "throw",
+          "label": "Покрывало",
+          "psdLayerPath": "Покрывало",
+          "soWidthPx": 1000,
+          "soHeightPx": 720,
+          "transform": [
+            300,
+            420,
+            1220,
+            380,
+            1260,
+            820,
+            260,
+            860
+          ],
+          "pxPerCm": 5.555555555555555,
+          "realWidthCm": 180,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/throw-bench-thumb.webp",
+      "isDefault": true,
+      "order": 13
+    },
+    {
+      "id": "fabric-roll",
+      "productTypes": [
+        "roll"
+      ],
+      "name": "Рулон ткани",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/fabric-roll-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/fabric-roll-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/fabric-roll.json"
+      },
+      "areas": [
+        {
+          "id": "roll",
+          "label": "Рулон",
+          "psdLayerPath": "Рулон",
+          "soWidthPx": 900,
+          "soHeightPx": 648,
+          "transform": [
+            360,
+            280,
+            1180,
+            240,
+            1220,
+            760,
+            320,
+            800
+          ],
+          "pxPerCm": 6,
+          "realWidthCm": 150,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/fabric-roll-thumb.webp",
+      "isDefault": true,
+      "order": 14
+    },
+    {
+      "id": "napkins",
+      "productTypes": [
+        "napkins"
+      ],
+      "name": "Салфетки",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/napkins-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/napkins-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/napkins.json"
+      },
+      "areas": [
+        {
+          "id": "napkin",
+          "label": "Салфетка",
+          "psdLayerPath": "Салфетка",
+          "soWidthPx": 460,
+          "soHeightPx": 331,
+          "transform": [
+            560,
+            340,
+            980,
+            340,
+            1000,
+            760,
+            540,
+            760
+          ],
+          "pxPerCm": 11.5,
+          "realWidthCm": 40,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/napkins-thumb.webp",
+      "isDefault": true,
+      "order": 15
+    },
+    {
+      "id": "robe",
+      "productTypes": [
+        "robe"
+      ],
+      "name": "Халат",
+      "source": {
+        "psdUrl": "",
+        "fileName": "starter.svg",
+        "sizeMb": 0.4,
+        "widthPx": 1500,
+        "heightPx": 1000
+      },
+      "engine": "webgl",
+      "compatibility": {
+        "ok": true,
+        "warnings": [
+          "Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."
+        ]
+      },
+      "baked": {
+        "backgroundUrl": "/media/templates/robe-bg.webp",
+        "overlays": [
+          {
+            "url": "/media/templates/robe-ov.webp",
+            "blendMode": "multiply",
+            "opacity": 0.45,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "jsonUrl": "/media/templates/robe.json"
+      },
+      "areas": [
+        {
+          "id": "robe",
+          "label": "Халат",
+          "psdLayerPath": "Халат",
+          "soWidthPx": 580,
+          "soHeightPx": 418,
+          "transform": [
+            560,
+            140,
+            980,
+            140,
+            1060,
+            880,
+            480,
+            880
+          ],
+          "pxPerCm": 8.285714285714286,
+          "realWidthCm": 70,
+          "fill": true
+        }
+      ],
+      "thumbnailUrl": "/media/templates/robe-thumb.webp",
+      "isDefault": true,
+      "order": 16
+    }
+  ],
+  "fabrics": [
+    {
+      "id": "kr-1042",
+      "art": "KR-1042",
+      "collectionId": "internal",
+      "fabricTypeId": "kurpacha-fabric",
+      "name": {
+        "ru": "Атлас «Хива»",
+        "en": "Atlas «Khiva»",
+        "uz": "Atlas «Xiva»"
+      },
+      "description": {
+        "ru": "Атлас «Хива»: набивной рисунок для каталога BAHMAL HOME.",
+        "en": "Atlas «Khiva»: a printed design for the BAHMAL HOME catalogue.",
+        "uz": "Atlas «Xiva»: BAHMAL HOME katalogi uchun bosma rasm."
+      },
+      "composition": {
+        "ru": "100% хлопок",
+        "en": "100% cotton",
+        "uz": "100% paxta"
+      },
+      "density": "140",
+      "width": "150",
+      "rapport": {
+        "widthCm": 32,
+        "heightCm": 32
+      },
+      "colors": [
+        "#0e3a5d",
+        "#d4bc84",
+        "#f4efe6",
+        "#8e2f3a"
+      ],
+      "tags": [
+        "цветы",
+        "орнамент",
+        "синий",
+        "золото"
+      ],
+      "productTypes": [
+        "kurpacha",
+        "pillow"
+      ],
+      "status": "published",
+      "isNew": true,
+      "translationLocked": {},
+      "createdBy": "user-designer",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "design": {
+        "originalUrl": "/media/designs/khiva.png",
+        "webUrl": "/media/designs/khiva.webp",
+        "thumbUrl": "/media/designs/khiva-thumb.webp",
+        "widthPx": 1600,
+        "heightPx": 1600,
+        "seamless": true
+      },
+      "mockups": [
+        {
+          "productType": "kurpacha",
+          "templateId": "kurpacha-room",
+          "url": "/media/mockups/kr-1042-kurpacha-room.webp",
+          "thumbUrl": "/media/mockups/kr-1042-kurpacha-room-600.webp",
+          "webUrl": "/media/mockups/kr-1042-kurpacha-room-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "body",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "pillow",
+          "templateId": "pillow-sofa",
+          "url": "/media/mockups/kr-1042-pillow-sofa.webp",
+          "thumbUrl": "/media/mockups/kr-1042-pillow-sofa-600.webp",
+          "webUrl": "/media/mockups/kr-1042-pillow-sofa-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "cushion",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        }
+      ],
+      "densityRange": {
+        "min": 140,
+        "max": 140
+      },
+      "widthList": [
+        150
+      ],
+      "realPhotos": [
+        {
+          "url": "/media/designs/khiva.webp",
+          "thumbUrl": "/media/designs/khiva-thumb.webp"
+        }
+      ]
+    },
+    {
+      "id": "kr-1108",
+      "art": "KR-1108",
+      "collectionId": "internal",
+      "fabricTypeId": "kurpacha-fabric",
+      "name": {
+        "ru": "Сузани «Бухара»",
+        "en": "Suzani «Bukhara»",
+        "uz": "Syuzane «Buxoro»"
+      },
+      "description": {
+        "ru": "Сузани «Бухара»: набивной рисунок для каталога BAHMAL HOME.",
+        "en": "Suzani «Bukhara»: a printed design for the BAHMAL HOME catalogue.",
+        "uz": "Syuzane «Buxoro»: BAHMAL HOME katalogi uchun bosma rasm."
+      },
+      "composition": {
+        "ru": "100% хлопок",
+        "en": "100% cotton",
+        "uz": "100% paxta"
+      },
+      "density": "160",
+      "width": "150 / 220",
+      "rapport": {
+        "widthCm": 36,
+        "heightCm": 36
+      },
+      "colors": [
+        "#6e1d2a",
+        "#e6c27a",
+        "#f7efe4",
+        "#2b1216"
+      ],
+      "tags": [
+        "орнамент",
+        "бордовый"
+      ],
+      "productTypes": [
+        "kurpacha",
+        "pillow"
+      ],
+      "status": "published",
+      "isNew": false,
+      "translationLocked": {},
+      "createdBy": "user-designer",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "design": {
+        "originalUrl": "/media/designs/bukhara.png",
+        "webUrl": "/media/designs/bukhara.webp",
+        "thumbUrl": "/media/designs/bukhara-thumb.webp",
+        "widthPx": 1600,
+        "heightPx": 1600,
+        "seamless": true
+      },
+      "mockups": [
+        {
+          "productType": "kurpacha",
+          "templateId": "kurpacha-room",
+          "url": "/media/mockups/kr-1108-kurpacha-room.webp",
+          "thumbUrl": "/media/mockups/kr-1108-kurpacha-room-600.webp",
+          "webUrl": "/media/mockups/kr-1108-kurpacha-room-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "body",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "pillow",
+          "templateId": "pillow-sofa",
+          "url": "/media/mockups/kr-1108-pillow-sofa.webp",
+          "thumbUrl": "/media/mockups/kr-1108-pillow-sofa-600.webp",
+          "webUrl": "/media/mockups/kr-1108-pillow-sofa-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "cushion",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        }
+      ],
+      "densityRange": {
+        "min": 160,
+        "max": 160
+      },
+      "widthList": [
+        150,
+        220
+      ],
+      "realPhotos": []
+    },
+    {
+      "id": "st-2201",
+      "art": "ST-2201",
+      "collectionId": "euro",
+      "fabricTypeId": "sateen",
+      "name": {
+        "ru": "Лаванда",
+        "en": "Lavanda",
+        "uz": "Lavanda"
+      },
+      "description": {
+        "ru": "Лаванда: набивной рисунок для каталога BAHMAL HOME.",
+        "en": "Lavanda: a printed design for the BAHMAL HOME catalogue.",
+        "uz": "Lavanda: BAHMAL HOME katalogi uchun bosma rasm."
+      },
+      "composition": {
+        "ru": "100% хлопок",
+        "en": "100% cotton",
+        "uz": "100% paxta"
+      },
+      "density": "120–125",
+      "width": "220",
+      "rapport": {
+        "widthCm": 24,
+        "heightCm": 24
+      },
+      "colors": [
+        "#efe6f2",
+        "#7d6b9a",
+        "#c7b4d6",
+        "#f7f4ef"
+      ],
+      "tags": [
+        "цветы",
+        "сиреневый"
+      ],
+      "productTypes": [
+        "kpb",
+        "duvet",
+        "sheet",
+        "pillowcase"
+      ],
+      "status": "published",
+      "isNew": true,
+      "priceVisible": {
+        "usd": 4.8,
+        "uzs": 62000
+      },
+      "translationLocked": {},
+      "createdBy": "user-designer",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "design": {
+        "originalUrl": "/media/designs/lavanda.png",
+        "webUrl": "/media/designs/lavanda.webp",
+        "thumbUrl": "/media/designs/lavanda-thumb.webp",
+        "widthPx": 1600,
+        "heightPx": 1600,
+        "seamless": true
+      },
+      "mockups": [
+        {
+          "productType": "kpb",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/st-2201-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/st-2201-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/st-2201-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "duvet",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/st-2201-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/st-2201-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/st-2201-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "sheet",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/st-2201-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/st-2201-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/st-2201-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "pillowcase",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/st-2201-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/st-2201-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/st-2201-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        }
+      ],
+      "densityRange": {
+        "min": 120,
+        "max": 125
+      },
+      "widthList": [
+        220
+      ],
+      "realPhotos": []
+    },
+    {
+      "id": "st-2214",
+      "art": "ST-2214",
+      "collectionId": "euro",
+      "fabricTypeId": "stripe-sateen",
+      "name": {
+        "ru": "Геометрия «Самарканд»",
+        "en": "Geometry «Samarkand»",
+        "uz": "Geometriya «Samarqand»"
+      },
+      "description": {
+        "ru": "Геометрия «Самарканд»: набивной рисунок для каталога BAHMAL HOME.",
+        "en": "Geometry «Samarkand»: a printed design for the BAHMAL HOME catalogue.",
+        "uz": "Geometriya «Samarqand»: BAHMAL HOME katalogi uchun bosma rasm."
+      },
+      "composition": {
+        "ru": "100% хлопок",
+        "en": "100% cotton",
+        "uz": "100% paxta"
+      },
+      "density": "130",
+      "width": "220 / 240",
+      "rapport": {
+        "widthCm": 16,
+        "heightCm": 16
+      },
+      "colors": [
+        "#f7f4ef",
+        "#163a66",
+        "#9bb0c9"
+      ],
+      "tags": [
+        "геометрия",
+        "синий"
+      ],
+      "productTypes": [
+        "kpb",
+        "duvet",
+        "sheet",
+        "pillowcase"
+      ],
+      "status": "published",
+      "isNew": false,
+      "priceVisible": {
+        "usd": 4.8,
+        "uzs": 62000
+      },
+      "translationLocked": {},
+      "createdBy": "user-designer",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "design": {
+        "originalUrl": "/media/designs/samarkand.png",
+        "webUrl": "/media/designs/samarkand.webp",
+        "thumbUrl": "/media/designs/samarkand-thumb.webp",
+        "widthPx": 1600,
+        "heightPx": 1600,
+        "seamless": true
+      },
+      "mockups": [
+        {
+          "productType": "kpb",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/st-2214-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/st-2214-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/st-2214-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "duvet",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/st-2214-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/st-2214-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/st-2214-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "sheet",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/st-2214-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/st-2214-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/st-2214-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "pillowcase",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/st-2214-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/st-2214-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/st-2214-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        }
+      ],
+      "densityRange": {
+        "min": 130,
+        "max": 130
+      },
+      "widthList": [
+        220,
+        240
+      ],
+      "realPhotos": []
+    },
+    {
+      "id": "st-2302",
+      "art": "ST-2302",
+      "collectionId": "euro",
+      "fabricTypeId": "stripe-sateen",
+      "name": {
+        "ru": "Полоса «Нил»",
+        "en": "Nile stripe",
+        "uz": "Nil yo'li"
+      },
+      "description": {
+        "ru": "Полоса «Нил»: набивной рисунок для каталога BAHMAL HOME.",
+        "en": "Nile stripe: a printed design for the BAHMAL HOME catalogue.",
+        "uz": "Nil yo'li: BAHMAL HOME katalogi uchun bosma rasm."
+      },
+      "composition": {
+        "ru": "100% хлопок",
+        "en": "100% cotton",
+        "uz": "100% paxta"
+      },
+      "density": "125±5",
+      "width": "240",
+      "rapport": {
+        "widthCm": 18,
+        "heightCm": 18
+      },
+      "colors": [
+        "#e7f0ea",
+        "#1f6f6a",
+        "#d4bc84"
+      ],
+      "tags": [
+        "геометрия",
+        "зелёный"
+      ],
+      "productTypes": [
+        "kpb",
+        "duvet",
+        "sheet"
+      ],
+      "status": "published",
+      "isNew": true,
+      "priceVisible": {
+        "usd": 4.8,
+        "uzs": 62000
+      },
+      "translationLocked": {},
+      "createdBy": "user-designer",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "design": {
+        "originalUrl": "/media/designs/nile.png",
+        "webUrl": "/media/designs/nile.webp",
+        "thumbUrl": "/media/designs/nile-thumb.webp",
+        "widthPx": 1600,
+        "heightPx": 1600,
+        "seamless": true
+      },
+      "mockups": [
+        {
+          "productType": "kpb",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/st-2302-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/st-2302-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/st-2302-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "duvet",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/st-2302-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/st-2302-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/st-2302-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "sheet",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/st-2302-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/st-2302-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/st-2302-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        }
+      ],
+      "densityRange": {
+        "min": 120,
+        "max": 130
+      },
+      "widthList": [
+        240
+      ],
+      "realPhotos": []
+    },
+    {
+      "id": "pl-301",
+      "art": "PL-301",
+      "collectionId": "internal",
+      "fabricTypeId": "poplin",
+      "name": {
+        "ru": "Поплин «Утро»",
+        "en": "Poplin «Utro»",
+        "uz": "Poplin «Tong»"
+      },
+      "description": {
+        "ru": "Поплин «Утро»: набивной рисунок для каталога BAHMAL HOME.",
+        "en": "Poplin «Utro»: a printed design for the BAHMAL HOME catalogue.",
+        "uz": "Poplin «Tong»: BAHMAL HOME katalogi uchun bosma rasm."
+      },
+      "composition": {
+        "ru": "100% хлопок",
+        "en": "100% cotton",
+        "uz": "100% paxta"
+      },
+      "density": "118",
+      "width": "220",
+      "rapport": {
+        "widthCm": 12,
+        "heightCm": 12
+      },
+      "colors": [
+        "#f7f3ea",
+        "#6d8f71",
+        "#d7c4a3"
+      ],
+      "tags": [
+        "цветы",
+        "зелёный"
+      ],
+      "productTypes": [
+        "kpb",
+        "sheet",
+        "pillowcase"
+      ],
+      "status": "published",
+      "isNew": false,
+      "translationLocked": {},
+      "createdBy": "user-designer",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "design": {
+        "originalUrl": "/media/designs/morning.png",
+        "webUrl": "/media/designs/morning.webp",
+        "thumbUrl": "/media/designs/morning-thumb.webp",
+        "widthPx": 1600,
+        "heightPx": 1600,
+        "seamless": true
+      },
+      "mockups": [
+        {
+          "productType": "kpb",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/pl-301-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/pl-301-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/pl-301-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "sheet",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/pl-301-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/pl-301-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/pl-301-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "pillowcase",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/pl-301-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/pl-301-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/pl-301-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        }
+      ],
+      "densityRange": {
+        "min": 118,
+        "max": 118
+      },
+      "widthList": [
+        220
+      ],
+      "realPhotos": []
+    },
+    {
+      "id": "tf-410",
+      "art": "TF-410",
+      "collectionId": "internal",
+      "fabricTypeId": "waffle",
+      "name": {
+        "ru": "Вафля «Мята»",
+        "en": "Waffle «Myata»",
+        "uz": "Vafel «Yalpiz»"
+      },
+      "description": {
+        "ru": "Вафля «Мята»: набивной рисунок для каталога BAHMAL HOME.",
+        "en": "Waffle «Myata»: a printed design for the BAHMAL HOME catalogue.",
+        "uz": "Vafel «Yalpiz»: BAHMAL HOME katalogi uchun bosma rasm."
+      },
+      "composition": {
+        "ru": "100% хлопок",
+        "en": "100% cotton",
+        "uz": "100% paxta"
+      },
+      "density": "180",
+      "width": "80 / 150",
+      "rapport": {
+        "widthCm": 4,
+        "heightCm": 4
+      },
+      "colors": [
+        "#e7f4ef",
+        "#b7d8cf",
+        "#f7fffc"
+      ],
+      "tags": [
+        "мята"
+      ],
+      "productTypes": [
+        "towel",
+        "tea-towel"
+      ],
+      "status": "published",
+      "isNew": false,
+      "translationLocked": {},
+      "createdBy": "user-designer",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "design": {
+        "originalUrl": "/media/designs/mint.png",
+        "webUrl": "/media/designs/mint.webp",
+        "thumbUrl": "/media/designs/mint-thumb.webp",
+        "widthPx": 1600,
+        "heightPx": 1600,
+        "seamless": true
+      },
+      "mockups": [
+        {
+          "productType": "towel",
+          "templateId": "towel-bath",
+          "url": "/media/mockups/tf-410-towel-bath.webp",
+          "thumbUrl": "/media/mockups/tf-410-towel-bath-600.webp",
+          "webUrl": "/media/mockups/tf-410-towel-bath-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "towel",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "tea-towel",
+          "templateId": "tea-towel",
+          "url": "/media/mockups/tf-410-tea-towel.webp",
+          "thumbUrl": "/media/mockups/tf-410-tea-towel-600.webp",
+          "webUrl": "/media/mockups/tf-410-tea-towel-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "towel",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        }
+      ],
+      "densityRange": {
+        "min": 180,
+        "max": 180
+      },
+      "widthList": [
+        80,
+        150
+      ],
+      "realPhotos": []
+    },
+    {
+      "id": "mh-512",
+      "art": "MH-512",
+      "collectionId": "internal",
+      "fabricTypeId": "terry",
+      "name": {
+        "ru": "Махра «Песок»",
+        "en": "Terry «Sand»",
+        "uz": "Mahra «Qum»"
+      },
+      "description": {
+        "ru": "Махра «Песок»: набивной рисунок для каталога BAHMAL HOME.",
+        "en": "Terry «Sand»: a printed design for the BAHMAL HOME catalogue.",
+        "uz": "Mahra «Qum»: BAHMAL HOME katalogi uchun bosma rasm."
+      },
+      "composition": {
+        "ru": "100% хлопок",
+        "en": "100% cotton",
+        "uz": "100% paxta"
+      },
+      "density": "420",
+      "width": "150",
+      "rapport": {
+        "widthCm": 2,
+        "heightCm": 2
+      },
+      "colors": [
+        "#e7d7c3",
+        "#c8ae90",
+        "#f6efe6"
+      ],
+      "tags": [
+        "песок",
+        "беж"
+      ],
+      "productTypes": [
+        "towel"
+      ],
+      "status": "published",
+      "isNew": false,
+      "translationLocked": {},
+      "createdBy": "user-designer",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "design": {
+        "originalUrl": "/media/designs/sand.png",
+        "webUrl": "/media/designs/sand.webp",
+        "thumbUrl": "/media/designs/sand-thumb.webp",
+        "widthPx": 1600,
+        "heightPx": 1600,
+        "seamless": true
+      },
+      "mockups": [
+        {
+          "productType": "towel",
+          "templateId": "towel-bath",
+          "url": "/media/mockups/mh-512-towel-bath.webp",
+          "thumbUrl": "/media/mockups/mh-512-towel-bath-600.webp",
+          "webUrl": "/media/mockups/mh-512-towel-bath-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "towel",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        }
+      ],
+      "densityRange": {
+        "min": 420,
+        "max": 420
+      },
+      "widthList": [
+        150
+      ],
+      "realPhotos": []
+    },
+    {
+      "id": "fs-801",
+      "art": "FS-801",
+      "collectionId": "fashion",
+      "fabricTypeId": "twill",
+      "name": {
+        "ru": "Икат «Маргилан»",
+        "en": "Ikat «Margilan»",
+        "uz": "Ikat «Marg'ilon»"
+      },
+      "description": {
+        "ru": "Икат «Маргилан»: набивной рисунок для каталога BAHMAL HOME.",
+        "en": "Ikat «Margilan»: a printed design for the BAHMAL HOME catalogue.",
+        "uz": "Ikat «Marg'ilon»: BAHMAL HOME katalogi uchun bosma rasm."
+      },
+      "composition": {
+        "ru": "100% хлопок",
+        "en": "100% cotton",
+        "uz": "100% paxta"
+      },
+      "density": "145",
+      "width": "150",
+      "rapport": {
+        "widthCm": 28,
+        "heightCm": 28
+      },
+      "colors": [
+        "#1c1915",
+        "#c4553a",
+        "#e6c27a",
+        "#f4efe6"
+      ],
+      "tags": [
+        "икат",
+        "красный"
+      ],
+      "productTypes": [
+        "robe",
+        "roll",
+        "pillow"
+      ],
+      "status": "published",
+      "isNew": true,
+      "translationLocked": {},
+      "createdBy": "user-designer",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "design": {
+        "originalUrl": "/media/designs/ikat.png",
+        "webUrl": "/media/designs/ikat.webp",
+        "thumbUrl": "/media/designs/ikat-thumb.webp",
+        "widthPx": 1600,
+        "heightPx": 1600,
+        "seamless": true
+      },
+      "mockups": [
+        {
+          "productType": "robe",
+          "templateId": "robe",
+          "url": "/media/mockups/fs-801-robe.webp",
+          "thumbUrl": "/media/mockups/fs-801-robe-600.webp",
+          "webUrl": "/media/mockups/fs-801-robe-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "robe",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "roll",
+          "templateId": "fabric-roll",
+          "url": "/media/mockups/fs-801-fabric-roll.webp",
+          "thumbUrl": "/media/mockups/fs-801-fabric-roll-600.webp",
+          "webUrl": "/media/mockups/fs-801-fabric-roll-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "roll",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "pillow",
+          "templateId": "pillow-sofa",
+          "url": "/media/mockups/fs-801-pillow-sofa.webp",
+          "thumbUrl": "/media/mockups/fs-801-pillow-sofa-600.webp",
+          "webUrl": "/media/mockups/fs-801-pillow-sofa-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "cushion",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        }
+      ],
+      "densityRange": {
+        "min": 145,
+        "max": 145
+      },
+      "widthList": [
+        150
+      ],
+      "realPhotos": []
+    },
+    {
+      "id": "fs-814",
+      "art": "FS-814",
+      "collectionId": "fashion",
+      "fabricTypeId": "twill",
+      "name": {
+        "ru": "Ночь",
+        "en": "Night",
+        "uz": "Tun"
+      },
+      "description": {
+        "ru": "Ночь: набивной рисунок для каталога BAHMAL HOME.",
+        "en": "Night: a printed design for the BAHMAL HOME catalogue.",
+        "uz": "Tun: BAHMAL HOME katalogi uchun bosma rasm."
+      },
+      "composition": {
+        "ru": "100% хлопок",
+        "en": "100% cotton",
+        "uz": "100% paxta"
+      },
+      "density": "150",
+      "width": "150",
+      "rapport": {
+        "widthCm": 32,
+        "heightCm": 32
+      },
+      "colors": [
+        "#16141a",
+        "#d4bc84",
+        "#3a3344"
+      ],
+      "tags": [
+        "чёрный",
+        "золото"
+      ],
+      "productTypes": [
+        "robe",
+        "roll"
+      ],
+      "status": "published",
+      "isNew": false,
+      "translationLocked": {},
+      "createdBy": "user-designer",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "design": {
+        "originalUrl": "/media/designs/night.png",
+        "webUrl": "/media/designs/night.webp",
+        "thumbUrl": "/media/designs/night-thumb.webp",
+        "widthPx": 1600,
+        "heightPx": 1600,
+        "seamless": true
+      },
+      "mockups": [
+        {
+          "productType": "robe",
+          "templateId": "robe",
+          "url": "/media/mockups/fs-814-robe.webp",
+          "thumbUrl": "/media/mockups/fs-814-robe-600.webp",
+          "webUrl": "/media/mockups/fs-814-robe-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "robe",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "roll",
+          "templateId": "fabric-roll",
+          "url": "/media/mockups/fs-814-fabric-roll.webp",
+          "thumbUrl": "/media/mockups/fs-814-fabric-roll-600.webp",
+          "webUrl": "/media/mockups/fs-814-fabric-roll-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "roll",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        }
+      ],
+      "densityRange": {
+        "min": 150,
+        "max": 150
+      },
+      "widthList": [
+        150
+      ],
+      "realPhotos": []
+    },
+    {
+      "id": "bl-090",
+      "art": "BL-090",
+      "collectionId": "internal",
+      "fabricTypeId": "calico",
+      "name": {
+        "ru": "Бязь «Детская»",
+        "en": "Calico «Kids»",
+        "uz": "Byaz «Bolalar»"
+      },
+      "description": {
+        "ru": "Бязь «Детская»: набивной рисунок для каталога BAHMAL HOME.",
+        "en": "Calico «Kids»: a printed design for the BAHMAL HOME catalogue.",
+        "uz": "Byaz «Bolalar»: BAHMAL HOME katalogi uchun bosma rasm."
+      },
+      "composition": {
+        "ru": "100% хлопок",
+        "en": "100% cotton",
+        "uz": "100% paxta"
+      },
+      "density": "120",
+      "width": "150 / 220",
+      "rapport": {
+        "widthCm": 20,
+        "heightCm": 20
+      },
+      "colors": [
+        "#fff8e8",
+        "#f0c36a",
+        "#7eb0d6"
+      ],
+      "tags": [
+        "детское",
+        "жёлтый"
+      ],
+      "productTypes": [
+        "kpb",
+        "sheet"
+      ],
+      "status": "published",
+      "isNew": false,
+      "translationLocked": {},
+      "createdBy": "user-designer",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "design": {
+        "originalUrl": "/media/designs/kids.png",
+        "webUrl": "/media/designs/kids.webp",
+        "thumbUrl": "/media/designs/kids-thumb.webp",
+        "widthPx": 1600,
+        "heightPx": 1600,
+        "seamless": true
+      },
+      "mockups": [
+        {
+          "productType": "kpb",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/bl-090-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/bl-090-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/bl-090-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "sheet",
+          "templateId": "bedroom-light",
+          "url": "/media/mockups/bl-090-bedroom-light.webp",
+          "thumbUrl": "/media/mockups/bl-090-bedroom-light-600.webp",
+          "webUrl": "/media/mockups/bl-090-bedroom-light-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "duvet",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-l",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            },
+            {
+              "areaId": "pillow-r",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        }
+      ],
+      "densityRange": {
+        "min": 120,
+        "max": 120
+      },
+      "widthList": [
+        150,
+        220
+      ],
+      "realPhotos": []
+    },
+    {
+      "id": "dk-077",
+      "art": "DK-077",
+      "collectionId": "internal",
+      "fabricTypeId": "duck",
+      "name": {
+        "ru": "Дак «Поле»",
+        "en": "Duck «Field»",
+        "uz": "Dak «Maydon»"
+      },
+      "description": {
+        "ru": "Дак «Поле»: набивной рисунок для каталога BAHMAL HOME.",
+        "en": "Duck «Field»: a printed design for the BAHMAL HOME catalogue.",
+        "uz": "Dak «Maydon»: BAHMAL HOME katalogi uchun bosma rasm."
+      },
+      "composition": {
+        "ru": "100% хлопок",
+        "en": "100% cotton",
+        "uz": "100% paxta"
+      },
+      "density": "210",
+      "width": "160",
+      "rapport": {
+        "widthCm": 24,
+        "heightCm": 24
+      },
+      "colors": [
+        "#efe6d4",
+        "#8c7a55",
+        "#f7f1e4"
+      ],
+      "tags": [
+        "геометрия"
+      ],
+      "productTypes": [
+        "tablecloth",
+        "napkins"
+      ],
+      "status": "published",
+      "isNew": false,
+      "translationLocked": {},
+      "createdBy": "user-designer",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "design": {
+        "originalUrl": "/media/designs/duck.png",
+        "webUrl": "/media/designs/duck.webp",
+        "thumbUrl": "/media/designs/duck-thumb.webp",
+        "widthPx": 1600,
+        "heightPx": 1600,
+        "seamless": true
+      },
+      "mockups": [
+        {
+          "productType": "tablecloth",
+          "templateId": "table-rect",
+          "url": "/media/mockups/dk-077-table-rect.webp",
+          "thumbUrl": "/media/mockups/dk-077-table-rect-600.webp",
+          "webUrl": "/media/mockups/dk-077-table-rect-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "cloth",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        },
+        {
+          "productType": "napkins",
+          "templateId": "napkins",
+          "url": "/media/mockups/dk-077-napkins.webp",
+          "thumbUrl": "/media/mockups/dk-077-napkins-600.webp",
+          "webUrl": "/media/mockups/dk-077-napkins-1200.webp",
+          "sameForAllAreas": true,
+          "areas": [
+            {
+              "areaId": "napkin",
+              "scale": 1,
+              "offsetX": 0,
+              "offsetY": 0,
+              "rotation": 0
+            }
+          ],
+          "engine": "webgl",
+          "generatedAt": "2026-10-01T09:00:00.000Z"
+        }
+      ],
+      "densityRange": {
+        "min": 210,
+        "max": 210
+      },
+      "widthList": [
+        160
+      ],
+      "realPhotos": []
+    },
+    {
+      "id": "fl-012",
+      "art": "FL-012",
+      "collectionId": "internal",
+      "fabricTypeId": "flannel",
+      "name": {
+        "ru": "Фланель «Облако»",
+        "en": "",
+        "uz": ""
+      },
+      "description": {
+        "ru": "Фланель «Облако»: набивной рисунок для каталога BAHMAL HOME.",
+        "en": "Фланель «Облако»: a printed design for the BAHMAL HOME catalogue.",
+        "uz": "Фланель «Облако»: BAHMAL HOME katalogi uchun bosma rasm."
+      },
+      "composition": {
+        "ru": "100% хлопок",
+        "en": "100% cotton",
+        "uz": "100% paxta"
+      },
+      "density": "170",
+      "width": "220",
+      "rapport": {
+        "widthCm": 0,
+        "heightCm": 0
+      },
+      "colors": [
+        "#f4f1ec",
+        "#d5d0c8"
+      ],
+      "tags": [
+        "серый"
+      ],
+      "productTypes": [
+        "kpb"
+      ],
+      "status": "draft",
+      "isNew": false,
+      "translationLocked": {},
+      "createdBy": "user-designer",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "pattern": "cloud",
+      "design": {
+        "originalUrl": "/media/designs/cloud.png",
+        "webUrl": "/media/designs/cloud.webp",
+        "thumbUrl": "/media/designs/cloud-thumb.webp",
+        "widthPx": 1600,
+        "heightPx": 1600,
+        "seamless": true
+      },
+      "mockups": [],
+      "densityRange": {
+        "min": 170,
+        "max": 170
+      },
+      "widthList": [
+        220
+      ],
+      "realPhotos": []
+    }
+  ],
+  "catalogs": [
+    {
+      "subtitle": {
+        "ru": "Набивные курпачи сезона",
+        "en": "Printed kurpacha for the season",
+        "uz": "Mavsum bosma ko'rpachalari"
+      },
+      "langs": [
+        "ru",
+        "en",
+        "uz"
+      ],
+      "cover": {
+        "fabricId": "kr-1042"
+      },
+      "showPrices": false,
+      "contacts": {
+        "phone": "+998 00 000 00 00",
+        "telegram": "bahmal_home",
+        "email": "catalog@bahmal.uz",
+        "address": "Хорезм, Узбекистан"
+      },
+      "createdBy": "user-manager",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "status": "live",
+      "slug": "kurpacha-2026",
+      "title": {
+        "ru": "Курпача 2026",
+        "en": "Kurpacha 2026",
+        "uz": "Ko'rpacha 2026"
+      },
+      "defaultLang": "ru",
+      "mode": "rules",
+      "rules": {
+        "productTypes": [
+          "kurpacha"
+        ]
+      },
+      "showProductTypes": [
+        "kurpacha",
+        "pillow"
+      ],
+      "layout": {
+        "perPage": 2,
+        "sectionBy": "fabricType",
+        "theme": "light"
+      },
+      "access": "public"
+    },
+    {
+      "subtitle": {
+        "ru": "",
+        "en": "",
+        "uz": ""
+      },
+      "langs": [
+        "ru",
+        "en",
+        "uz"
+      ],
+      "cover": {
+        "fabricId": "st-2201"
+      },
+      "showPrices": false,
+      "contacts": {
+        "phone": "+998 00 000 00 00",
+        "telegram": "bahmal_home",
+        "email": "catalog@bahmal.uz",
+        "address": "Хорезм, Узбекистан"
+      },
+      "createdBy": "user-manager",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "status": "live",
+      "slug": "euro-sateen",
+      "title": {
+        "ru": "Евро — сатин",
+        "en": "Euro sateen",
+        "uz": "Yevro satin"
+      },
+      "defaultLang": "ru",
+      "mode": "rules",
+      "rules": {
+        "fabricTypes": [
+          "sateen",
+          "stripe-sateen"
+        ]
+      },
+      "showProductTypes": [
+        "kpb",
+        "duvet",
+        "sheet",
+        "pillowcase"
+      ],
+      "layout": {
+        "perPage": 2,
+        "sectionBy": "fabricType",
+        "theme": "light"
+      },
+      "access": "public"
+    },
+    {
+      "subtitle": {
+        "ru": "",
+        "en": "",
+        "uz": ""
+      },
+      "langs": [
+        "en",
+        "ru"
+      ],
+      "cover": {
+        "fabricId": "fs-801"
+      },
+      "showPrices": false,
+      "contacts": {
+        "phone": "+998 00 000 00 00",
+        "telegram": "bahmal_home",
+        "email": "catalog@bahmal.uz",
+        "address": "Хорезм, Узбекистан"
+      },
+      "createdBy": "user-manager",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "status": "live",
+      "slug": "fashion-poland",
+      "title": {
+        "ru": "Fashion для Польши",
+        "en": "Fashion for Poland",
+        "uz": "Polsha uchun Fashion"
+      },
+      "defaultLang": "en",
+      "mode": "rules",
+      "rules": {
+        "collections": [
+          "fashion"
+        ]
+      },
+      "showProductTypes": [
+        "robe",
+        "roll",
+        "pillow"
+      ],
+      "layout": {
+        "perPage": 1,
+        "sectionBy": "none",
+        "theme": "dark"
+      },
+      "access": "public"
+    },
+    {
+      "subtitle": {
+        "ru": "",
+        "en": "",
+        "uz": ""
+      },
+      "langs": [
+        "ru",
+        "en",
+        "uz"
+      ],
+      "cover": {
+        "fabricId": "tf-410"
+      },
+      "showPrices": false,
+      "contacts": {
+        "phone": "+998 00 000 00 00",
+        "telegram": "bahmal_home",
+        "email": "catalog@bahmal.uz",
+        "address": "Хорезм, Узбекистан"
+      },
+      "createdBy": "user-manager",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "status": "live",
+      "slug": "towels-kitchen",
+      "title": {
+        "ru": "Полотенца и кухня",
+        "en": "Towels and kitchen",
+        "uz": "Sochiq va oshxona"
+      },
+      "defaultLang": "ru",
+      "mode": "rules",
+      "rules": {
+        "productTypes": [
+          "towel",
+          "tea-towel"
+        ]
+      },
+      "showProductTypes": [
+        "towel",
+        "tea-towel"
+      ],
+      "layout": {
+        "perPage": 2,
+        "sectionBy": "fabricType",
+        "theme": "light"
+      },
+      "access": "public"
+    },
+    {
+      "subtitle": {
+        "ru": "",
+        "en": "",
+        "uz": ""
+      },
+      "langs": [
+        "ru",
+        "en",
+        "uz"
+      ],
+      "cover": {
+        "fabricId": "st-2201"
+      },
+      "showPrices": false,
+      "contacts": {
+        "phone": "+998 00 000 00 00",
+        "telegram": "bahmal_home",
+        "email": "catalog@bahmal.uz",
+        "address": "Хорезм, Узбекистан"
+      },
+      "createdBy": "user-manager",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "status": "live",
+      "slug": "novinki-osen",
+      "title": {
+        "ru": "Новинки осени",
+        "en": "New this autumn",
+        "uz": "Kuz yangiliklari"
+      },
+      "defaultLang": "ru",
+      "mode": "rules",
+      "rules": {
+        "onlyNew": true
+      },
+      "showProductTypes": [
+        "kurpacha",
+        "kpb",
+        "pillow",
+        "robe"
+      ],
+      "layout": {
+        "perPage": 2,
+        "sectionBy": "collection",
+        "theme": "light"
+      },
+      "access": "public"
+    },
+    {
+      "subtitle": {
+        "ru": "",
+        "en": "",
+        "uz": ""
+      },
+      "langs": [
+        "ru",
+        "en",
+        "uz"
+      ],
+      "cover": {},
+      "showPrices": true,
+      "contacts": {
+        "phone": "+998 00 000 00 00",
+        "telegram": "bahmal_home",
+        "email": "catalog@bahmal.uz",
+        "address": "Хорезм, Узбекистан"
+      },
+      "createdBy": "user-manager",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "status": "live",
+      "slug": "b2b-prices",
+      "title": {
+        "ru": "B2B прайс",
+        "en": "B2B prices",
+        "uz": "B2B narx"
+      },
+      "defaultLang": "ru",
+      "mode": "manual",
+      "fabricIds": [
+        "st-2201",
+        "st-2214",
+        "st-2302"
+      ],
+      "showProductTypes": [
+        "kpb",
+        "duvet",
+        "sheet",
+        "pillowcase"
+      ],
+      "layout": {
+        "perPage": 2,
+        "sectionBy": "none",
+        "theme": "light"
+      },
+      "access": "pin",
+      "pinHash": "1668a4af8f2b9222cf0d1c5a32b979721c40c9dab51a9cab04c3b6d2bba6f569"
+    }
+  ],
+  "leads": [
+    {
+      "id": "lead-1",
+      "catalogSlug": "kurpacha-2026",
+      "fabricId": "kr-1042",
+      "fabricIds": [
+        "kr-1042"
+      ],
+      "name": "Малика",
+      "contact": "@malika",
+      "message": "Нужен образец курпачи",
+      "lang": "ru",
+      "createdAt": "2026-10-12T08:00:00.000Z",
+      "status": "new"
+    },
+    {
+      "id": "lead-2",
+      "catalogSlug": "euro-sateen",
+      "fabricId": "st-2201",
+      "fabricIds": [
+        "st-2201",
+        "st-2214"
+      ],
+      "name": "Anna",
+      "contact": "+48 000 000 000",
+      "lang": "en",
+      "createdAt": "2026-10-18T11:00:00.000Z",
+      "status": "in_work"
+    }
+  ],
+  "events": [
+    {
+      "id": "ev-kurpacha-2026-0",
+      "catalogSlug": "kurpacha-2026",
+      "type": "open",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-0-0"
+    },
+    {
+      "id": "pg-kurpacha-2026-0",
+      "catalogSlug": "kurpacha-2026",
+      "type": "page",
+      "page": 1,
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-0-0"
+    },
+    {
+      "id": "ev-kurpacha-2026-1",
+      "catalogSlug": "kurpacha-2026",
+      "type": "open",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-0-1"
+    },
+    {
+      "id": "pg-kurpacha-2026-1",
+      "catalogSlug": "kurpacha-2026",
+      "type": "page",
+      "page": 2,
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-0-1"
+    },
+    {
+      "id": "ev-kurpacha-2026-2",
+      "catalogSlug": "kurpacha-2026",
+      "type": "open",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-0-2"
+    },
+    {
+      "id": "pg-kurpacha-2026-2",
+      "catalogSlug": "kurpacha-2026",
+      "type": "page",
+      "page": 3,
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-0-2"
+    },
+    {
+      "id": "ev-kurpacha-2026-3",
+      "catalogSlug": "kurpacha-2026",
+      "type": "open",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-0-3"
+    },
+    {
+      "id": "pg-kurpacha-2026-3",
+      "catalogSlug": "kurpacha-2026",
+      "type": "page",
+      "page": 4,
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-0-3"
+    },
+    {
+      "id": "fab-kurpacha-2026",
+      "catalogSlug": "kurpacha-2026",
+      "type": "fabric_open",
+      "fabricId": "kr-1042",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-0-0"
+    },
+    {
+      "id": "ev-euro-sateen-0",
+      "catalogSlug": "euro-sateen",
+      "type": "open",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-1-0"
+    },
+    {
+      "id": "pg-euro-sateen-0",
+      "catalogSlug": "euro-sateen",
+      "type": "page",
+      "page": 1,
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-1-0"
+    },
+    {
+      "id": "ev-euro-sateen-1",
+      "catalogSlug": "euro-sateen",
+      "type": "open",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-1-1"
+    },
+    {
+      "id": "pg-euro-sateen-1",
+      "catalogSlug": "euro-sateen",
+      "type": "page",
+      "page": 2,
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-1-1"
+    },
+    {
+      "id": "ev-euro-sateen-2",
+      "catalogSlug": "euro-sateen",
+      "type": "open",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-1-2"
+    },
+    {
+      "id": "pg-euro-sateen-2",
+      "catalogSlug": "euro-sateen",
+      "type": "page",
+      "page": 3,
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-1-2"
+    },
+    {
+      "id": "ev-euro-sateen-3",
+      "catalogSlug": "euro-sateen",
+      "type": "open",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-1-3"
+    },
+    {
+      "id": "pg-euro-sateen-3",
+      "catalogSlug": "euro-sateen",
+      "type": "page",
+      "page": 4,
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-1-3"
+    },
+    {
+      "id": "fab-euro-sateen",
+      "catalogSlug": "euro-sateen",
+      "type": "fabric_open",
+      "fabricId": "st-2201",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-1-0"
+    },
+    {
+      "id": "ev-fashion-poland-0",
+      "catalogSlug": "fashion-poland",
+      "type": "open",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-2-0"
+    },
+    {
+      "id": "pg-fashion-poland-0",
+      "catalogSlug": "fashion-poland",
+      "type": "page",
+      "page": 1,
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-2-0"
+    },
+    {
+      "id": "ev-fashion-poland-1",
+      "catalogSlug": "fashion-poland",
+      "type": "open",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-2-1"
+    },
+    {
+      "id": "pg-fashion-poland-1",
+      "catalogSlug": "fashion-poland",
+      "type": "page",
+      "page": 2,
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-2-1"
+    },
+    {
+      "id": "ev-fashion-poland-2",
+      "catalogSlug": "fashion-poland",
+      "type": "open",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-2-2"
+    },
+    {
+      "id": "pg-fashion-poland-2",
+      "catalogSlug": "fashion-poland",
+      "type": "page",
+      "page": 3,
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-2-2"
+    },
+    {
+      "id": "ev-fashion-poland-3",
+      "catalogSlug": "fashion-poland",
+      "type": "open",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-2-3"
+    },
+    {
+      "id": "pg-fashion-poland-3",
+      "catalogSlug": "fashion-poland",
+      "type": "page",
+      "page": 4,
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-2-3"
+    },
+    {
+      "id": "fab-fashion-poland",
+      "catalogSlug": "fashion-poland",
+      "type": "fabric_open",
+      "fabricId": "kr-1042",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-2-0"
+    },
+    {
+      "id": "zoom-1",
+      "catalogSlug": "kurpacha-2026",
+      "type": "zoom",
+      "fabricId": "kr-1042",
+      "ts": "2026-10-01T09:00:00.000Z",
+      "sessionId": "s-0-0"
+    }
+  ],
+  "users": [
+    {
+      "id": "user-admin",
+      "email": "admin@bahmal.uz",
+      "name": "Администратор",
+      "role": "admin",
+      "passwordHash": "scrypt:ca002bb1e5f3af151162fc9f2dca086e:ad96a84cdfe29a97f15faa678b2862647cae2344f2d58db22dc0be9c53dccf91"
+    },
+    {
+      "id": "user-designer",
+      "email": "designer@bahmal.uz",
+      "name": "Дизайнер",
+      "role": "designer",
+      "passwordHash": "scrypt:67f39b740ddaf95cc73e255f16df0dc3:1e0367bf77cfd50ebeff6332f4fb59a2be776e6de58526052fc0f14d86ac0533"
+    },
+    {
+      "id": "user-manager",
+      "email": "manager@bahmal.uz",
+      "name": "Менеджер",
+      "role": "manager",
+      "passwordHash": "scrypt:68df0aa00f718864de9b6fa9bfa36e5d:3494fdb04392685b7045222e04bb4be8a52463f8497979f5ffe9e81794858d73"
+    }
+  ],
+  "glossary": [
+    {
+      "id": "g-1",
+      "ru": "поплин",
+      "en": "poplin",
+      "uz": "poplin"
+    },
+    {
+      "id": "g-2",
+      "ru": "сатин",
+      "en": "sateen",
+      "uz": "satin"
+    },
+    {
+      "id": "g-3",
+      "ru": "страйп-сатин",
+      "en": "stripe sateen",
+      "uz": "stripe satin"
+    },
+    {
+      "id": "g-4",
+      "ru": "фланель",
+      "en": "flannel",
+      "uz": "flanel"
+    },
+    {
+      "id": "g-5",
+      "ru": "бязь",
+      "en": "calico",
+      "uz": "byaz"
+    },
+    {
+      "id": "g-6",
+      "ru": "вафельное полотно",
+      "en": "waffle fabric",
+      "uz": "vafel mato"
+    },
+    {
+      "id": "g-7",
+      "ru": "махра",
+      "en": "terry",
+      "uz": "mahra"
+    },
+    {
+      "id": "g-8",
+      "ru": "дак",
+      "en": "duck canvas",
+      "uz": "dak"
+    },
+    {
+      "id": "g-9",
+      "ru": "ткань для курпачи",
+      "en": "kurpacha fabric",
+      "uz": "ko'rpacha matosi"
+    },
+    {
+      "id": "g-10",
+      "ru": "курпача",
+      "en": "kurpacha",
+      "uz": "ko'rpacha"
+    },
+    {
+      "id": "g-11",
+      "ru": "КПБ",
+      "en": "bed linen set",
+      "uz": "to'shak jihozi"
+    },
+    {
+      "id": "g-12",
+      "ru": "пододеяльник",
+      "en": "duvet cover",
+      "uz": "ko'rpa jildi"
+    },
+    {
+      "id": "g-13",
+      "ru": "простыня",
+      "en": "flat sheet",
+      "uz": "choyshab"
+    },
+    {
+      "id": "g-14",
+      "ru": "простыня на резинке",
+      "en": "fitted sheet",
+      "uz": "rezinkali choyshab"
+    },
+    {
+      "id": "g-15",
+      "ru": "наволочка",
+      "en": "pillowcase",
+      "uz": "yostiq jildi"
+    },
+    {
+      "id": "g-16",
+      "ru": "плотность",
+      "en": "density (g/m²)",
+      "uz": "zichlik (g/m²)"
+    },
+    {
+      "id": "g-17",
+      "ru": "ширина",
+      "en": "width (cm)",
+      "uz": "eni (sm)"
+    },
+    {
+      "id": "g-18",
+      "ru": "раппорт",
+      "en": "repeat",
+      "uz": "rapport"
+    },
+    {
+      "id": "g-19",
+      "ru": "набивной",
+      "en": "printed",
+      "uz": "bosma"
+    },
+    {
+      "id": "g-20",
+      "ru": "гладкокрашеный",
+      "en": "solid-dyed",
+      "uz": "silliq bo'yalgan"
+    },
+    {
+      "id": "g-21",
+      "ru": "абр/икат",
+      "en": "ikat (abr)",
+      "uz": "abr/ikat"
+    },
+    {
+      "id": "g-22",
+      "ru": "сюзане",
+      "en": "suzani",
+      "uz": "syuzane"
+    },
+    {
+      "id": "g-23",
+      "ru": "не линяет",
+      "en": "colourfast",
+      "uz": "rangi chiqmaydi"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    function role() { return request.auth.token.role; }
+    match /designs/{allPaths=**} {
+      allow read: if true;
+      allow write: if signedIn() && (role() == 'admin' || role() == 'designer');
+    }
+    match /uploads/{allPaths=**} {
+      allow read: if true;
+      allow write: if signedIn() && (role() == 'admin' || role() == 'designer');
+    }
+    match /mockups/{allPaths=**} {
+      allow read: if true;
+      allow write: if signedIn() && (role() == 'admin' || role() == 'designer');
+    }
+    match /templates/{allPaths=**} {
+      allow read: if true;
+      allow write: if signedIn() && role() == 'admin';
+    }
+  }
+}

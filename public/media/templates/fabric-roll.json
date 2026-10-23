@@ -1,0 +1,25 @@
+{
+  "areas": [
+    {
+      "id": "roll",
+      "label": "Рулон",
+      "psdLayerPath": "Рулон",
+      "soWidthPx": 900,
+      "soHeightPx": 648,
+      "transform": [
+        360,
+        280,
+        1180,
+        240,
+        1220,
+        760,
+        320,
+        800
+      ],
+      "pxPerCm": 6,
+      "realWidthCm": 150,
+      "fill": true
+    }
+  ],
+  "engine": "webgl"
+}

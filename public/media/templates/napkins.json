@@ -1,0 +1,25 @@
+{
+  "areas": [
+    {
+      "id": "napkin",
+      "label": "Салфетка",
+      "psdLayerPath": "Салфетка",
+      "soWidthPx": 460,
+      "soHeightPx": 331,
+      "transform": [
+        560,
+        340,
+        980,
+        340,
+        1000,
+        760,
+        540,
+        760
+      ],
+      "pxPerCm": 11.5,
+      "realWidthCm": 40,
+      "fill": true
+    }
+  ],
+  "engine": "webgl"
+}

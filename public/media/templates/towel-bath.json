@@ -1,0 +1,25 @@
+{
+  "areas": [
+    {
+      "id": "towel",
+      "label": "Полотенце",
+      "psdLayerPath": "Полотенце",
+      "soWidthPx": 400,
+      "soHeightPx": 288,
+      "transform": [
+        620,
+        160,
+        980,
+        160,
+        1000,
+        860,
+        600,
+        860
+      ],
+      "pxPerCm": 5.714285714285714,
+      "realWidthCm": 70,
+      "fill": true
+    }
+  ],
+  "engine": "webgl"
+}

@@ -1,0 +1,35 @@
+import type { Fabric } from "@/types";
+
+export function emptyFabric(userId: string): Fabric {
+  const now = new Date().toISOString();
+  return {
+    id: crypto.randomUUID(),
+    art: "",
+    collectionId: "",
+    fabricTypeId: "",
+    name: { ru: "", en: "", uz: "" },
+    description: { ru: "", en: "", uz: "" },
+    composition: { ru: "", en: "", uz: "" },
+    density: "",
+    width: "",
+    densityRange: null,
+    widthList: [],
+    rapport: { widthCm: 0, heightCm: 0 },
+    colors: [],
+    tags: [],
+    productTypes: [],
+    design: { originalUrl: "", webUrl: "", thumbUrl: "", widthPx: 0, heightPx: 0, seamless: true },
+    realPhotos: [],
+    mockups: [],
+    status: "draft",
+    isNew: false,
+    translationLocked: {},
+    createdBy: userId,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export function text(value: FormDataEntryValue | null) {
+  return typeof value === "string" ? value.trim() : "";
+}

@@ -1,0 +1,65 @@
+{
+  "areas": [
+    {
+      "id": "duvet",
+      "label": "Пододеяльник",
+      "psdLayerPath": "Пододеяльник",
+      "soWidthPx": 850,
+      "soHeightPx": 612,
+      "transform": [
+        430,
+        360,
+        1180,
+        330,
+        1240,
+        800,
+        390,
+        830
+      ],
+      "pxPerCm": 4.25,
+      "realWidthCm": 200,
+      "fill": true
+    },
+    {
+      "id": "pillow-l",
+      "label": "Подушка левая",
+      "psdLayerPath": "Подушка левая",
+      "soWidthPx": 280,
+      "soHeightPx": 202,
+      "transform": [
+        470,
+        280,
+        720,
+        270,
+        740,
+        430,
+        460,
+        450
+      ],
+      "pxPerCm": 5.6,
+      "realWidthCm": 50,
+      "fill": true
+    },
+    {
+      "id": "pillow-r",
+      "label": "Подушка правая",
+      "psdLayerPath": "Подушка правая",
+      "soWidthPx": 320,
+      "soHeightPx": 230,
+      "transform": [
+        860,
+        270,
+        1160,
+        250,
+        1180,
+        410,
+        880,
+        440
+      ],
+      "pxPerCm": 6.4,
+      "realWidthCm": 50,
+      "fill": true
+    }
+  ],
+  "engine": "webgl"
+}

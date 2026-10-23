@@ -1,0 +1,25 @@
+{
+  "areas": [
+    {
+      "id": "stack",
+      "label": "Стопка",
+      "psdLayerPath": "Стопка",
+      "soWidthPx": 720,
+      "soHeightPx": 518,
+      "transform": [
+        420,
+        360,
+        1100,
+        340,
+        1120,
+        760,
+        400,
+        780
+      ],
+      "pxPerCm": 8,
+      "realWidthCm": 90,
+      "fill": true
+    }
+  ],
+  "engine": "webgl"
+}

@@ -1,0 +1,25 @@
+{
+  "areas": [
+    {
+      "id": "robe",
+      "label": "Халат",
+      "psdLayerPath": "Халат",
+      "soWidthPx": 580,
+      "soHeightPx": 418,
+      "transform": [
+        560,
+        140,
+        980,
+        140,
+        1060,
+        880,
+        480,
+        880
+      ],
+      "pxPerCm": 8.285714285714286,
+      "realWidthCm": 70,
+      "fill": true
+    }
+  ],
+  "engine": "webgl"
+}

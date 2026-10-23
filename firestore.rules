@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function role() { return request.auth.token.role; }
+    function isAdmin() { return signedIn() && role() == 'admin'; }
+    function isDesigner() { return signedIn() && role() == 'designer'; }
+    function isManager() { return signedIn() && role() == 'manager'; }
+    function staff() { return isAdmin() || isDesigner() || isManager(); }
+
+    match /fabrics/{id} {
+      allow read: if resource.data.status == 'published' || staff();
+      allow create, update: if isAdmin() || isDesigner();
+      allow delete: if isAdmin();
+    }
+    match /catalogs/{id} {
+      allow read: if resource.data.status == 'live' || staff();
+      allow create, update: if isAdmin() || isManager();
+      allow delete: if isAdmin();
+    }
+    match /templates/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /productTypes/{id} {
+      allow read: if true;
+      allow create, update: if staff();
+      allow delete: if isAdmin();
+    }
+    match /fabricTypes/{id} {
+      allow read: if true;
+      allow create, update: if staff();
+      allow delete: if isAdmin();
+    }
+    match /collections/{id} {
+      allow read: if true;
+      allow create, update: if staff();
+      allow delete: if isAdmin();
+    }
+    match /leads/{id} {
+      allow read: if isAdmin() || isManager();
+      allow create, update, delete: if false;
+    }
+    match /events/{id} {
+      allow read: if staff();
+      allow write: if false;
+    }
+    match /settings/{id} {
+      allow read: if staff();
+      allow write: if isAdmin();
+    }
+    match /users/{id} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

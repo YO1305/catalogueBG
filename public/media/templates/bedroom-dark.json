@@ -1,0 +1,25 @@
+{
+  "areas": [
+    {
+      "id": "duvet",
+      "label": "Пододеяльник",
+      "psdLayerPath": "Пододеяльник",
+      "soWidthPx": 850,
+      "soHeightPx": 612,
+      "transform": [
+        430,
+        360,
+        1180,
+        330,
+        1240,
+        800,
+        390,
+        830
+      ],
+      "pxPerCm": 4.25,
+      "realWidthCm": 200,
+      "fill": true
+    }
+  ],
+  "engine": "webgl"
+}

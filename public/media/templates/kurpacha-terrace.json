@@ -1,0 +1,25 @@
+{
+  "areas": [
+    {
+      "id": "body",
+      "label": "Курпача",
+      "psdLayerPath": "Курпача",
+      "soWidthPx": 980,
+      "soHeightPx": 706,
+      "transform": [
+        300,
+        480,
+        1200,
+        450,
+        1240,
+        880,
+        260,
+        900
+      ],
+      "pxPerCm": 4.9,
+      "realWidthCm": 200,
+      "fill": true
+    }
+  ],
+  "engine": "webgl"
+}
