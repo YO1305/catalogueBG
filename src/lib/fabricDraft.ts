@@ -20,6 +20,7 @@ export function emptyFabric(userId: string): Fabric {
     colors: [],
     tags: [],
     productTypes: [],
+    mockupCategory: "bedding",
     design: { originalUrl: "", webUrl: "", thumbUrl: "", widthPx: 0, heightPx: 0, seamless: true },
     realPhotos: [],
     mockups: [],

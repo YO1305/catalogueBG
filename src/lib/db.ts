@@ -293,6 +293,36 @@ export async function saveTemplate(item: Template) {
   });
 }
 
+export async function deleteTemplate(id: string) {
+  if (firebaseAdminConfigured()) {
+    await firestore().collection("templates").doc(id).delete();
+    return;
+  }
+  await mutate((db) => {
+    db.templates = db.templates.filter((item) => item.id !== id);
+  });
+}
+
+export async function getTemplatesListData() {
+  if (!firebaseAdminConfigured()) return readLocal().templates;
+  return readCollection<Template>("templates", "id");
+}
+
+export async function getFabricEditorData() {
+  if (!firebaseAdminConfigured()) {
+    const db = readLocal();
+    return { catalogs: db.catalogs, collections: db.collections, fabricTypes: db.fabricTypes, productTypes: db.productTypes, templates: db.templates };
+  }
+  const [catalogs, collections, fabricTypes, productTypes, templates] = await Promise.all([
+    readCollection<Catalog>("catalogs", "slug"),
+    readCollection<Collection>("collections", "id"),
+    readCollection<FabricType>("fabricTypes", "id"),
+    readCollection<ProductType>("productTypes", "id"),
+    readCollection<Template>("templates", "id"),
+  ]);
+  return { catalogs, collections, fabricTypes, productTypes, templates };
+}
+
 export async function saveLead(item: Lead) {
   if (firebaseAdminConfigured()) return upsert("leads", item.id, item);
   await mutate((db) => {

@@ -98,7 +98,10 @@ export function useFabricEditor(
       };
       mockups.push(created);
     }
-    update({ mockups });
+    const productTypes = selected && !current.productTypes.includes(productType)
+      ? [...current.productTypes, productType]
+      : current.productTypes;
+    update({ mockups, productTypes });
   }
 
   function applyCollectionCategory(collectionId: string) {

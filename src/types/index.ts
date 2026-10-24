@@ -7,6 +7,9 @@ export type Localized = { ru: string; en: string; uz: string };
 
 export type Role = "admin" | "designer" | "manager";
 
+/** Категория мокапа для фильтра в админке */
+export type MockupCategory = "kitchen" | "bedding" | "kurpacha" | "fashion";
+
 export type FabricStatus = "draft" | "published" | "archived";
 
 export type Photo = {
@@ -54,6 +57,7 @@ export type Fabric = {
   colors: string[];
   tags: string[];
   productTypes: string[];
+  mockupCategory?: MockupCategory;
   design: {
     originalUrl: string;
     webUrl: string;
@@ -114,6 +118,7 @@ export type TemplateArea = {
 
 export type Template = {
   id: string;
+  category?: MockupCategory;
   productTypes: string[];
   name: string;
   source: {

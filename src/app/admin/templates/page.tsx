@@ -1,11 +1,11 @@
-import { TemplateList } from "@/components/admin/TemplateScreens";
+import { TemplateBoard } from "@/components/admin/TemplateBoard";
 import { requireSession } from "@/lib/auth";
-import { getDb } from "@/lib/db";
+import { getTemplatesListData } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export default async function TemplatesPage() {
-  await requireSession(["admin"]);
-  const db = await getDb();
-  return <TemplateList templates={db.templates} products={db.productTypes} />;
+  const session = await requireSession(["admin", "designer"]);
+  const templates = await getTemplatesListData();
+  return <TemplateBoard templates={templates} products={[]} role={session.role} />;
 }

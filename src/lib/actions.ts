@@ -15,6 +15,7 @@ import {
   saveGlossary,
   saveLead,
   saveProductType,
+  deleteTemplate,
   saveTemplate,
   saveUser,
 } from "@/lib/db";
@@ -349,6 +350,13 @@ export async function saveGlossaryAction(terms: GlossaryTerm[]) {
 export async function saveTemplateAction(template: Template) {
   await actor(isAdmin);
   await saveTemplate(template);
+  touch("/admin/templates");
+  return { ok: true as const };
+}
+
+export async function deleteTemplateAction(id: string) {
+  await actor(isAdmin);
+  await deleteTemplate(id);
   touch("/admin/templates");
   return { ok: true as const };
 }
