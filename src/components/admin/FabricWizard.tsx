@@ -65,11 +65,23 @@ export function FabricWizard({
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) setProgress(event.loaded / event.total);
       };
-      xhr.onload = () => (xhr.status < 300 ? resolve(JSON.parse(xhr.responseText)) : reject(new Error("file")));
-      xhr.onerror = () => reject(new Error("file"));
+      xhr.onload = () => {
+        if (xhr.status < 300) {
+          resolve(JSON.parse(xhr.responseText) as { webUrl: string; thumbUrl: string; originalUrl: string; widthPx: number; heightPx: number; colors: string[] });
+          return;
+        }
+        reject(new Error(xhr.status === 403 ? "forbidden" : "file"));
+      };
+      xhr.onerror = () => reject(new Error("network"));
       xhr.send(body);
-    }).catch(() => null);
-    if (!data) return toast(t("error.file"));
+    }).catch((error: unknown) => {
+      const code = error instanceof Error ? error.message : "file";
+      if (code === "forbidden") toast(t("error.forbidden"));
+      else if (code === "network") toast(t("error.network"));
+      else toast(t("error.file"));
+      return null;
+    });
+    if (!data) return;
     update({ design: { ...fabric.design, ...data, seamless: fabric.design.seamless }, colors: data.colors });
   }
 

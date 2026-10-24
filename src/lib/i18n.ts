@@ -279,6 +279,8 @@ const ru: Record<string, string> = {
   "error.rate": "Слишком много заявок. Подождите минуту.",
   "error.lead": "Проверьте имя и контакт",
   "error.file": "Нужен JPG, PNG или TIFF до 50 МБ",
+  "error.forbidden": "Нет доступа. Войдите в админку снова",
+  "error.network": "Сеть или сервер не ответил. Попробуйте ещё раз",
   "error.psd": "Нужен файл PSD",
 };
 
@@ -561,6 +563,8 @@ const en: Record<string, string> = {
   "error.rate": "Too many enquiries. Please wait a minute.",
   "error.lead": "Check the name and contact",
   "error.file": "Use a JPG, PNG or TIFF up to 50 MB",
+  "error.forbidden": "Access denied. Sign in to admin again",
+  "error.network": "Network or server error. Try again",
   "error.psd": "A PSD file is required",
 };
 
@@ -843,6 +847,8 @@ const uz: Record<string, string> = {
   "error.rate": "So'rovlar juda ko'p. Bir daqiqa kuting.",
   "error.lead": "Ism va aloqani tekshiring",
   "error.file": "50 MB gacha JPG, PNG yoki TIFF kerak",
+  "error.forbidden": "Ruxsat yo'q. Admin panelga qayta kiring",
+  "error.network": "Tarmoq yoki server javob bermadi. Qayta urinib ko'ring",
   "error.psd": "PSD fayl kerak",
 };
 
