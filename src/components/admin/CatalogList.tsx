@@ -3,11 +3,17 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { ADMIN_GRID_CLASS, AdminMarketplaceCard } from "@/components/admin/AdminMarketplaceCard";
 import { useI18n } from "@/components/i18n/I18n";
+import { Badge } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { deleteCatalogAction } from "@/lib/actions";
 import { canEditCatalogs } from "@/lib/roles";
 import type { Catalog, Fabric, Role } from "@/types";
+
+function cardBtnClass(extra?: string) {
+  return `inline-flex h-7 items-center rounded border border-black/10 bg-white px-2 text-[0.6875rem] hover:bg-black/[0.03] ${extra ?? ""}`;
+}
 
 export function CatalogList({ catalogs, fabrics, role }: { catalogs: Catalog[]; fabrics: Fabric[]; role: Role }) {
   const { t } = useI18n();
@@ -31,50 +37,51 @@ export function CatalogList({ catalogs, fabrics, role }: { catalogs: Catalog[]; 
   }
 
   return (
-    <div>
+    <div className="max-w-[1600px]">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-4xl">{t("nav.catalogs")}</h1>
+        <h1 className="font-display text-2xl md:text-3xl">{t("nav.catalogs")}</h1>
         {canEditCatalogs(role) ? (
-          <Button type="button" asChild>
+          <Button type="button" size="sm" asChild>
             <Link href="/admin/catalogs/new">{t("catalogs.create")}</Link>
           </Button>
         ) : null}
       </div>
-      {!catalogs.length ? <p className="mt-8 text-sm text-ink/60">{t("catalogs.emptyList")}</p> : null}
-      <ul className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {!catalogs.length ? <p className="mt-6 text-sm text-ink/60">{t("catalogs.emptyList")}</p> : null}
+      <ul className={ADMIN_GRID_CLASS}>
         {catalogs.map((catalog) => {
           const count = catalog.fabricIds?.length ?? 0;
           const coverFabric = fabrics.find((item) => item.id === catalog.fabricIds?.[0]);
           const image = coverFabric?.design.thumbUrl || coverFabric?.mockups[0]?.thumbUrl;
+          const title = catalog.title.ru || catalog.slug;
           return (
-            <li key={catalog.slug} className="flex flex-col overflow-hidden rounded-sm bg-white shadow-sm">
-              <div className="aspect-[4/3] bg-majolica/15">
-                {image ? <img src={image} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-ink/40">{t("catalogs.noCover")}</div>}
-              </div>
-              <div className="flex flex-1 flex-col p-4">
-                <h2 className="font-display text-xl leading-tight">{catalog.title.ru || catalog.slug}</h2>
-                <p className="mt-1 text-xs text-ink/50">
-                  {catalog.status === "live" ? t("common.published") : t("common.draft")} · {t("home.designs", { count })}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {canEditCatalogs(role) ? (
-                    <Button type="button" size="sm" variant="outline" asChild>
-                      <Link href={`/admin/catalogs/${catalog.slug}`}>{t("catalogs.edit")}</Link>
-                    </Button>
-                  ) : null}
-                  <Button type="button" size="sm" variant="outline" asChild>
-                    <a href={`/c/${catalog.slug}`} target="_blank" rel="noreferrer">
+            <li key={catalog.slug}>
+              <AdminMarketplaceCard
+                image={image}
+                placeholder={t("catalogs.noCover")}
+                title={title}
+                meta={`${catalog.status === "live" ? t("common.published") : t("common.draft")} · ${t("home.designs", { count })}`}
+                badges={<span className="rounded-full bg-sand px-1.5 py-0.5 text-[0.625rem] uppercase text-ink/60">{catalog.layout.theme}</span>}
+                actions={
+                  <>
+                    {canEditCatalogs(role) ? (
+                      <Link href={`/admin/catalogs/${catalog.slug}`} className={cardBtnClass()}>
+                        {t("catalogs.edit")}
+                      </Link>
+                    ) : null}
+                    <a href={`/c/${catalog.slug}`} target="_blank" rel="noreferrer" className={cardBtnClass()}>
                       {t("catalogs.view")}
                     </a>
-                  </Button>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => void copyLink(catalog.slug)}>
-                    {t("catalogs.copy")}
-                  </Button>
-                </div>
-                <Button type="button" size="sm" variant="ghost" className="mt-2 self-start text-red-900" onClick={() => void remove(catalog.slug, catalog.title.ru)}>
-                  {t("common.delete")}
-                </Button>
-              </div>
+                    <button type="button" className={cardBtnClass()} onClick={() => void copyLink(catalog.slug)}>
+                      {t("catalogs.copy")}
+                    </button>
+                    {canEditCatalogs(role) ? (
+                      <button type="button" className={cardBtnClass("text-red-900 border-red-200")} onClick={() => void remove(catalog.slug, title)}>
+                        {t("common.delete")}
+                      </button>
+                    ) : null}
+                  </>
+                }
+              />
             </li>
           );
         })}

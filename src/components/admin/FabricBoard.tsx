@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { ADMIN_GRID_CLASS, AdminMarketplaceCard } from "@/components/admin/AdminMarketplaceCard";
 import { FabricEditorDialog } from "@/components/admin/FabricEditorDialog";
 import { useI18n } from "@/components/i18n/I18n";
 import { Badge } from "@/components/ui/field";
@@ -12,6 +13,10 @@ import { emptyFabric } from "@/lib/fabricDraft";
 import { filterFabrics } from "@/lib/filterFabrics";
 import { statusKey } from "@/lib/i18n";
 import type { Catalog, Collection, Fabric, FabricType, ProductType, Role, Template } from "@/types";
+
+function cardBtnClass(extra?: string) {
+  return `inline-flex h-7 items-center rounded border border-black/10 bg-white px-2 text-[0.6875rem] hover:bg-black/[0.03] ${extra ?? ""}`;
+}
 
 export function FabricBoard({
   role,
@@ -78,61 +83,69 @@ export function FabricBoard({
   }
 
   return (
-    <div>
+    <div className="max-w-[1600px]">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-4xl">{t("nav.designs")}</h1>
+        <h1 className="font-display text-2xl md:text-3xl">{t("nav.designs")}</h1>
         {canWrite ? (
-          <Button type="button" onClick={openCreate}>
+          <Button type="button" size="sm" onClick={openCreate}>
             {t("designs.create")}
           </Button>
         ) : null}
       </div>
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <input
-          className="h-11 min-w-[12rem] flex-1 border border-black/15 bg-white px-3 text-sm"
+          className="h-9 min-w-[10rem] flex-1 rounded-md border border-black/10 bg-white px-2.5 text-sm"
           placeholder={t("designs.searchPlaceholder")}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <select className="h-11 border border-black/15 bg-white px-3 text-sm" value={collectionId} onChange={(event) => setCollectionId(event.target.value)}>
+        <select className="h-9 rounded-md border border-black/10 bg-white px-2 text-sm" value={collectionId} onChange={(event) => setCollectionId(event.target.value)}>
           <option value="">{t("designs.allCategories")}</option>
           {collections.filter((item) => item.active).map((item) => (
             <option key={item.id} value={item.id}>{item.name[lang]}</option>
           ))}
         </select>
-        <select className="h-11 border border-black/15 bg-white px-3 text-sm" value={fabricTypeId} onChange={(event) => setFabricTypeId(event.target.value)}>
+        <select className="h-9 rounded-md border border-black/10 bg-white px-2 text-sm" value={fabricTypeId} onChange={(event) => setFabricTypeId(event.target.value)}>
           <option value="">{t("admin.fabricType")}</option>
           {fabricTypes.filter((item) => item.active).map((item) => (
             <option key={item.id} value={item.id}>{item.name[lang]}</option>
           ))}
         </select>
       </div>
-      {!rows.length ? <p className="mt-10 text-sm text-ink/55">{t("designs.emptyList")}</p> : null}
-      <ul className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      {!rows.length ? <p className="mt-6 text-sm text-ink/55">{t("designs.emptyList")}</p> : null}
+      <ul className={ADMIN_GRID_CLASS}>
         {rows.map((fabric) => {
           const image = fabric.design.thumbUrl || fabric.mockups[0]?.thumbUrl;
           const collection = collections.find((item) => item.id === fabric.collectionId);
           const type = fabricTypes.find((item) => item.id === fabric.fabricTypeId);
+          const title = fabric.name[lang] || fabric.name.ru || t("common.draft");
+          const meta = [fabric.art, collection?.name[lang], type?.name[lang]].filter(Boolean).join(" · ");
           return (
-            <li key={fabric.id} className="flex flex-col overflow-hidden rounded-sm bg-white shadow-sm">
-              <div className="aspect-[5/4] bg-majolica/10">
-                {image ? <img src={image} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-ink/40">{t("designs.noImage")}</div>}
-              </div>
-              <div className="flex flex-1 flex-col p-4">
-                <p className="font-mono text-xs text-ink/50">{fabric.art || "—"}</p>
-                <h2 className="font-display mt-1 text-xl leading-snug">{fabric.name[lang] || fabric.name.ru || t("common.draft")}</h2>
-                <p className="mt-1 text-xs text-ink/55">{[collection?.name[lang], type?.name[lang]].filter(Boolean).join(" · ")}</p>
-                <div className="mt-3 flex flex-wrap gap-1">
-                  <Badge>{t(statusKey(fabric.status))}</Badge>
-                  {fabric.mockups.length ? <Badge tone="gold">{t("designs.mockupCount", { count: fabric.mockups.length })}</Badge> : null}
-                </div>
-                {canWrite ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={() => openEdit(fabric)}>{t("catalogs.edit")}</Button>
-                    <Button type="button" size="sm" variant="ghost" className="text-red-900" onClick={() => void remove(fabric)}>{t("common.delete")}</Button>
-                  </div>
-                ) : null}
-              </div>
+            <li key={fabric.id}>
+              <AdminMarketplaceCard
+                image={image}
+                placeholder={t("designs.noImage")}
+                title={title}
+                meta={meta}
+                badges={
+                  <>
+                    <Badge tone={fabric.status === "published" ? "ok" : "default"}>{t(statusKey(fabric.status))}</Badge>
+                    {fabric.mockups.length ? <Badge tone="gold">{String(fabric.mockups.length)}</Badge> : null}
+                  </>
+                }
+                actions={
+                  canWrite ? (
+                    <>
+                      <button type="button" className={cardBtnClass()} onClick={() => openEdit(fabric)}>
+                        {t("catalogs.edit")}
+                      </button>
+                      <button type="button" className={cardBtnClass("text-red-900 border-red-200")} onClick={() => void remove(fabric)}>
+                        {t("common.delete")}
+                      </button>
+                    </>
+                  ) : null
+                }
+              />
             </li>
           );
         })}
