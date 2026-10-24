@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
@@ -14,6 +14,7 @@ import {
   loadUvgridZoneAssets,
 } from "@/lib/uvgrid/loadManifest";
 import { renderUvgridToCanvas } from "@/lib/uvgrid/render";
+import { scaleManifestForSize } from "@/lib/uvgrid/scaleManifest";
 import { SCALE_PRESETS, scaleToSlider, sliderToScale } from "@/lib/mockupMath";
 import type { Fabric, Mockup, Template } from "@/types";
 
@@ -32,6 +33,8 @@ export function MockupAdjuster({
   const canvas = useRef<HTMLCanvasElement>(null);
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
   const renderTimer = useRef<number | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const areaId = mockup.sameForAllAreas ? "all" : mockup.areas[0]?.areaId ?? template.areas[0]?.id ?? "all";
   const setting = mockup.areas.find((item) => item.areaId === (mockup.sameForAllAreas ? mockup.areas[0]?.areaId : areaId)) ?? mockup.areas[0];
   const scale = setting?.scale ?? 1;
@@ -55,10 +58,12 @@ export function MockupAdjuster({
       if (isUvgrid) {
         if (!useStripes && !fabric.design.webUrl) return;
         try {
-          const manifest = await fetchTemplateManifest(template.baked.jsonUrl);
-          const previewW = 1000;
-          const [sw, sh] = manifest.size;
+          setPreviewError(null);
+          const manifestRaw = await fetchTemplateManifest(template.baked.jsonUrl);
+          const previewW = Math.min(1600, manifestRaw.size[0]);
+          const [sw, sh] = manifestRaw.size;
           const previewH = Math.max(200, Math.round((previewW * sh) / sw));
+          const manifest = scaleManifestForSize(manifestRaw, previewW, previewH);
           const [background, zones] = await Promise.all([
             loadBackgroundRgba(template.baked.backgroundUrl, previewW, previewH),
             loadUvgridZoneAssets(manifest, previewW, previewH),
@@ -88,8 +93,8 @@ export function MockupAdjuster({
             })),
             sameForAllAreas: mockup.sameForAllAreas,
           });
-        } catch {
-          // preview failed — keep previous frame
+        } catch (error) {
+          setPreviewError(error instanceof Error ? error.message : "preview_failed");
         }
         return;
       }
@@ -139,6 +144,11 @@ export function MockupAdjuster({
   return (
     <div className="border border-ink/10 bg-white p-3">
       <p className="text-sm font-medium">{template.name}</p>
+      {previewError ? (
+        <p className="mt-2 text-sm text-red-700" role="alert">
+          {t("wizard.mockupPreviewError")}
+        </p>
+      ) : null}
       <canvas
         ref={canvas}
         className="mt-2 w-full cursor-grab bg-sand"
@@ -191,12 +201,30 @@ export function MockupAdjuster({
           type="button"
           size="sm"
           variant="outline"
+          disabled={saving}
           onClick={() => {
+            setSaving(true);
             void fetch("/api/mockups/render", {
               method: "POST",
               headers: { "content-type": "application/json" },
               body: JSON.stringify({ fabricId: fabric.id, templateId: template.id }),
-            });
+            })
+              .then(async (response) => {
+                const data = (await response.json()) as {
+                  ok?: boolean;
+                  error?: string;
+                  fabrics?: { fabricId: string; mockups: Mockup[] }[];
+                };
+                if (!response.ok || !data.ok) {
+                  setPreviewError(data.error ?? "render_failed");
+                  return;
+                }
+                const row = data.fabrics?.find((item) => item.fabricId === fabric.id);
+                const saved = row?.mockups.find((item) => item.templateId === template.id && item.productType === mockup.productType);
+                if (saved) onChange(saved);
+              })
+              .catch(() => setPreviewError("render_failed"))
+              .finally(() => setSaving(false));
           }}
         >
           {t("templates.rebuildOne")}

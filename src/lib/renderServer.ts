@@ -24,14 +24,14 @@ async function readManifest(jsonUrl: string): Promise<ZipTemplateManifest> {
 }
 
 async function renderUvgridMockup(fabric: Fabric, template: Template, mockup: Mockup) {
-  const manifest = await readManifest(template.baked.jsonUrl);
-  const [srcW, srcH] = manifest.size;
-  const maxW = 2000;
-  const width = Math.min(maxW, srcW);
-  const height = Math.round((width * srcH) / srcW);
+  const manifestRaw = await readManifest(template.baked.jsonUrl);
+  const [srcW, srcH] = manifestRaw.size;
+  const renderW = srcW;
+  const renderH = srcH;
+  const manifest = manifestRaw;
   const background = await readUrl(template.baked.backgroundUrl);
-  const bgRgba = await sharp(background).resize(width, height, { fit: "fill" }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const zones = await loadZoneAssetsNode(manifest, width, height);
+  const bgRgba = await sharp(background).resize(renderW, renderH, { fit: "fill" }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const zones = await loadZoneAssetsNode(manifest, renderW, renderH);
   let fabricInput;
   if (fabricUsesStripes(fabric, template)) {
     fabricInput = buildStripeFabricInput(fabric);
@@ -50,16 +50,20 @@ async function renderUvgridMockup(fabric: Fabric, template: Template, mockup: Mo
   }));
   const flat = renderUvgrid({
     manifest,
-    width,
-    height,
-    background: new Uint8ClampedArray(bgRgba.data.buffer, bgRgba.data.byteOffset, width * height * 4),
+    width: renderW,
+    height: renderH,
+    background: new Uint8ClampedArray(bgRgba.data.buffer, bgRgba.data.byteOffset, renderW * renderH * 4),
     zones,
     fabric: fabricInput,
     settings,
     sameForAllAreas: mockup.sameForAllAreas,
   });
-  const rgba = floatRgbToRgba(flat, width, height);
-  const full = await sharp(Buffer.from(rgba), { raw: { width, height, channels: 4 } }).webp({ quality: 82 }).toBuffer();
+  const rgba = floatRgbToRgba(flat, renderW, renderH);
+  const maxW = 2000;
+  const full = await sharp(Buffer.from(rgba), { raw: { width: renderW, height: renderH, channels: 4 } })
+    .resize(Math.min(maxW, renderW), Math.min(maxW, renderH), { fit: "inside" })
+    .webp({ quality: 82 })
+    .toBuffer();
   const thumb = await sharp(full).resize(600, 600, { fit: "inside" }).webp({ quality: 76 }).toBuffer();
   const mid = await sharp(full).resize(1200, 1200, { fit: "inside" }).webp({ quality: 80 }).toBuffer();
   const id = `${fabric.id}-${template.id}-${mockup.productType}`;

@@ -32,7 +32,14 @@ export function PageDesigns({
           const mirror = index % 2 === 1 && catalog.layout.perPage === 2;
           const image = (
             <button type="button" className="lift cursor-zoom relative min-h-0 overflow-hidden" onClick={() => onOpen(fabric.id)}>
-              <CatalogImage src={mockup?.url || fabric.design.webUrl} alt={`${fabric.name[lang]} — ${typeName}`} active={active} />
+              <CatalogImage
+                src={mockup?.url || fabric.design.webUrl}
+                thumbUrl={mockup?.thumbUrl}
+                webUrl={mockup?.webUrl}
+                fallbackSrc={fabric.design.webUrl || fabric.design.thumbUrl}
+                alt={`${fabric.name[lang]} — ${typeName}`}
+                active={active}
+              />
             </button>
           );
           const copy = (

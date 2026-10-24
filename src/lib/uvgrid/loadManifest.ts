@@ -8,13 +8,21 @@ export async function fetchTemplateManifest(jsonUrl: string): Promise<ZipTemplat
 }
 
 async function loadGrayBitmap(url: string, width: number, height: number): Promise<Uint8ClampedArray> {
-  const image = await loadImage(url);
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("canvas");
-  ctx.drawImage(image, 0, 0, width, height);
+  try {
+    const image = await loadImage(url);
+    ctx.drawImage(image, 0, 0, width, height);
+  } catch {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(url);
+    const bitmap = await createImageBitmap(await response.blob());
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+  }
   const data = ctx.getImageData(0, 0, width, height).data;
   const gray = new Uint8ClampedArray(width * height);
   for (let i = 0; i < width * height; i += 1) {

@@ -10,6 +10,7 @@ export async function POST(request: Request) {
   const db = await getDb();
   const fabrics = db.fabrics.filter((fabric) => (body.fabricId ? fabric.id === body.fabricId : true) && fabric.mockups.some((mockup) => !body.templateId || mockup.templateId === body.templateId));
   let count = 0;
+  const updated: { fabricId: string; mockups: typeof fabrics[0]["mockups"] }[] = [];
   for (const fabric of fabrics) {
     const next = { ...fabric, mockups: [...fabric.mockups], updatedAt: new Date().toISOString() };
     for (let index = 0; index < next.mockups.length; index += 1) {
@@ -17,10 +18,16 @@ export async function POST(request: Request) {
       if (!mockup || (body.templateId && mockup.templateId !== body.templateId)) continue;
       const template = db.templates.find((item) => item.id === mockup.templateId);
       if (!template) continue;
-      next.mockups[index] = await renderFabricMockup(next, template, mockup);
-      count += 1;
+      try {
+        next.mockups[index] = await renderFabricMockup(next, template, mockup);
+        count += 1;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "render_failed";
+        return Response.json({ ok: false, error: message, fabricId: fabric.id, templateId: mockup.templateId }, { status: 500 });
+      }
     }
     await saveFabric(next);
+    updated.push({ fabricId: fabric.id, mockups: next.mockups });
   }
-  return Response.json({ ok: true, count });
+  return Response.json({ ok: true, count, fabrics: updated });
 }

@@ -115,10 +115,12 @@ export function renderUvgridMatte(
     const p = settingFor(zone.id, settings, sameForAllAreas);
     const { uf, vf, bw, bh } = upscaleGrid(zone);
     const { x0, y0 } = zone.uvGrid;
-    const xa = Math.max(0, x0);
-    const ya = Math.max(0, y0);
-    const xb = Math.min(w, x0 + bw);
-    const yb = Math.min(h, y0 + bh);
+    const x0i = Math.round(x0);
+    const y0i = Math.round(y0);
+    const xa = Math.max(0, x0i);
+    const ya = Math.max(0, y0i);
+    const xb = Math.min(w, x0i + Math.ceil(bw));
+    const yb = Math.min(h, y0i + Math.ceil(bh));
     const pxcm = tw / (input.rapportCm * Math.max(0.1, p.scale));
     const dens = pxcm / zone.pxPerCm;
     if (dens > 1.6 && !blurredTile) {
@@ -133,10 +135,10 @@ export function renderUvgridMatte(
 
     for (let y = ya; y < yb; y += 1) {
       for (let x = xa; x < xb; x += 1) {
-        const lx = x - x0;
-        const ly = y - y0;
+        const lx = x - x0i;
+        const ly = y - y0i;
         if (lx < 0 || ly < 0 || lx >= bw || ly >= bh) continue;
-        const gIdx = ly * bw + lx;
+        const gIdx = Math.floor(ly) * Math.floor(bw) + Math.floor(lx);
         const uu = (uf[gIdx] + p.offsetX) * c - (vf[gIdx] + p.offsetY) * s;
         const vv = (uf[gIdx] + p.offsetX) * s + (vf[gIdx] + p.offsetY) * c;
         const maskVal = assets.mask[y * w + x];
