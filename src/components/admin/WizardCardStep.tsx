@@ -13,6 +13,7 @@ export function WizardCardStep({
   onChange,
   onCreateCollection,
   onCreateFabricType,
+  hideCollection,
 }: {
   fabric: Fabric;
   collections: Collection[];
@@ -21,6 +22,7 @@ export function WizardCardStep({
   onChange: (partial: Partial<Fabric>) => void;
   onCreateCollection: (name: string, extra?: { ids?: string[]; auto?: boolean }) => Promise<Collection | null>;
   onCreateFabricType: (name: string, extra?: { ids?: string[]; auto?: boolean }) => Promise<FabricType | null>;
+  hideCollection?: boolean;
 }) {
   const { t } = useI18n();
   return (
@@ -33,7 +35,9 @@ export function WizardCardStep({
         <Label>{t("wizard.art")}</Label>
         <Input value={fabric.art} onChange={(event) => onChange({ art: event.target.value })} />
       </div>
-      <CreatableSelect label={t("admin.collection")} value={fabric.collectionId} options={collections} onChange={(collectionId) => onChange({ collectionId })} onCreate={onCreateCollection} extra={{ label: "", options: [], auto: true }} />
+      {hideCollection ? null : (
+        <CreatableSelect label={t("admin.collection")} value={fabric.collectionId} options={collections} onChange={(collectionId) => onChange({ collectionId })} onCreate={onCreateCollection} extra={{ label: "", options: [], auto: true }} />
+      )}
       <CreatableSelect
         label={t("admin.fabricType")}
         value={fabric.fabricTypeId}
@@ -59,6 +63,14 @@ export function WizardCardStep({
         <Label>{t("wizard.composition")}</Label>
         <Input list="compositions" value={fabric.composition.ru} onChange={(event) => onChange({ composition: { ...fabric.composition, ru: event.target.value } })} />
         <datalist id="compositions"><option value="100% хлопок" /><option value="100% полиэстер" /></datalist>
+      </div>
+      <div>
+        <Label>{t("designs.finish")}</Label>
+        <Input value={fabric.finish?.ru ?? ""} onChange={(event) => onChange({ finish: { ru: event.target.value, en: fabric.finish?.en ?? "", uz: fabric.finish?.uz ?? "" } })} />
+      </div>
+      <div>
+        <Label>{t("designs.finishExtra")}</Label>
+        <Input value={fabric.finishExtra?.ru ?? ""} onChange={(event) => onChange({ finishExtra: { ru: event.target.value, en: fabric.finishExtra?.en ?? "", uz: fabric.finishExtra?.uz ?? "" } })} />
       </div>
       <div className="md:col-span-2">
         <Label>{t("common.description")}</Label>

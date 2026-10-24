@@ -1,121 +1,155 @@
 "use client";
 
-import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { FabricEditorDialog } from "@/components/admin/FabricEditorDialog";
 import { useI18n } from "@/components/i18n/I18n";
 import { Badge } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
-import { addFabricsToCatalogAction, setFabricStatusAction } from "@/lib/actions";
+import { deleteFabricAction } from "@/lib/actions";
+import { emptyFabric } from "@/lib/fabricDraft";
+import { filterFabrics } from "@/lib/filterFabrics";
 import { statusKey } from "@/lib/i18n";
-import type { Catalog, Collection, Fabric, FabricType, ProductType, Role } from "@/types";
+import type { Catalog, Collection, Fabric, FabricType, ProductType, Role, Template } from "@/types";
 
 export function FabricBoard({
   role,
+  userId,
   fabrics,
   collections,
   fabricTypes,
   productTypes,
   catalogs,
+  templates,
+  initialOpen,
 }: {
   role: Role;
+  userId: string;
   fabrics: Fabric[];
   collections: Collection[];
   fabricTypes: FabricType[];
   productTypes: ProductType[];
   catalogs: Catalog[];
+  templates: Template[];
+  initialOpen?: "new" | string | null;
 }) {
   const { lang, t } = useI18n();
   const router = useRouter();
-  const [mode, setMode] = useState<"tile" | "table">("tile");
-  const [filters, setFilters] = useState({ collection: "", type: "", product: "", status: "", fresh: false, untranslated: false, bare: false });
-  const [picked, setPicked] = useState<string[]>([]);
-  const [catalogSlug, setCatalogSlug] = useState(catalogs[0]?.slug ?? "");
-  const rows = useMemo(() => fabrics.filter((fabric) => {
-    if (filters.collection && fabric.collectionId !== filters.collection) return false;
-    if (filters.type && fabric.fabricTypeId !== filters.type) return false;
-    if (filters.product && !fabric.productTypes.includes(filters.product)) return false;
-    if (filters.status && fabric.status !== filters.status) return false;
-    if (filters.fresh && !fabric.isNew) return false;
-    if (filters.untranslated && fabric.name.en && fabric.name.uz) return false;
-    if (filters.bare && fabric.mockups.length) return false;
-    return true;
-  }), [fabrics, filters]);
+  const [search, setSearch] = useState("");
+  const [collectionId, setCollectionId] = useState("");
+  const [fabricTypeId, setFabricTypeId] = useState("");
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editing, setEditing] = useState<Fabric | null>(null);
+
+  useEffect(() => {
+    if (initialOpen === "new") {
+      setEditing(emptyFabric(userId));
+      setEditorOpen(true);
+      router.replace("/admin/fabrics");
+    } else if (initialOpen) {
+      const fabric = fabrics.find((item) => item.id === initialOpen);
+      if (fabric) {
+        setEditing(fabric);
+        setEditorOpen(true);
+      }
+      router.replace("/admin/fabrics");
+    }
+  }, [initialOpen, fabrics, userId, router]);
+
+  const rows = useMemo(() => filterFabrics(fabrics, { search, collectionId, fabricTypeId }), [fabrics, search, collectionId, fabricTypeId]);
   const canWrite = role === "admin" || role === "designer";
+
+  function openCreate() {
+    setEditing(emptyFabric(userId));
+    setEditorOpen(true);
+  }
+
+  function openEdit(fabric: Fabric) {
+    setEditing(fabric);
+    setEditorOpen(true);
+  }
+
+  async function remove(fabric: Fabric) {
+    if (!window.confirm(t("designs.deleteConfirm", { name: fabric.name.ru || fabric.art }))) return;
+    await deleteFabricAction(fabric.id);
+    toast(t("designs.deleted"));
+    router.refresh();
+  }
+
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-4xl">{t("nav.fabrics")}</h1>
-        {canWrite ? <Link href="/admin/fabrics/new" className="bg-majolica px-4 py-2 text-sm text-paper">{t("common.create")}</Link> : null}
+        <h1 className="font-display text-4xl">{t("nav.designs")}</h1>
+        {canWrite ? (
+          <Button type="button" onClick={openCreate}>
+            {t("designs.create")}
+          </Button>
+        ) : null}
       </div>
-      <div className="mt-4 flex flex-wrap gap-2 text-sm">
-        <select className="h-10 border bg-white px-2" value={filters.collection} onChange={(event) => setFilters({ ...filters, collection: event.target.value })}>
-          <option value="">{t("admin.collection")}</option>
-          {collections.map((item) => <option key={item.id} value={item.id}>{item.name[lang]}</option>)}
-        </select>
-        <select className="h-10 border bg-white px-2" value={filters.type} onChange={(event) => setFilters({ ...filters, type: event.target.value })}>
-          <option value="">{t("admin.fabricType")}</option>
-          {fabricTypes.map((item) => <option key={item.id} value={item.id}>{item.name[lang]}</option>)}
-        </select>
-        <select className="h-10 border bg-white px-2" value={filters.product} onChange={(event) => setFilters({ ...filters, product: event.target.value })}>
-          <option value="">{t("admin.product")}</option>
-          {productTypes.map((item) => <option key={item.id} value={item.id}>{item.name[lang]}</option>)}
-        </select>
-        <select className="h-10 border bg-white px-2" value={filters.status} onChange={(event) => setFilters({ ...filters, status: event.target.value })}>
-          <option value="">{t("common.status")}</option>
-          <option value="draft">{t("common.draft")}</option>
-          <option value="published">{t("common.published")}</option>
-          <option value="archived">{t("common.archived")}</option>
-        </select>
-        <label className="flex items-center gap-1"><input type="checkbox" checked={filters.fresh} onChange={(event) => setFilters({ ...filters, fresh: event.target.checked })} />{t("admin.onlyNew")}</label>
-        <label className="flex items-center gap-1"><input type="checkbox" checked={filters.untranslated} onChange={(event) => setFilters({ ...filters, untranslated: event.target.checked })} />{t("admin.noTranslation")}</label>
-        <label className="flex items-center gap-1"><input type="checkbox" checked={filters.bare} onChange={(event) => setFilters({ ...filters, bare: event.target.checked })} />{t("admin.noMockups")}</label>
-        <Button type="button" size="sm" variant="outline" onClick={() => setMode(mode === "tile" ? "table" : "tile")}>{mode === "tile" ? t("admin.table") : t("admin.tile")}</Button>
-      </div>
-      {picked.length ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2 bg-white p-3 text-sm">
-          <span>{t("admin.selected", { count: picked.length })}</span>
-          {canWrite ? <Button type="button" size="sm" onClick={async () => { const result = await setFabricStatusAction(picked, "published"); toast(result.catalogs.length ? t("wizard.published", { names: result.catalogs.join(", ") }) : t("common.published")); router.refresh(); }}>{t("admin.massPublish")}</Button> : null}
-          <Button type="button" size="sm" variant="outline" onClick={async () => { await setFabricStatusAction(picked, "archived"); router.refresh(); }}>{t("admin.massArchive")}</Button>
-          <select className="h-8 border px-2" value={catalogSlug} onChange={(event) => setCatalogSlug(event.target.value)}>
-            {catalogs.map((catalog) => <option key={catalog.slug} value={catalog.slug}>{catalog.title[lang]}</option>)}
-          </select>
-          <Button type="button" size="sm" variant="outline" onClick={async () => { await addFabricsToCatalogAction(picked, catalogSlug); toast(t("common.save")); }}>{t("admin.addToCatalog")}</Button>
-          <Button type="button" size="sm" variant="outline" onClick={async () => { for (const id of picked) await fetch("/api/mockups/render", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fabricId: id }) }); toast(t("templates.rebuildDone", { count: picked.length })); router.refresh(); }}>{t("admin.rebuild")}</Button>
-        </div>
-      ) : null}
-      {mode === "tile" ? (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {rows.map((fabric) => (
-            <article key={fabric.id} className="bg-white p-3 shadow-sm">
-              <label className="text-xs"><input type="checkbox" checked={picked.includes(fabric.id)} onChange={(event) => setPicked((ids) => event.target.checked ? [...ids, fabric.id] : ids.filter((id) => id !== fabric.id))} /></label>
-              <Link href={`/admin/fabrics/${fabric.id}`}>
-                <img src={fabric.design.thumbUrl || fabric.mockups[0]?.thumbUrl} alt={fabric.name[lang]} className="mt-2 aspect-square w-full object-cover" />
-                <p className="font-mono mt-2 text-xs">{fabric.art}</p>
-                <h2 className="font-display text-xl">{fabric.name[lang] || fabric.name.ru}</h2>
-              </Link>
-              <div className="mt-2 flex flex-wrap gap-1">
-                <Badge>{t(statusKey(fabric.status))}</Badge>
-                {fabric.productTypes.map((id) => <Badge key={id} tone="gold">{productTypes.find((item) => item.id === id)?.name[lang] ?? id}</Badge>)}
-              </div>
-            </article>
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <input
+          className="h-11 min-w-[12rem] flex-1 border border-black/15 bg-white px-3 text-sm"
+          placeholder={t("designs.searchPlaceholder")}
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <select className="h-11 border border-black/15 bg-white px-3 text-sm" value={collectionId} onChange={(event) => setCollectionId(event.target.value)}>
+          <option value="">{t("designs.allCategories")}</option>
+          {collections.filter((item) => item.active).map((item) => (
+            <option key={item.id} value={item.id}>{item.name[lang]}</option>
           ))}
-        </div>
-      ) : (
-        <table className="mt-4 w-full bg-white text-sm">
-          <tbody>
-            {rows.map((fabric) => (
-              <tr key={fabric.id} className="border-b">
-                <td className="p-2"><input type="checkbox" checked={picked.includes(fabric.id)} onChange={(event) => setPicked((ids) => event.target.checked ? [...ids, fabric.id] : ids.filter((id) => id !== fabric.id))} /></td>
-                <td className="p-2 font-mono">{fabric.art}</td>
-                <td className="p-2"><Link href={`/admin/fabrics/${fabric.id}`}>{fabric.name[lang] || fabric.name.ru}</Link></td>
-                <td className="p-2">{t(statusKey(fabric.status))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+        </select>
+        <select className="h-11 border border-black/15 bg-white px-3 text-sm" value={fabricTypeId} onChange={(event) => setFabricTypeId(event.target.value)}>
+          <option value="">{t("admin.fabricType")}</option>
+          {fabricTypes.filter((item) => item.active).map((item) => (
+            <option key={item.id} value={item.id}>{item.name[lang]}</option>
+          ))}
+        </select>
+      </div>
+      {!rows.length ? <p className="mt-10 text-sm text-ink/55">{t("designs.emptyList")}</p> : null}
+      <ul className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        {rows.map((fabric) => {
+          const image = fabric.design.thumbUrl || fabric.mockups[0]?.thumbUrl;
+          const collection = collections.find((item) => item.id === fabric.collectionId);
+          const type = fabricTypes.find((item) => item.id === fabric.fabricTypeId);
+          return (
+            <li key={fabric.id} className="flex flex-col overflow-hidden rounded-sm bg-white shadow-sm">
+              <div className="aspect-[5/4] bg-majolica/10">
+                {image ? <img src={image} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-ink/40">{t("designs.noImage")}</div>}
+              </div>
+              <div className="flex flex-1 flex-col p-4">
+                <p className="font-mono text-xs text-ink/50">{fabric.art || "—"}</p>
+                <h2 className="font-display mt-1 text-xl leading-snug">{fabric.name[lang] || fabric.name.ru || t("common.draft")}</h2>
+                <p className="mt-1 text-xs text-ink/55">{[collection?.name[lang], type?.name[lang]].filter(Boolean).join(" · ")}</p>
+                <div className="mt-3 flex flex-wrap gap-1">
+                  <Badge>{t(statusKey(fabric.status))}</Badge>
+                  {fabric.mockups.length ? <Badge tone="gold">{t("designs.mockupCount", { count: fabric.mockups.length })}</Badge> : null}
+                </div>
+                {canWrite ? (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button type="button" size="sm" variant="outline" onClick={() => openEdit(fabric)}>{t("catalogs.edit")}</Button>
+                    <Button type="button" size="sm" variant="ghost" className="text-red-900" onClick={() => void remove(fabric)}>{t("common.delete")}</Button>
+                  </div>
+                ) : null}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      {editing ? (
+        <FabricEditorDialog
+          open={editorOpen}
+          onOpenChange={setEditorOpen}
+          initial={editing}
+          catalogs={catalogs}
+          collections={collections}
+          fabricTypes={fabricTypes}
+          productTypes={productTypes}
+          templates={templates}
+          onSaved={() => router.refresh()}
+        />
+      ) : null}
     </div>
   );
 }

@@ -10,6 +10,8 @@ export function emptyFabric(userId: string): Fabric {
     name: { ru: "", en: "", uz: "" },
     description: { ru: "", en: "", uz: "" },
     composition: { ru: "", en: "", uz: "" },
+    finish: { ru: "", en: "", uz: "" },
+    finishExtra: { ru: "", en: "", uz: "" },
     density: "",
     width: "",
     densityRange: null,

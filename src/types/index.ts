@@ -43,6 +43,9 @@ export type Fabric = {
   name: Localized;
   description: Localized;
   composition: Localized;
+  /** Доп. поля карточки (отделка) — необязательные */
+  finish?: Localized;
+  finishExtra?: Localized;
   density: string;
   width: string;
   densityRange: { min: number; max: number } | null;
