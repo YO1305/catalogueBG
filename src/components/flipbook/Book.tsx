@@ -119,7 +119,7 @@ export const Book = function Book({
     >
       {model.pages.map((page) => (
         <PaperPage key={`${page.kind}-${page.index}`} hard={page.kind === "cover" || page.kind === "back"}>
-          {page.kind === "cover" ? <PageCover catalog={model.catalog} image={model.coverImage} count={model.fabrics.length} /> : null}
+          {page.kind === "cover" ? <PageCover catalog={model.catalog} count={model.fabrics.length} /> : null}
           {page.kind === "toc" ? (
             <PageToc catalog={model.catalog} page={page} fabricTypes={model.fabricTypes} collections={model.collections} fabrics={model.fabrics} onJump={onJump} />
           ) : null}

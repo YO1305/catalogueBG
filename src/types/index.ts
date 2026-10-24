@@ -158,7 +158,7 @@ export type Catalog = {
   layout: {
     perPage: 1 | 2 | 3 | 4;
     sectionBy: "none" | "fabricType" | "collection";
-    theme: "light" | "dark";
+    theme: "light" | "dark" | "classic" | "sand";
   };
   cover: { fabricId?: string; imageUrl?: string };
   showPrices: boolean;

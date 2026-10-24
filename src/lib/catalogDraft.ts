@@ -11,7 +11,7 @@ export function emptyCatalogDraft(): Catalog {
     mode: "manual",
     fabricIds: [],
     showProductTypes: [],
-    layout: { perPage: 2, sectionBy: "none", theme: "light" },
+    layout: { perPage: 2, sectionBy: "none", theme: "classic" },
     cover: {},
     showPrices: false,
     access: "unlisted",

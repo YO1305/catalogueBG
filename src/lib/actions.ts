@@ -104,11 +104,28 @@ export async function addFabricsToCatalogAction(ids: string[], slug: string) {
 export async function createCatalogAction(catalog: Catalog, pin?: string) {
   const session = await actor(canEditCatalogs);
   const db = await getDb();
-  const slug = uniqueSlug(catalog.title.ru || "catalog", db.catalogs.map((item) => item.slug));
+  const titleRu = catalog.title.ru.trim();
+  if (!titleRu) return { ok: false as const, error: "title" as const };
+  const slug = uniqueSlug(titleRu, db.catalogs.map((item) => item.slug));
+  const translated = await translateFields({ title: titleRu, subtitle: catalog.subtitle.ru }, db.glossary);
   const pinHash = pin ? hashPin(pin) : catalog.pinHash;
+  const showProductTypes = catalog.showProductTypes.length
+    ? catalog.showProductTypes
+    : db.productTypes.filter((item) => item.active).map((item) => item.id);
   const next: Catalog = {
     ...catalog,
     slug,
+    title: { ru: titleRu, en: translated.en.title || titleRu, uz: translated.uz.title || titleRu },
+    subtitle: {
+      ru: catalog.subtitle.ru,
+      en: translated.en.subtitle || catalog.subtitle.ru,
+      uz: translated.uz.subtitle || catalog.subtitle.ru,
+    },
+    showProductTypes,
+    mode: "manual",
+    fabricIds: catalog.fabricIds ?? [],
+    expiresAt: undefined,
+    cover: {},
     createdBy: session.uid,
     updatedAt: new Date().toISOString(),
     pinHash,
@@ -131,7 +148,17 @@ export async function saveCatalogAction(catalog: Catalog, pin?: string) {
   const db = await getDb();
   const previous = db.catalogs.find((item) => item.slug === catalog.slug);
   const pinHash = pin ? hashPin(pin) : catalog.pinHash || previous?.pinHash;
-  await saveCatalog({ ...catalog, createdBy: previous?.createdBy ?? session.uid, updatedAt: new Date().toISOString(), pinHash });
+  const titleRu = catalog.title.ru.trim();
+  if (!titleRu) return { ok: false as const, error: "title" as const };
+  await saveCatalog({
+    ...catalog,
+    title: { ...catalog.title, ru: titleRu },
+    expiresAt: undefined,
+    cover: {},
+    createdBy: previous?.createdBy ?? session.uid,
+    updatedAt: new Date().toISOString(),
+    pinHash,
+  });
   touch(`/c/${catalog.slug}`);
   touch("/admin/catalogs");
   return { ok: true as const };

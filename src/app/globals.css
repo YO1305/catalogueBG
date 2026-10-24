@@ -48,6 +48,26 @@ body {
   color: var(--ink);
 }
 
+.catalog-root[data-theme="classic"] {
+  --paper: #e6dfd2;
+  --ink: #1c1915;
+  --muted: #6b6458;
+  --line: rgba(28, 25, 21, 0.12);
+  --accent: #163a66;
+  --gold: #a6843d;
+  background: #e6dfd2;
+}
+
+.catalog-root[data-theme="sand"] {
+  --paper: #ebe3d4;
+  --ink: #2a2418;
+  --muted: #7a6f5c;
+  --line: rgba(42, 36, 24, 0.14);
+  --accent: #8b6914;
+  --gold: #c4a574;
+  background: #ebe3d4;
+}
+
 .catalog-root[data-theme="dark"] {
   --paper: #221f1b;
   --ink: #f6f1e8;

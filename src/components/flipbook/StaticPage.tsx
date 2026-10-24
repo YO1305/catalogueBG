@@ -30,7 +30,7 @@ export function StaticPage({
   const byId = new Map(model.fabrics.map((fabric) => [fabric.id, fabric]));
   return (
     <div className="paper-page shadow-2xl" style={{ width, height }}>
-      {page.kind === "cover" ? <PageCover catalog={model.catalog} image={model.coverImage} count={model.fabrics.length} /> : null}
+      {page.kind === "cover" ? <PageCover catalog={model.catalog} count={model.fabrics.length} /> : null}
       {page.kind === "toc" ? <PageToc catalog={model.catalog} page={page} fabricTypes={model.fabricTypes} collections={model.collections} fabrics={model.fabrics} onJump={onJump} /> : null}
       {page.kind === "section" ? <PageSection page={page} fabricTypes={model.fabricTypes} collections={model.collections} /> : null}
       {page.kind === "designs" ? (
