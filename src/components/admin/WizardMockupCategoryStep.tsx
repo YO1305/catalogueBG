@@ -44,7 +44,11 @@ export function WizardMockupCategoryStep({
         const selected = fabric.mockups.find((item) => item.templateId === template.id);
         return (
           <div key={template.id} className="rounded border border-black/10 bg-white p-3">
-            <Checkbox checked={Boolean(selected)} label={template.name} onCheckedChange={(checked) => onChoose(productType, template, checked)} />
+            <Checkbox
+              checked={Boolean(selected)}
+              label={`${template.name}${template.kind === "demo" ? ` · ${t("templates.demo")}` : ""}`}
+              onCheckedChange={(checked) => onChoose(productType, template, checked)}
+            />
             {selected ? (
               <MockupAdjuster
                 fabric={fabric}

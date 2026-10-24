@@ -152,11 +152,12 @@ async function main() {
     await writeFile(path.join(publicDir, `media/templates/${scene.id}.json`), JSON.stringify(json, null, 2));
     templateRecords.push({
       id: scene.id,
+      kind: "demo",
       productTypes: scene.products,
       name: scene.name,
       source: { psdUrl: "", fileName: "starter.svg", sizeMb: 0.4, widthPx: 1500, heightPx: 1000 },
       engine: "webgl",
-      compatibility: { ok: true, warnings: ["Стартовый иллюстрированный шаблон. Замените покупным PSD со smart object."] },
+      compatibility: { ok: true, warnings: ["Демо-шаблон для разработки. Основной формат — импорт ZIP (SPEC 5.7)."] },
       baked: { backgroundUrl: bgUrl, overlays: [{ url: ovUrl, blendMode: "multiply", opacity: 0.45, x: 0, y: 0 }], jsonUrl: `/media/templates/${scene.id}.json` },
       areas: scene.areas,
       thumbnailUrl: `/media/templates/${scene.id}-thumb.webp`,

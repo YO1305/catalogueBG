@@ -18,6 +18,10 @@ export type Photo = {
   alt?: Localized;
 };
 
+export type TemplateKind = "zip" | "psd" | "demo";
+
+export type TemplateEngine = "webgl" | "photopea" | "uvgrid";
+
 export type MockupAreaSettings = {
   areaId: string;
   scale: number;
@@ -34,7 +38,7 @@ export type Mockup = {
   webUrl?: string;
   sameForAllAreas: boolean;
   areas: MockupAreaSettings[];
-  engine: "webgl" | "photopea";
+  engine: TemplateEngine;
   generatedAt: Timestamp;
 };
 
@@ -111,6 +115,7 @@ export type TemplateArea = {
   transform: number[];
   warp?: { bounds: number[]; cols: number; rows: number; points: number[] };
   maskUrl?: string;
+  shadeUrl?: string;
   pxPerCm: number;
   realWidthCm: number;
   fill: boolean;
@@ -118,9 +123,11 @@ export type TemplateArea = {
 
 export type Template = {
   id: string;
+  kind?: TemplateKind;
   category?: MockupCategory;
   productTypes: string[];
   name: string;
+  finish?: "sateen" | "matte" | string;
   source: {
     psdUrl: string;
     fileName: string;
@@ -128,7 +135,7 @@ export type Template = {
     widthPx: number;
     heightPx: number;
   };
-  engine: "webgl" | "photopea";
+  engine: TemplateEngine;
   compatibility: { ok: boolean; warnings: string[] };
   baked: {
     backgroundUrl: string;

@@ -5,6 +5,7 @@ import { MockupAdjuster } from "@/components/admin/MockupAdjuster";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/field";
+import { sortTemplatesForWizard } from "@/lib/templateSort";
 import type { Fabric, FabricType, Mockup, ProductType, Template } from "@/types";
 
 export function WizardMockupStep({
@@ -50,7 +51,7 @@ export function WizardMockupStep({
       {fabric.productTypes.map((productId) => (
         <div key={productId} className="space-y-3">
           <h3 className="font-display text-2xl">{productTypes.find((item) => item.id === productId)?.name.ru}</h3>
-          {templates.filter((template) => template.productTypes.includes(productId)).map((template) => {
+          {sortTemplatesForWizard(templates.filter((template) => template.productTypes.includes(productId))).map((template) => {
             const selected = fabric.mockups.find((item) => item.templateId === template.id && item.productType === productId);
             return (
               <div key={template.id}>

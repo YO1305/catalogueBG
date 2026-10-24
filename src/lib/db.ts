@@ -308,6 +308,18 @@ export async function getTemplatesListData() {
   return readCollection<Template>("templates", "id");
 }
 
+export async function getTemplatesBoardData() {
+  if (!firebaseAdminConfigured()) {
+    const db = readLocal();
+    return { templates: db.templates, productTypes: db.productTypes };
+  }
+  const [templates, productTypes] = await Promise.all([
+    readCollection<Template>("templates", "id"),
+    readCollection<ProductType>("productTypes", "id"),
+  ]);
+  return { templates, productTypes };
+}
+
 export async function getFabricEditorData() {
   if (!firebaseAdminConfigured()) {
     const db = readLocal();

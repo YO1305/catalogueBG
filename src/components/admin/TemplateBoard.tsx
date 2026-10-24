@@ -15,7 +15,7 @@ function cardBtnClass(extra?: string) {
   return `inline-flex h-7 items-center rounded border border-black/10 bg-white px-2 text-[0.6875rem] hover:bg-black/[0.03] ${extra ?? ""}`;
 }
 
-export function TemplateBoard({ templates, role }: { templates: Template[]; products: ProductType[]; role: Role }) {
+export function TemplateBoard({ templates, products, role }: { templates: Template[]; products: ProductType[]; role: Role }) {
   const { t } = useI18n();
   const router = useRouter();
   const [filter, setFilter] = useState<MockupCategory | "">("");
@@ -45,7 +45,7 @@ export function TemplateBoard({ templates, role }: { templates: Template[]; prod
         <h1 className="font-display text-2xl md:text-3xl">{t("nav.mockups")}</h1>
         {canUpload ? (
           <button type="button" className="h-9 bg-majolica px-4 text-sm text-paper" onClick={() => setUploadOpen(true)}>
-            {t("mockups.upload")}
+            {t("templates.importZip")}
           </button>
         ) : null}
       </div>
@@ -88,7 +88,7 @@ export function TemplateBoard({ templates, role }: { templates: Template[]; prod
           </li>
         ))}
       </ul>
-      <TemplateUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} onSaved={() => router.refresh()} />
+      <TemplateUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} onSaved={() => router.refresh()} products={products} />
     </div>
   );
 }
