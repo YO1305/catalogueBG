@@ -63,7 +63,7 @@ async function renderUvgridMockup(fabric: Fabric, template: Template, mockup: Mo
     .toBuffer();
   const thumb = await sharp(full).resize(600, 600, { fit: "inside" }).webp({ quality: 76 }).toBuffer();
   const mid = await sharp(full).resize(1200, 1200, { fit: "inside" }).webp({ quality: 80 }).toBuffer();
-  const id = `${fabric.id}-${template.id}-${mockup.productType}`;
+  const id = mockupFileId(fabric, template, mockup);
   const [url, webUrl, thumbUrl] = await Promise.all([
     saveBuffer(`mockups/${id}.webp`, full, "image/webp"),
     saveBuffer(`mockups/${id}-1200.webp`, mid, "image/webp"),
@@ -109,13 +109,18 @@ export async function renderFabricMockup(fabric: Fabric, template: Template, moc
   const full = await sharp(background).resize(2000, 2000, { fit: "inside" }).composite(layers).webp({ quality: 82 }).toBuffer();
   const mid = await sharp(full).resize(1200, 1200, { fit: "inside" }).webp({ quality: 80 }).toBuffer();
   const thumb = await sharp(full).resize(600, 600, { fit: "inside" }).webp({ quality: 76 }).toBuffer();
-  const id = `${fabric.id}-${template.id}-${mockup.productType}`;
+  const id = mockupFileId(fabric, template, mockup);
   const [url, webUrl, thumbUrl] = await Promise.all([
     saveBuffer(`mockups/${id}.webp`, full, "image/webp"),
     saveBuffer(`mockups/${id}-1200.webp`, mid, "image/webp"),
     saveBuffer(`mockups/${id}-600.webp`, thumb, "image/webp"),
   ]);
   return { ...mockup, url, webUrl, thumbUrl, engine: "webgl" as const, generatedAt: new Date().toISOString() };
+}
+
+/** Versioned names: the Blob CDN caches each URL, so a rebuilt mockup needs a new one. */
+function mockupFileId(fabric: Fabric, template: Template, mockup: Mockup) {
+  return `${fabric.id}-${template.id}-${mockup.productType}-${Date.now().toString(36)}`;
 }
 
 function pairs(values: number[]) {

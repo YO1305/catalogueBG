@@ -45,6 +45,7 @@ async function saveVercelBlob(relativePath: string, data: Buffer, contentType: s
     access: "public",
     contentType,
     addRandomSuffix: false,
+    allowOverwrite: true,
     ...(rw && rw.length > 20 ? { token: rw } : {}),
   });
   return result.url;

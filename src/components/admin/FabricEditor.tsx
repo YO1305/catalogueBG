@@ -61,11 +61,10 @@ export function FabricEditor({
       return;
     }
     const id = fabric.id;
-    for (const slug of catalogSlugs) await addFabricsToCatalogAction([id], slug);
+    await Promise.all(catalogSlugs.map((slug) => addFabricsToCatalogAction([id], slug)));
     toast(saveLive ? t("designs.savedPublished") : t("wizard.saved"));
-    if (isNew) router.push("/admin/fabrics");
-    else router.refresh();
     setBusy(false);
+    if (isNew) router.push("/admin/fabrics");
   }
 
   return (

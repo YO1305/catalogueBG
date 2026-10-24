@@ -34,6 +34,17 @@ export function MockupAdjuster({
   const scale = setting?.scale ?? 1;
   const isUvgrid = template.engine === "uvgrid" && Boolean(template.baked.jsonUrl);
   const useStripes = fabricUsesStripes(fabric, template);
+  const drawKey = JSON.stringify([
+    fabric.design.webUrl,
+    fabric.designMode,
+    fabric.stripes,
+    fabric.rapport,
+    mockup.areas,
+    mockup.sameForAllAreas,
+    template.id,
+    template.baked.jsonUrl,
+    template.baked.backgroundUrl,
+  ]);
 
   useEffect(() => {
     const node = canvas.current;
@@ -113,7 +124,8 @@ export function MockupAdjuster({
       cancel = true;
       if (renderTimer.current) window.clearTimeout(renderTimer.current);
     };
-  }, [fabric.design.webUrl, fabric.designMode, fabric.stripes, fabric.rapport, isUvgrid, mockup, template, useStripes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- redraw only when the inputs in drawKey change, not on every new fabric object from the server
+  }, [drawKey, isUvgrid, useStripes]);
 
   function patch(partial: Partial<NonNullable<typeof setting>>, all = mockup.sameForAllAreas) {
     const areas = (all ? template.areas : template.areas.filter((area) => area.id === areaId)).map((area) => ({

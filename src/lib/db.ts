@@ -138,6 +138,11 @@ export async function getFabric(id: string): Promise<Fabric | null> {
   return readDoc<Fabric>("fabrics", id, "id");
 }
 
+export async function getFabrics(): Promise<Fabric[]> {
+  if (!firebaseAdminConfigured()) return readLocal().fabrics;
+  return readCollection<Fabric>("fabrics", "id");
+}
+
 export async function getCatalog(slug: string): Promise<Catalog | null> {
   if (!firebaseAdminConfigured()) return readLocal().catalogs.find((item) => item.slug === slug) ?? null;
   return readDoc<Catalog>("catalogs", slug, "slug");
