@@ -37,12 +37,18 @@ function fromRemote(value: unknown): unknown {
 const DATE_KEYS = new Set(["createdAt", "updatedAt", "generatedAt", "expiresAt", "publishedAfter", "ts"]);
 
 function toRemote(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(toRemote);
+  if (value === undefined) return undefined;
+  if (Array.isArray(value)) return value.map(toRemote).filter((item) => item !== undefined);
   if (value && typeof value === "object") {
     const output: Record<string, unknown> = {};
     for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
-      if (DATE_KEYS.has(key) && typeof item === "string") output[key] = Timestamp.fromDate(new Date(item));
-      else output[key] = toRemote(item);
+      if (item === undefined) continue;
+      if (DATE_KEYS.has(key) && typeof item === "string") {
+        output[key] = Timestamp.fromDate(new Date(item));
+        continue;
+      }
+      const next = toRemote(item);
+      if (next !== undefined) output[key] = next;
     }
     return output;
   }
@@ -116,8 +122,23 @@ export async function getDb(): Promise<Database> {
   };
 }
 
+function omitUndefined(value: unknown): unknown {
+  if (value === undefined) return undefined;
+  if (Array.isArray(value)) return value.map(omitUndefined).filter((item) => item !== undefined);
+  if (value && typeof value === "object") {
+    const output: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      if (item === undefined) continue;
+      const next = omitUndefined(item);
+      if (next !== undefined) output[key] = next;
+    }
+    return output;
+  }
+  return value;
+}
+
 async function upsert(collection: string, id: string, value: object) {
-  await firestore().collection(collection).doc(id).set(toRemote(value) as DocumentData);
+  await firestore().collection(collection).doc(id).set(toRemote(omitUndefined(value)) as DocumentData);
 }
 
 export async function saveFabric(fabric: Fabric) {

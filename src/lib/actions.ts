@@ -118,7 +118,7 @@ export async function createCatalogAction(catalog: Catalog, pin?: string) {
     if (!titleRu) return { ok: false as const, error: "title" as const };
     const slug = uniqueSlug(titleRu, db.catalogs.map((item) => item.slug));
     const translated = await translateFieldsSafe({ title: titleRu, subtitle: catalog.subtitle.ru }, db.glossary);
-    const pinHash = pin ? hashPin(pin) : catalog.pinHash;
+    const pinHash = pin ? hashPin(pin) : catalog.access === "pin" ? catalog.pinHash : undefined;
     const showProductTypes = catalog.showProductTypes.length
       ? catalog.showProductTypes
       : db.productTypes.filter((item) => item.active).map((item) => item.id);
@@ -134,12 +134,14 @@ export async function createCatalogAction(catalog: Catalog, pin?: string) {
       showProductTypes,
       mode: "manual",
       fabricIds: catalog.fabricIds ?? [],
-      expiresAt: undefined,
       cover: {},
       createdBy: session.uid,
       updatedAt: new Date().toISOString(),
-      pinHash,
+      ...(pinHash ? { pinHash } : {}),
     };
+    delete next.expiresAt;
+    delete next.rules;
+    if (catalog.access !== "pin") delete next.pinHash;
     await saveCatalog(next);
     touch("/admin/catalogs");
     touch(`/c/${slug}`);
@@ -164,18 +166,21 @@ export async function saveCatalogAction(catalog: Catalog, pin?: string) {
   try {
     const db = await getDb();
     const previous = db.catalogs.find((item) => item.slug === catalog.slug);
-    const pinHash = pin ? hashPin(pin) : catalog.pinHash || previous?.pinHash;
+    const needsPin = catalog.access === "pin";
+    const pinHash = pin ? hashPin(pin) : needsPin ? catalog.pinHash || previous?.pinHash : undefined;
     const titleRu = catalog.title.ru.trim();
     if (!titleRu) return { ok: false as const, error: "title" as const };
-    await saveCatalog({
+    const next: Catalog = {
       ...catalog,
       title: { ...catalog.title, ru: titleRu },
-      expiresAt: undefined,
       cover: {},
       createdBy: previous?.createdBy ?? session.uid,
       updatedAt: new Date().toISOString(),
-      pinHash,
-    });
+      ...(pinHash ? { pinHash } : {}),
+    };
+    delete next.expiresAt;
+    if (!needsPin) delete next.pinHash;
+    await saveCatalog(next);
     touch(`/c/${catalog.slug}`);
     touch("/admin/catalogs");
     return { ok: true as const };
