@@ -30,12 +30,24 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, errors: ["Выберите хотя бы одно изделие"] }, { status: 400 });
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const result = await importTemplateZipFromBuffer(buffer, { category, name, productTypes, isDefault });
-  if (!result.ok) {
-    return Response.json({ ok: false, errors: result.errors }, { status: 400 });
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const result = await importTemplateZipFromBuffer(buffer, { category, name, productTypes, isDefault });
+    if (!result.ok) {
+      return Response.json({ ok: false, errors: result.errors }, { status: 400 });
+    }
+    await saveTemplate(result.template);
+    revalidatePath("/admin/templates");
+    return Response.json({ ok: true, id: result.template.id });
+  } catch (error) {
+    console.error("templates/import-zip", error);
+    const message = error instanceof Error ? error.message : String(error);
+    if (/storage_blob|BLOB/i.test(message)) {
+      return Response.json({ ok: false, errors: ["Хранилище Vercel Blob не настроено. Проверьте BLOB_READ_WRITE_TOKEN."] }, { status: 503 });
+    }
+    return Response.json(
+      { ok: false, errors: ["ZIP целиком слишком большой для сервера. Обновите страницу — импорт загружает файлы по одному."] },
+      { status: 413 },
+    );
   }
-  await saveTemplate(result.template);
-  revalidatePath("/admin/templates");
-  return Response.json({ ok: true, id: result.template.id });
 }

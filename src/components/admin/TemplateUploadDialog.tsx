@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox, Input, Label } from "@/components/ui/field";
 import { MOCKUP_CATEGORIES, mockupCategoryLabelKey } from "@/lib/mockupCategories";
 import { parseTemplateZipFile } from "@/lib/templateZip/readZip";
+import { completeTemplateZipImport, uploadTemplateZipAssets } from "@/lib/templateZip/uploadClient";
 import type { ZipTemplateManifest } from "@/lib/templateZip/types";
 import type { MockupCategory, ProductType } from "@/types";
 
@@ -34,6 +35,7 @@ export function TemplateUploadDialog({
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [productTypes, setProductTypes] = useState<string[]>([]);
   const [isDefault, setIsDefault] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
 
   const sortedProducts = useMemo(
     () => [...products].filter((p) => p.active).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
@@ -49,6 +51,7 @@ export function TemplateUploadDialog({
       setZipFile(null);
       setProductTypes([]);
       setIsDefault(false);
+      setUploadProgress("");
     }
   }, [open]);
 
@@ -90,26 +93,39 @@ export function TemplateUploadDialog({
     if (!zipFile || !manifest) return toast(t("mockups.needFile"));
     if (!productTypes.length) return toast(t("templates.zipNeedProducts"));
     setBusy(true);
+    setErrors([]);
+    const templateId = crypto.randomUUID();
     try {
-      const form = new FormData();
-      form.set("file", zipFile);
-      form.set("category", category);
-      form.set("name", name.trim() || manifest.name);
-      form.set("productTypes", JSON.stringify(productTypes));
-      form.set("isDefault", isDefault ? "1" : "0");
-      const response = await fetch("/api/templates/import-zip", { method: "POST", body: form });
-      const data = (await response.json()) as { ok: boolean; errors?: string[] };
-      if (!response.ok || !data.ok) {
-        setErrors(data.errors ?? [t("catalogs.errorSave")]);
+      const uploaded = await uploadTemplateZipAssets(zipFile, manifest, templateId, (done, total, label) => {
+        setUploadProgress(t("templates.zipProgress", { done: String(done), total: String(total), file: label }));
+      });
+      if (!uploaded.ok) {
+        setErrors(uploaded.errors);
+        return;
+      }
+      const finished = await completeTemplateZipImport({
+        templateId,
+        category,
+        name: name.trim() || manifest.name,
+        productTypes,
+        isDefault,
+        manifest,
+        assetUrls: uploaded.assetUrls,
+        zipSizeMb: Math.round((zipFile.size / (1024 * 1024)) * 10) / 10,
+      });
+      if (!finished.ok) {
+        setErrors(finished.errors);
         return;
       }
       toast(t("templates.zipImported"));
       onOpenChange(false);
       onSaved();
-    } catch {
-      toast(t("catalogs.errorSave"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t("catalogs.errorSave");
+      setErrors([message]);
     } finally {
       setBusy(false);
+      setUploadProgress("");
     }
   }
 
@@ -170,6 +186,7 @@ export function TemplateUploadDialog({
               </div>
             </div>
             <Checkbox checked={isDefault} label={t("templates.default")} onCheckedChange={setIsDefault} />
+            {uploadProgress ? <p className="text-xs text-ink/60">{uploadProgress}</p> : null}
             {errors.length ? (
               <ul className="list-disc pl-5 text-sm text-red-900">
                 {errors.map((item) => (

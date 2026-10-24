@@ -1,7 +1,7 @@
 import "server-only";
 import sharp from "sharp";
 import { saveBuffer } from "@/lib/storage";
-import type { MockupCategory, ProductType, Template, TemplateArea } from "@/types";
+import type { MockupCategory, Template, TemplateArea } from "@/types";
 import { JSZip, parseTemplateZipBuffer, resolveZipAssetPath } from "@/lib/templateZip/readZip";
 import type { ZipTemplateManifest } from "@/lib/templateZip/types";
 
