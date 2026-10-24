@@ -49,9 +49,9 @@ export async function renderFabricMockup(fabric: Fabric, template: Template, moc
   const thumb = await sharp(full).resize(600, 600, { fit: "inside" }).webp({ quality: 76 }).toBuffer();
   const id = `${fabric.id}-${template.id}-${mockup.productType}`;
   const [url, webUrl, thumbUrl] = await Promise.all([
-    saveBuffer(`uploads/mockups/${id}.webp`, full, "image/webp"),
-    saveBuffer(`uploads/mockups/${id}-1200.webp`, mid, "image/webp"),
-    saveBuffer(`uploads/mockups/${id}-600.webp`, thumb, "image/webp"),
+    saveBuffer(`mockups/${id}.webp`, full, "image/webp"),
+    saveBuffer(`mockups/${id}-1200.webp`, mid, "image/webp"),
+    saveBuffer(`mockups/${id}-600.webp`, thumb, "image/webp"),
   ]);
   return { ...mockup, url, webUrl, thumbUrl, engine: "webgl" as const, generatedAt: new Date().toISOString() };
 }

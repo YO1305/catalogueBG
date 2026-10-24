@@ -2,7 +2,7 @@ import sharp from "sharp";
 import { getSession } from "@/lib/auth";
 import { dominantColors } from "@/lib/colors";
 import { canEditFabrics, isAdmin } from "@/lib/roles";
-import { saveBuffer } from "@/lib/storage";
+import { saveBuffer, storageProvider } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
@@ -36,19 +36,24 @@ export async function POST(request: Request) {
   const mid = await image.clone().resize({ width: 1200, height: 1200, fit: "inside", withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
   const small = await image.clone().resize({ width: 600, height: 600, fit: "inside", withoutEnlargement: true }).webp({ quality: 78 }).toBuffer();
   try {
-    const [originalUrl, webUrl, thumbUrl] = await Promise.all([
-      saveBuffer(`uploads/${id}/original${ext(file.name)}`, original, type || "application/octet-stream"),
-      saveBuffer(`uploads/${id}/web.webp`, web, "image/webp"),
-      saveBuffer(`uploads/${id}/thumb.webp`, thumb, "image/webp"),
+    const skipOriginal = storageProvider() === "vercel-blob";
+    const [webUrl, thumbUrl] = await Promise.all([
+      saveBuffer(`fabrics/${id}/web.webp`, web, "image/webp"),
+      saveBuffer(`fabrics/${id}/thumb.webp`, thumb, "image/webp"),
     ]);
-    await saveBuffer(`uploads/${id}/web-1200.webp`, mid, "image/webp");
-    await saveBuffer(`uploads/${id}/web-600.webp`, small, "image/webp");
+    await Promise.all([
+      saveBuffer(`fabrics/${id}/web-1200.webp`, mid, "image/webp"),
+      saveBuffer(`fabrics/${id}/web-600.webp`, small, "image/webp"),
+    ]);
+    const originalUrl = skipOriginal
+      ? webUrl
+      : await saveBuffer(`fabrics/${id}/original${ext(file.name)}`, original, type || "application/octet-stream");
     const colors = await dominantColors(web);
     return Response.json({ originalUrl, webUrl, thumbUrl, widthPx: meta.width ?? 0, heightPx: meta.height ?? 0, colors });
   } catch (error) {
     console.error("images/process storage", error);
     const message = error instanceof Error ? error.message : "";
-    if (message.includes("bucket") || message.includes("storage")) {
+    if (/bucket|storage|blob|oidc/i.test(message)) {
       return Response.json({ error: "storage" }, { status: 503 });
     }
     return Response.json({ error: "file" }, { status: 500 });

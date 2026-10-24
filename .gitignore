@@ -11,3 +11,5 @@ public/uploads
 *.log
 tsconfig.tsbuildinfo
 .DS_Store
+public/fabrics
+public/mockups
