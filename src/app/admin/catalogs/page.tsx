@@ -5,7 +5,7 @@ import { getDb } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 export default async function CatalogsPage() {
-  await requireSession(["admin", "manager"]);
+  await requireSession(["admin", "manager", "designer"]);
   const db = await getDb();
-  return <CatalogList catalogs={db.catalogs} />;
+  return <CatalogList catalogs={db.catalogs} fabrics={db.fabrics} />;
 }

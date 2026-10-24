@@ -3,7 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { matchingCatalogs } from "@/lib/catalog";
-import { deleteFabric, deleteUser, getDb, saveCatalog, saveCollection, saveFabric, saveFabricType, saveGlossary, saveLead, saveProductType, saveTemplate, saveUser } from "@/lib/db";
+import {
+  deleteCatalog,
+  deleteFabric,
+  deleteUser,
+  getDb,
+  saveCatalog,
+  saveCollection,
+  saveFabric,
+  saveFabricType,
+  saveGlossary,
+  saveLead,
+  saveProductType,
+  saveTemplate,
+  saveUser,
+} from "@/lib/db";
 import { fallbackTranslate } from "@/lib/glossary";
 import { uniqueSlug } from "@/lib/ids";
 import { parseDensity, parseWidths } from "@/lib/parseSpecs";
@@ -84,6 +98,31 @@ export async function addFabricsToCatalogAction(ids: string[], slug: string) {
   const fabricIds = [...new Set([...(catalog.fabricIds ?? []), ...ids])];
   await saveCatalog({ ...catalog, mode: "manual", fabricIds, updatedAt: new Date().toISOString() });
   touch(`/admin/catalogs/${slug}`);
+  return { ok: true as const };
+}
+
+export async function createCatalogAction(catalog: Catalog, pin?: string) {
+  const session = await actor(canEditCatalogs);
+  const db = await getDb();
+  const slug = uniqueSlug(catalog.title.ru || "catalog", db.catalogs.map((item) => item.slug));
+  const pinHash = pin ? hashPin(pin) : catalog.pinHash;
+  const next: Catalog = {
+    ...catalog,
+    slug,
+    createdBy: session.uid,
+    updatedAt: new Date().toISOString(),
+    pinHash,
+  };
+  await saveCatalog(next);
+  touch("/admin/catalogs");
+  touch(`/c/${slug}`);
+  return { ok: true as const, slug };
+}
+
+export async function deleteCatalogAction(slug: string) {
+  await actor(canEditCatalogs);
+  await deleteCatalog(slug);
+  touch("/admin/catalogs");
   return { ok: true as const };
 }
 

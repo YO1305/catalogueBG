@@ -15,10 +15,10 @@ function LoginForm() {
   const { t } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
-  const [email, setEmail] = useState("admin@bahmal.uz");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
-  const next = params.get("next") || "/admin";
+  const next = params.get("next") || "/admin/catalogs";
   const firebaseLogin = useFirebaseLogin();
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -52,9 +52,8 @@ function LoginForm() {
         <Label>{t("auth.password")}</Label>
         <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
         {error ? <p className="text-sm text-red-800">{t("auth.error")}</p> : null}
-        <Button type="submit">{firebaseLogin ? t("auth.firebase") : t("auth.submit")}</Button>
+        <Button type="submit" className="w-full">{t("auth.submit")}</Button>
       </form>
-      {process.env.NEXT_PUBLIC_DEMO_AUTH !== "0" && !firebaseLogin ? <p className="mt-4 text-xs text-ink/60">{t("auth.demoHint")}</p> : null}
     </main>
   );
 }

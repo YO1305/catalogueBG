@@ -11,7 +11,7 @@ export async function middleware(request: NextRequest) {
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
-  const adminOnly = pathname.startsWith("/admin/templates") || pathname.startsWith("/admin/users") || pathname.startsWith("/admin/lab");
+  const adminOnly = pathname.startsWith("/admin/users") || pathname.startsWith("/admin/lab");
   if (adminOnly && session.role !== "admin") {
     const url = request.nextUrl.clone();
     url.pathname = "/admin";

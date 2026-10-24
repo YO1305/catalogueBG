@@ -7,36 +7,13 @@ import dynamic from "next/dynamic";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Input, Label, Textarea } from "@/components/ui/field";
-import { presetCatalogAction, quickCatalogAction, saveCatalogAction } from "@/lib/actions";
+import { saveCatalogAction } from "@/lib/actions";
 import { buildPages, resolveFabrics } from "@/lib/catalog";
 import type { Catalog, Collection, Fabric, FabricType, ProductType } from "@/types";
 
 const CatalogScreen = dynamic(() => import("@/components/flipbook/CatalogScreen").then((mod) => mod.CatalogScreen), { ssr: false });
 
-export function CatalogList({ catalogs }: { catalogs: Catalog[] }) {
-  const { t } = useI18n();
-  const router = useRouter();
-  const [title, setTitle] = useState("");
-  return (
-    <div>
-      <h1 className="font-display text-4xl">{t("nav.catalogs")}</h1>
-      <form className="mt-4 flex gap-2" onSubmit={async (event) => { event.preventDefault(); const result = await quickCatalogAction(title); router.push(`/admin/catalogs/${result.slug}`); }}>
-        <Input value={title} placeholder={t("catalogs.quickHint")} onChange={(event) => setTitle(event.target.value)} required />
-        <Button type="submit">{t("catalogs.quick")}</Button>
-      </form>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {["kurpacha", "euro", "fashion", "towels", "news"].map((preset) => (
-          <Button key={preset} type="button" variant="outline" onClick={async () => { const result = await presetCatalogAction(preset); router.push(`/admin/catalogs/${result.slug}`); }}>{t(`presets.${preset}`)}</Button>
-        ))}
-      </div>
-      <ul className="mt-6 space-y-2">
-        {catalogs.map((catalog) => (
-          <li key={catalog.slug}><a className="block bg-white p-4" href={`/admin/catalogs/${catalog.slug}`}>{catalog.title.ru} · /c/{catalog.slug}</a></li>
-        ))}
-      </ul>
-    </div>
-  );
-}
+export { CatalogList } from "@/components/admin/CatalogList";
 
 export function CatalogBuilder({ initial, fabrics, collections, fabricTypes, productTypes }: { initial: Catalog; fabrics: Fabric[]; collections: Collection[]; fabricTypes: FabricType[]; productTypes: ProductType[] }) {
   const { lang, t } = useI18n();
