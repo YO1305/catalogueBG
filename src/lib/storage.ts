@@ -18,8 +18,8 @@ function storageBucketName() {
 export function storageProvider(): StorageProvider {
   const configured = process.env.STORAGE_PROVIDER?.trim().toLowerCase();
   if (configured === "firebase") return "firebase";
-  if (configured === "local") return "local";
-  const wantsBlob = configured === "vercel-blob" || Boolean(process.env.BLOB_STORE_ID);
+  if (configured === "local" && process.env.VERCEL !== "1") return "local";
+  const wantsBlob = configured === "vercel-blob" || Boolean(process.env.BLOB_STORE_ID) || process.env.VERCEL === "1";
   if (wantsBlob) {
     const rw = process.env.BLOB_READ_WRITE_TOKEN ?? "";
     if (process.env.NODE_ENV === "development" && rw.length <= 20) return "local";

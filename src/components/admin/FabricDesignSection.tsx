@@ -2,6 +2,7 @@
 
 import { useI18n } from "@/components/i18n/I18n";
 import { Checkbox, Input, Label } from "@/components/ui/field";
+import { StripeConstructor } from "@/components/admin/StripeConstructor";
 import type { Fabric } from "@/types";
 
 export function FabricDesignSection({
@@ -50,6 +51,7 @@ export function FabricDesignSection({
           <Input type="number" min={0} step={0.1} value={fabric.rapport.heightCm || ""} onChange={(event) => onChange({ rapport: { ...fabric.rapport, heightCm: Number(event.target.value) } })} />
         </div>
       </div>
+      {fabric.fabricTypeId === "stripe-sateen" ? <StripeConstructor fabric={fabric} onChange={onChange} /> : null}
       {fabric.colors.length ? (
         <div className="mt-4 flex flex-wrap gap-2">
           {fabric.colors.map((color) => (

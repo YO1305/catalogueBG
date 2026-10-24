@@ -62,6 +62,9 @@ export type Fabric = {
   tags: string[];
   productTypes: string[];
   mockupCategory?: MockupCategory;
+  /** upload = файл рисунка; stripes = конструктор полос (страйп-сатин, SPEC 5.7.5) */
+  designMode?: "upload" | "stripes";
+  stripes?: Array<{ widthCm: number; color: string; shiny: boolean }>;
   design: {
     originalUrl: string;
     webUrl: string;

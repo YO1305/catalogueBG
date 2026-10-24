@@ -152,6 +152,11 @@ export function useFabricEditor(
     }
     const result = await publishFabricAction(payload);
     if (!result.ok) return { ok: false as const, reason: "art" as const };
+    await fetch("/api/mockups/render", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ fabricId: payload.id }),
+    }).catch(() => undefined);
     dirty.current = false;
     return { ok: true as const, catalogs: result.catalogs };
   }

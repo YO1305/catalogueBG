@@ -4,8 +4,17 @@ import { useEffect, useRef } from "react";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
+import { renderMockup } from "@/components/mockup/MockupRenderer";
+import { loadImage as loadWebglImage } from "@/components/mockup/MockupRenderer";
+import { buildStripeFabricInput, fabricUsesStripes } from "@/lib/uvgrid/buildFabricInput";
+import {
+  fetchTemplateManifest,
+  loadBackgroundRgba,
+  loadPatternRgba,
+  loadUvgridZoneAssets,
+} from "@/lib/uvgrid/loadManifest";
+import { renderUvgridToCanvas } from "@/lib/uvgrid/render";
 import { SCALE_PRESETS, scaleToSlider, sliderToScale } from "@/lib/mockupMath";
-import { loadImage, renderMockup } from "@/components/mockup/MockupRenderer";
 import type { Fabric, Mockup, Template } from "@/types";
 
 export function MockupAdjuster({
@@ -22,19 +31,73 @@ export function MockupAdjuster({
   const { t } = useI18n();
   const canvas = useRef<HTMLCanvasElement>(null);
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const renderTimer = useRef<number | null>(null);
   const areaId = mockup.sameForAllAreas ? "all" : mockup.areas[0]?.areaId ?? template.areas[0]?.id ?? "all";
   const setting = mockup.areas.find((item) => item.areaId === (mockup.sameForAllAreas ? mockup.areas[0]?.areaId : areaId)) ?? mockup.areas[0];
   const scale = setting?.scale ?? 1;
+  const isUvgrid = template.engine === "uvgrid" && Boolean(template.baked.jsonUrl);
+  const useStripes = fabricUsesStripes(fabric, template);
 
   useEffect(() => {
     const node = canvas.current;
-    if (!node || !fabric.design.webUrl) return;
+    if (!node) return;
     let cancel = false;
-    void (async () => {
-      const pattern = await loadImage(fabric.design.webUrl);
-      const background = template.baked.backgroundUrl ? await loadImage(template.baked.backgroundUrl).catch(() => null) : null;
-      const overlays = await Promise.all(template.baked.overlays.map(async (overlay) => ({ ...overlay, image: await loadImage(overlay.url) })));
-      if (cancel) return;
+
+    function scheduleRender() {
+      if (renderTimer.current) window.clearTimeout(renderTimer.current);
+      renderTimer.current = window.setTimeout(() => {
+        void draw();
+      }, 80);
+    }
+
+    async function draw() {
+      if (cancel || !node) return;
+      if (isUvgrid) {
+        if (!useStripes && !fabric.design.webUrl) return;
+        try {
+          const manifest = await fetchTemplateManifest(template.baked.jsonUrl);
+          const previewW = 1000;
+          const [sw, sh] = manifest.size;
+          const previewH = Math.max(200, Math.round((previewW * sh) / sw));
+          const [background, zones] = await Promise.all([
+            loadBackgroundRgba(template.baked.backgroundUrl, previewW, previewH),
+            loadUvgridZoneAssets(manifest, previewW, previewH),
+          ]);
+          const fabricInput = useStripes
+            ? buildStripeFabricInput(fabric)
+            : {
+                ...(await loadPatternRgba(fabric.design.webUrl)),
+                mode: "pattern" as const,
+                rapportWidthCm: fabric.rapport.widthCm || 8,
+                rapportHeightCm: fabric.rapport.heightCm || fabric.rapport.widthCm || 8,
+              };
+          if (cancel || !node) return;
+          renderUvgridToCanvas(node, {
+            manifest,
+            width: previewW,
+            height: previewH,
+            background,
+            zones,
+            fabric: fabricInput,
+            settings: mockup.areas.map((area) => ({
+              areaId: area.areaId,
+              scale: area.scale,
+              offsetX: area.offsetX,
+              offsetY: area.offsetY,
+              rotation: area.rotation,
+            })),
+            sameForAllAreas: mockup.sameForAllAreas,
+          });
+        } catch {
+          // preview failed — keep previous frame
+        }
+        return;
+      }
+      if (!fabric.design.webUrl) return;
+      const pattern = await loadWebglImage(fabric.design.webUrl);
+      const background = template.baked.backgroundUrl ? await loadWebglImage(template.baked.backgroundUrl).catch(() => null) : null;
+      const overlays = await Promise.all(template.baked.overlays.map(async (overlay) => ({ ...overlay, image: await loadWebglImage(overlay.url) })));
+      if (cancel || !node) return;
       const width = 1000;
       const height = Math.max(200, Math.round((width * template.source.heightPx) / Math.max(template.source.widthPx, 1)));
       renderMockup(node, {
@@ -48,11 +111,14 @@ export function MockupAdjuster({
         rapport: fabric.rapport,
         sameForAllAreas: mockup.sameForAllAreas,
       });
-    })();
+    }
+
+    scheduleRender();
     return () => {
       cancel = true;
+      if (renderTimer.current) window.clearTimeout(renderTimer.current);
     };
-  }, [fabric.design.webUrl, fabric.rapport, mockup, template]);
+  }, [fabric.design.webUrl, fabric.designMode, fabric.stripes, fabric.rapport, isUvgrid, mockup, template, useStripes]);
 
   function patch(partial: Partial<NonNullable<typeof setting>>, all = mockup.sameForAllAreas) {
     const areas = (all ? template.areas : template.areas.filter((area) => area.id === areaId)).map((area) => ({
@@ -62,7 +128,11 @@ export function MockupAdjuster({
       offsetY: partial.offsetY ?? setting?.offsetY ?? 0,
       rotation: partial.rotation ?? setting?.rotation ?? 0,
     }));
-    const merged = template.areas.map((area) => areas.find((item) => item.areaId === area.id) ?? mockup.areas.find((item) => item.areaId === area.id) ?? { areaId: area.id, scale: 1, offsetX: 0, offsetY: 0, rotation: 0 });
+    const merged = template.areas.map(
+      (area) =>
+        areas.find((item) => item.areaId === area.id) ??
+        mockup.areas.find((item) => item.areaId === area.id) ?? { areaId: area.id, scale: 1, offsetX: 0, offsetY: 0, rotation: 0 },
+    );
     onChange({ ...mockup, sameForAllAreas: all, areas: merged });
   }
 
@@ -77,6 +147,16 @@ export function MockupAdjuster({
         }}
         onPointerMove={(event) => {
           if (!drag.current) return;
+          if (isUvgrid) {
+            const node = canvas.current;
+            const pxPerCm = template.areas.find((a) => a.id === (mockup.sameForAllAreas ? template.areas[0]?.id : areaId))?.pxPerCm ?? 5;
+            const clientW = node?.clientWidth ?? 1000;
+            const cmPerPx = template.source.widthPx / clientW / pxPerCm;
+            const dx = (event.clientX - drag.current.x) * cmPerPx;
+            const dy = (event.clientY - drag.current.y) * cmPerPx;
+            patch({ offsetX: drag.current.ox + dx, offsetY: drag.current.oy + dy });
+            return;
+          }
           patch({ offsetX: drag.current.ox + event.clientX - drag.current.x, offsetY: drag.current.oy + event.clientY - drag.current.y });
         }}
         onPointerUp={() => {
@@ -107,6 +187,20 @@ export function MockupAdjuster({
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="outline" onClick={() => patch({ scale: 1, offsetX: 0, offsetY: 0, rotation: 0 })}>{t("wizard.resetReal")}</Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            void fetch("/api/mockups/render", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ fabricId: fabric.id, templateId: template.id }),
+            });
+          }}
+        >
+          {t("templates.rebuildOne")}
+        </Button>
       </div>
     </div>
   );

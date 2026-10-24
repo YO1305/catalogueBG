@@ -39,7 +39,16 @@ export function FabricEditor({
   const [busy, setBusy] = useState(false);
 
   const ready = useMemo(
-    () => Boolean(fabric.design.webUrl && fabric.rapport.widthCm > 0 && fabric.rapport.heightCm > 0 && fabric.art && fabric.name.ru && fabric.mockupCategory && fabric.mockups.length),
+    () =>
+      Boolean(
+        (fabric.design.webUrl || fabric.designMode === "stripes") &&
+          fabric.rapport.widthCm > 0 &&
+          fabric.rapport.heightCm > 0 &&
+          fabric.art &&
+          fabric.name.ru &&
+          fabric.mockupCategory &&
+          fabric.mockups.length,
+      ),
     [fabric],
   );
 
