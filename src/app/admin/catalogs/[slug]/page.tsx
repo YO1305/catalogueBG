@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation";
 import { CatalogEditor } from "@/components/admin/CatalogEditor";
 import { requireSession } from "@/lib/auth";
-import { getDb } from "@/lib/db";
+import { getCatalogEditorData } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export default async function CatalogEditPage({ params }: { params: Promise<{ slug: string }> }) {
   await requireSession(["admin", "manager"]);
   const { slug } = await params;
-  const db = await getDb();
+  const db = await getCatalogEditorData();
   const catalog = db.catalogs.find((item) => item.slug === slug);
   if (!catalog) notFound();
   const { pinHash: _pin, ...safe } = catalog;

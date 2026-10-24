@@ -92,6 +92,54 @@ async function readCollection<T>(name: string, idField?: keyof T): Promise<T[]> 
   });
 }
 
+export async function findStaffUser(email: string) {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return null;
+  if (!firebaseAdminConfigured()) {
+    return readLocal().users.find((item) => item.email.toLowerCase() === normalized) ?? null;
+  }
+  const snap = await firestore().collection("users").get();
+  for (const doc of snap.docs) {
+    const user = fromRemote(doc.data()) as AppUser;
+    if (!user.id) user.id = doc.id;
+    if (user.email.toLowerCase() === normalized) return user;
+  }
+  return null;
+}
+
+export async function getCatalogListData() {
+  if (!firebaseAdminConfigured()) {
+    const db = readLocal();
+    return { catalogs: db.catalogs, fabrics: db.fabrics };
+  }
+  const [catalogs, fabrics] = await Promise.all([
+    readCollection<Catalog>("catalogs", "slug"),
+    readCollection<Fabric>("fabrics", "id"),
+  ]);
+  return { catalogs, fabrics };
+}
+
+export async function getCatalogEditorData() {
+  if (!firebaseAdminConfigured()) {
+    const db = readLocal();
+    return {
+      catalogs: db.catalogs,
+      fabrics: db.fabrics,
+      collections: db.collections,
+      fabricTypes: db.fabricTypes,
+      productTypes: db.productTypes,
+    };
+  }
+  const [catalogs, fabrics, collections, fabricTypes, productTypes] = await Promise.all([
+    readCollection<Catalog>("catalogs", "slug"),
+    readCollection<Fabric>("fabrics", "id"),
+    readCollection<Collection>("collections", "id"),
+    readCollection<FabricType>("fabricTypes", "id"),
+    readCollection<ProductType>("productTypes", "id"),
+  ]);
+  return { catalogs, fabrics, collections, fabricTypes, productTypes };
+}
+
 export async function getDb(): Promise<Database> {
   if (!firebaseAdminConfigured()) return readLocal();
   const fs = firestore();
