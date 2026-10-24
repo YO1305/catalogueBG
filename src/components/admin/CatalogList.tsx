@@ -6,9 +6,10 @@ import { toast } from "sonner";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { deleteCatalogAction } from "@/lib/actions";
-import type { Catalog, Fabric } from "@/types";
+import { canEditCatalogs } from "@/lib/roles";
+import type { Catalog, Fabric, Role } from "@/types";
 
-export function CatalogList({ catalogs, fabrics }: { catalogs: Catalog[]; fabrics: Fabric[] }) {
+export function CatalogList({ catalogs, fabrics, role }: { catalogs: Catalog[]; fabrics: Fabric[]; role: Role }) {
   const { t } = useI18n();
   const router = useRouter();
 
@@ -33,9 +34,11 @@ export function CatalogList({ catalogs, fabrics }: { catalogs: Catalog[]; fabric
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-4xl">{t("nav.catalogs")}</h1>
-        <Button type="button" asChild>
-          <Link href="/admin/catalogs/new">{t("catalogs.create")}</Link>
-        </Button>
+        {canEditCatalogs(role) ? (
+          <Button type="button" asChild>
+            <Link href="/admin/catalogs/new">{t("catalogs.create")}</Link>
+          </Button>
+        ) : null}
       </div>
       {!catalogs.length ? <p className="mt-8 text-sm text-ink/60">{t("catalogs.emptyList")}</p> : null}
       <ul className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -54,9 +57,11 @@ export function CatalogList({ catalogs, fabrics }: { catalogs: Catalog[]; fabric
                   {catalog.status === "live" ? t("common.published") : t("common.draft")} · {t("home.designs", { count })}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button type="button" size="sm" variant="outline" asChild>
-                    <Link href={`/admin/catalogs/${catalog.slug}`}>{t("catalogs.edit")}</Link>
-                  </Button>
+                  {canEditCatalogs(role) ? (
+                    <Button type="button" size="sm" variant="outline" asChild>
+                      <Link href={`/admin/catalogs/${catalog.slug}`}>{t("catalogs.edit")}</Link>
+                    </Button>
+                  ) : null}
                   <Button type="button" size="sm" variant="outline" asChild>
                     <a href={`/c/${catalog.slug}`} target="_blank" rel="noreferrer">
                       {t("catalogs.view")}

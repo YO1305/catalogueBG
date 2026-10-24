@@ -1,10 +1,12 @@
 import "server-only";
+import { unstable_noStore as noStore } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SESSION_COOKIE, readToken, verifySession, type Session } from "@/lib/session";
 import type { Role } from "@/types";
 
 export async function getSession(): Promise<Session | null> {
+  noStore();
   const jar = await cookies();
   return verifySession(jar.get(SESSION_COOKIE)?.value);
 }

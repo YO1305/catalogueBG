@@ -24,13 +24,20 @@ import { parseDensity, parseWidths } from "@/lib/parseSpecs";
 import { hashPassword, hashPin } from "@/lib/password";
 import { presetCatalog } from "@/lib/presets";
 import { canEditCatalogs, canEditDictionaries, canEditFabrics, canReadLeads, isAdmin } from "@/lib/roles";
-import { translateFields } from "@/lib/translate";
+import { translateFields, translateFieldsSafe } from "@/lib/translate";
 import type { AppUser, Catalog, Collection, Fabric, FabricType, GlossaryTerm, Lead, ProductType, Role, Template } from "@/types";
 
 async function actor(check: (role: Role) => boolean) {
   const session = await getSession();
   if (!session || !check(session.role)) throw new Error("forbidden");
   return session;
+}
+
+async function catalogActor() {
+  const session = await getSession();
+  if (!session) return { ok: false as const, error: "auth" as const };
+  if (!canEditCatalogs(session.role)) return { ok: false as const, error: "role" as const };
+  return { ok: true as const, session };
 }
 
 function touch(path: string) {
@@ -102,38 +109,45 @@ export async function addFabricsToCatalogAction(ids: string[], slug: string) {
 }
 
 export async function createCatalogAction(catalog: Catalog, pin?: string) {
-  const session = await actor(canEditCatalogs);
-  const db = await getDb();
-  const titleRu = catalog.title.ru.trim();
-  if (!titleRu) return { ok: false as const, error: "title" as const };
-  const slug = uniqueSlug(titleRu, db.catalogs.map((item) => item.slug));
-  const translated = await translateFields({ title: titleRu, subtitle: catalog.subtitle.ru }, db.glossary);
-  const pinHash = pin ? hashPin(pin) : catalog.pinHash;
-  const showProductTypes = catalog.showProductTypes.length
-    ? catalog.showProductTypes
-    : db.productTypes.filter((item) => item.active).map((item) => item.id);
-  const next: Catalog = {
-    ...catalog,
-    slug,
-    title: { ru: titleRu, en: translated.en.title || titleRu, uz: translated.uz.title || titleRu },
-    subtitle: {
-      ru: catalog.subtitle.ru,
-      en: translated.en.subtitle || catalog.subtitle.ru,
-      uz: translated.uz.subtitle || catalog.subtitle.ru,
-    },
-    showProductTypes,
-    mode: "manual",
-    fabricIds: catalog.fabricIds ?? [],
-    expiresAt: undefined,
-    cover: {},
-    createdBy: session.uid,
-    updatedAt: new Date().toISOString(),
-    pinHash,
-  };
-  await saveCatalog(next);
-  touch("/admin/catalogs");
-  touch(`/c/${slug}`);
-  return { ok: true as const, slug };
+  const gate = await catalogActor();
+  if (!gate.ok) return gate;
+  const { session } = gate;
+  try {
+    const db = await getDb();
+    const titleRu = catalog.title.ru.trim();
+    if (!titleRu) return { ok: false as const, error: "title" as const };
+    const slug = uniqueSlug(titleRu, db.catalogs.map((item) => item.slug));
+    const translated = await translateFieldsSafe({ title: titleRu, subtitle: catalog.subtitle.ru }, db.glossary);
+    const pinHash = pin ? hashPin(pin) : catalog.pinHash;
+    const showProductTypes = catalog.showProductTypes.length
+      ? catalog.showProductTypes
+      : db.productTypes.filter((item) => item.active).map((item) => item.id);
+    const next: Catalog = {
+      ...catalog,
+      slug,
+      title: { ru: titleRu, en: translated.en.title || titleRu, uz: translated.uz.title || titleRu },
+      subtitle: {
+        ru: catalog.subtitle.ru,
+        en: translated.en.subtitle || catalog.subtitle.ru,
+        uz: translated.uz.subtitle || catalog.subtitle.ru,
+      },
+      showProductTypes,
+      mode: "manual",
+      fabricIds: catalog.fabricIds ?? [],
+      expiresAt: undefined,
+      cover: {},
+      createdBy: session.uid,
+      updatedAt: new Date().toISOString(),
+      pinHash,
+    };
+    await saveCatalog(next);
+    touch("/admin/catalogs");
+    touch(`/c/${slug}`);
+    return { ok: true as const, slug };
+  } catch (error) {
+    console.error("createCatalogAction", error);
+    return { ok: false as const, error: "server" as const };
+  }
 }
 
 export async function deleteCatalogAction(slug: string) {
@@ -144,24 +158,31 @@ export async function deleteCatalogAction(slug: string) {
 }
 
 export async function saveCatalogAction(catalog: Catalog, pin?: string) {
-  const session = await actor(canEditCatalogs);
-  const db = await getDb();
-  const previous = db.catalogs.find((item) => item.slug === catalog.slug);
-  const pinHash = pin ? hashPin(pin) : catalog.pinHash || previous?.pinHash;
-  const titleRu = catalog.title.ru.trim();
-  if (!titleRu) return { ok: false as const, error: "title" as const };
-  await saveCatalog({
-    ...catalog,
-    title: { ...catalog.title, ru: titleRu },
-    expiresAt: undefined,
-    cover: {},
-    createdBy: previous?.createdBy ?? session.uid,
-    updatedAt: new Date().toISOString(),
-    pinHash,
-  });
-  touch(`/c/${catalog.slug}`);
-  touch("/admin/catalogs");
-  return { ok: true as const };
+  const gate = await catalogActor();
+  if (!gate.ok) return gate;
+  const { session } = gate;
+  try {
+    const db = await getDb();
+    const previous = db.catalogs.find((item) => item.slug === catalog.slug);
+    const pinHash = pin ? hashPin(pin) : catalog.pinHash || previous?.pinHash;
+    const titleRu = catalog.title.ru.trim();
+    if (!titleRu) return { ok: false as const, error: "title" as const };
+    await saveCatalog({
+      ...catalog,
+      title: { ...catalog.title, ru: titleRu },
+      expiresAt: undefined,
+      cover: {},
+      createdBy: previous?.createdBy ?? session.uid,
+      updatedAt: new Date().toISOString(),
+      pinHash,
+    });
+    touch(`/c/${catalog.slug}`);
+    touch("/admin/catalogs");
+    return { ok: true as const };
+  } catch (error) {
+    console.error("saveCatalogAction", error);
+    return { ok: false as const, error: "server" as const };
+  }
 }
 
 export async function quickCatalogAction(title: string) {

@@ -60,31 +60,29 @@ export function CatalogEditor({
       return;
     }
     setBusy(true);
-    try {
-      const payload: Catalog = {
-        ...catalog,
-        status: live ? "live" : isNew ? "draft" : catalog.status,
-        expiresAt: undefined,
-        cover: {},
-        layout: { ...catalog.layout, sectionBy: "none" },
-      };
-      const result = isNew
-        ? await createCatalogAction(payload, pin || undefined)
-        : await saveCatalogAction(payload, pin || undefined);
-      if (!result.ok) {
-        toast(result.error === "title" ? t("catalogs.errorTitle") : t("catalogs.errorSave"));
-        return;
-      }
-      toast(live ? t("catalogs.saveAndPublish") : t("common.save"));
-      if (isNew && "slug" in result) {
-        router.replace(`/admin/catalogs/${result.slug}`);
-      } else {
-        router.refresh();
-      }
-    } catch {
-      toast(t("error.forbidden"));
-    } finally {
-      setBusy(false);
+    const payload: Catalog = {
+      ...catalog,
+      status: live ? "live" : isNew ? "draft" : catalog.status,
+      expiresAt: undefined,
+      cover: {},
+      layout: { ...catalog.layout, sectionBy: "none" },
+    };
+    const result = isNew
+      ? await createCatalogAction(payload, pin || undefined)
+      : await saveCatalogAction(payload, pin || undefined);
+    setBusy(false);
+    if (!result.ok) {
+      if (result.error === "title") toast(t("catalogs.errorTitle"));
+      else if (result.error === "auth") toast(t("error.forbidden"));
+      else if (result.error === "role") toast(t("catalogs.errorRole"));
+      else toast(t("catalogs.errorSave"));
+      return;
+    }
+    toast(live ? t("catalogs.saveAndPublish") : t("common.save"));
+    if (isNew && "slug" in result) {
+      router.replace(`/admin/catalogs/${result.slug}`);
+    } else {
+      router.refresh();
     }
   }
 

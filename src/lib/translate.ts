@@ -38,3 +38,17 @@ export async function translateFields(fields: TranslateFields, terms: GlossaryTe
   const parsed = parseJson(content);
   return { en: parsed.en ?? {}, uz: parsed.uz ?? {}, engine: "groq" as const };
 }
+
+export async function translateFieldsSafe(fields: TranslateFields, terms: GlossaryTerm[]) {
+  try {
+    return await translateFields(fields, terms);
+  } catch {
+    const en: TranslateFields = {};
+    const uz: TranslateFields = {};
+    for (const [name, value] of Object.entries(fields)) {
+      en[name] = fallbackTranslate(value, "en", terms);
+      uz[name] = fallbackTranslate(value, "uz", terms);
+    }
+    return { en, uz, engine: "fallback" as const };
+  }
+}

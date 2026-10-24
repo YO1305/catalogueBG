@@ -60,7 +60,12 @@ function Shell({ session, lang, setLang, children }: { session: Session | null; 
             </button>
           ))}
         </div>
-        {session?.email ? <p className="px-5 pb-2 text-xs text-paper/70">{session.name || session.email}</p> : null}
+        {session?.email ? (
+          <p className="px-5 pb-2 text-xs text-paper/70">
+            {session.name || session.email}
+            <span className="block opacity-70">{session.role}</span>
+          </p>
+        ) : null}
         <button
           type="button"
           className="px-5 pb-6 text-sm underline"

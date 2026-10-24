@@ -6,7 +6,7 @@ import { getDb } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 export default async function NewCatalogPage() {
-  const session = await requireSession(["admin", "manager", "designer"]);
+  const session = await requireSession(["admin", "manager"]);
   const db = await getDb();
   const draft = emptyCatalogDraft();
   draft.createdBy = session.uid;
