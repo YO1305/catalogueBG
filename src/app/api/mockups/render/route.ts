@@ -3,6 +3,9 @@ import { getDb, saveFabric } from "@/lib/db";
 import { renderFabricMockup } from "@/lib/renderServer";
 import { canEditFabrics, isAdmin } from "@/lib/roles";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session || !(canEditFabrics(session.role) || isAdmin(session.role))) return Response.json({ error: "forbidden" }, { status: 403 });

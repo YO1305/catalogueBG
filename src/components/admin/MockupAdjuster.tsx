@@ -93,7 +93,9 @@ export function MockupAdjuster({
             })),
             sameForAllAreas: mockup.sameForAllAreas,
           });
+          if (!cancel) setPreviewError(null);
         } catch (error) {
+          if (cancel) return;
           setPreviewError(error instanceof Error ? error.message : "preview_failed");
         }
         return;
@@ -219,6 +221,7 @@ export function MockupAdjuster({
                   setPreviewError(data.error ?? "render_failed");
                   return;
                 }
+                setPreviewError(null);
                 const row = data.fabrics?.find((item) => item.fabricId === fabric.id);
                 const saved = row?.mockups.find((item) => item.templateId === template.id && item.productType === mockup.productType);
                 if (saved) onChange(saved);

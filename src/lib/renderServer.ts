@@ -4,7 +4,8 @@ import path from "node:path";
 import sharp, { type OverlayOptions } from "sharp";
 import { buildStripeFabricInput, fabricUsesStripes } from "@/lib/uvgrid/buildFabricInput";
 import { floatRgbToRgba, renderUvgrid } from "@/lib/uvgrid/render";
-import { loadZoneAssetsNode, readPatternRgba } from "@/lib/uvgrid/nodeAssets";
+import { loadZoneAssetsNode, readBackgroundRgba, readPatternRgba } from "@/lib/uvgrid/nodeAssets";
+import { fitRenderSize, scaleManifestForSize } from "@/lib/uvgrid/scaleManifest";
 import type { UvgridAreaSetting } from "@/lib/uvgrid/types";
 import { tileSizePx } from "@/lib/mockupMath";
 import { saveBuffer } from "@/lib/storage";
@@ -26,12 +27,10 @@ async function readManifest(jsonUrl: string): Promise<ZipTemplateManifest> {
 async function renderUvgridMockup(fabric: Fabric, template: Template, mockup: Mockup) {
   const manifestRaw = await readManifest(template.baked.jsonUrl);
   const [srcW, srcH] = manifestRaw.size;
-  const renderW = srcW;
-  const renderH = srcH;
-  const manifest = manifestRaw;
-  const background = await readUrl(template.baked.backgroundUrl);
-  const bgRgba = await sharp(background).resize(renderW, renderH, { fit: "fill" }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const zones = await loadZoneAssetsNode(manifest, renderW, renderH);
+  const fitted = fitRenderSize(srcW, srcH, 2000);
+  const manifest = scaleManifestForSize(manifestRaw, fitted.width, fitted.height);
+  const background = await readBackgroundRgba(template.baked.backgroundUrl, fitted.width, fitted.height);
+  const zones = await loadZoneAssetsNode(manifest, fitted.width, fitted.height);
   let fabricInput;
   if (fabricUsesStripes(fabric, template)) {
     fabricInput = buildStripeFabricInput(fabric);
@@ -50,18 +49,16 @@ async function renderUvgridMockup(fabric: Fabric, template: Template, mockup: Mo
   }));
   const flat = renderUvgrid({
     manifest,
-    width: renderW,
-    height: renderH,
-    background: new Uint8ClampedArray(bgRgba.data.buffer, bgRgba.data.byteOffset, renderW * renderH * 4),
+    width: fitted.width,
+    height: fitted.height,
+    background,
     zones,
     fabric: fabricInput,
     settings,
     sameForAllAreas: mockup.sameForAllAreas,
   });
-  const rgba = floatRgbToRgba(flat, renderW, renderH);
-  const maxW = 2000;
-  const full = await sharp(Buffer.from(rgba), { raw: { width: renderW, height: renderH, channels: 4 } })
-    .resize(Math.min(maxW, renderW), Math.min(maxW, renderH), { fit: "inside" })
+  const rgba = floatRgbToRgba(flat, fitted.width, fitted.height);
+  const full = await sharp(Buffer.from(rgba), { raw: { width: fitted.width, height: fitted.height, channels: 4 } })
     .webp({ quality: 82 })
     .toBuffer();
   const thumb = await sharp(full).resize(600, 600, { fit: "inside" }).webp({ quality: 76 }).toBuffer();

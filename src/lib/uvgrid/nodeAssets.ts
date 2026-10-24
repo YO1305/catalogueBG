@@ -13,24 +13,40 @@ export async function readBytes(url: string) {
   return Buffer.from(await response.arrayBuffer());
 }
 
+function copyRgba(data: Buffer, width: number, height: number) {
+  const expected = width * height * 4;
+  if (!width || !height || data.length < expected) throw new Error("rgba_size");
+  const out = new Uint8ClampedArray(expected);
+  out.set(data.subarray(0, expected));
+  return out;
+}
+
 async function readGray(url: string, width: number, height: number) {
   const buf = await readBytes(url);
-  const raw = await sharp(buf).resize(width, height, { fit: "fill" }).greyscale().raw().toBuffer();
-  return new Uint8ClampedArray(raw);
+  const raw = await sharp(buf).rotate().resize(width, height, { fit: "fill" }).greyscale().raw().toBuffer();
+  const out = new Uint8ClampedArray(width * height);
+  out.set(raw.subarray(0, out.length));
+  return out;
 }
 
 export async function readBackgroundRgba(url: string, width: number, height: number) {
   const buf = await readBytes(url);
-  const { data, info } = await sharp(buf).resize(width, height, { fit: "fill" }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  return new Uint8ClampedArray(data.buffer, data.byteOffset, info.width * info.height * 4);
+  const { data, info } = await sharp(buf).rotate().resize(width, height, { fit: "fill" }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  if (info.width !== width || info.height !== height) throw new Error("rgba_size");
+  return copyRgba(data, width, height);
 }
 
 export async function readPatternRgba(url: string): Promise<Extract<UvgridFabricInput, { mode: "pattern" }>> {
   const buf = await readBytes(url);
-  const { data, info } = await sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const meta = await sharp(buf, { limitInputPixels: false }).rotate().metadata();
+  let pipeline = sharp(buf, { limitInputPixels: false }).rotate();
+  if ((meta.width ?? 0) > 2400 || (meta.height ?? 0) > 2400) {
+    pipeline = pipeline.resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true });
+  }
+  const { data, info } = await pipeline.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   return {
     mode: "pattern",
-    rgba: new Uint8ClampedArray(data.buffer, data.byteOffset, info.width * info.height * 4),
+    rgba: copyRgba(data, info.width, info.height),
     widthPx: info.width,
     heightPx: info.height,
     rapportWidthCm: 8,
