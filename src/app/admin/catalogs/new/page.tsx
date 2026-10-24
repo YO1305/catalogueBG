@@ -6,8 +6,7 @@ import { getCatalogEditorData } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 export default async function NewCatalogPage() {
-  const session = await requireSession(["admin", "manager"]);
-  const db = await getCatalogEditorData();
+  const [session, db] = await Promise.all([requireSession(["admin", "manager"]), getCatalogEditorData()]);
   const draft = emptyCatalogDraft();
   draft.createdBy = session.uid;
   draft.showProductTypes = db.productTypes.filter((item) => item.active).map((item) => item.id);

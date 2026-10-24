@@ -2,8 +2,7 @@
 
 import { MockupAdjuster } from "@/components/admin/MockupAdjuster";
 import { useI18n } from "@/components/i18n/I18n";
-import { Label } from "@/components/ui/field";
-import { Checkbox } from "@/components/ui/field";
+import { Checkbox, Label, Select } from "@/components/ui/field";
 import { MOCKUP_CATEGORIES, mockupCategoryLabelKey, templatesInCategory } from "@/lib/mockupCategories";
 import type { Fabric, Mockup, MockupCategory, Template } from "@/types";
 
@@ -32,11 +31,11 @@ export function WizardMockupCategoryStep({
       <h2 className="font-display text-lg">{t("mockups.pickCategory")}</h2>
       <div>
         <Label>{t("mockups.categoryLabel")}</Label>
-        <select className="mt-1 h-9 w-full max-w-xs border bg-white px-2 text-sm" value={category} onChange={(event) => pickCategory(event.target.value as MockupCategory)}>
+        <Select className="mt-1 w-full max-w-xs" value={category} onChange={(event) => pickCategory(event.target.value as MockupCategory)}>
           {MOCKUP_CATEGORIES.map((item) => (
             <option key={item} value={item}>{t(mockupCategoryLabelKey(item))}</option>
           ))}
-        </select>
+        </Select>
       </div>
       {!list.length ? <p className="text-sm text-ink/55">{t("mockups.emptyCategory")}</p> : null}
       {list.map((template) => {

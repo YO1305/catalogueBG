@@ -18,6 +18,7 @@ export function useFabricEditor(
   const [lists, setLists] = useState(listsIn);
   const [progress, setProgress] = useState(0);
   const dirty = useRef(false);
+  const autosaving = useRef(false);
   const fabricRef = useRef(fabric);
   fabricRef.current = fabric;
 
@@ -33,9 +34,20 @@ export function useFabricEditor(
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      if (!dirty.current || !fabricRef.current.art) return;
+      if (!dirty.current || autosaving.current || !fabricRef.current.art) return;
       dirty.current = false;
-      void saveFabricAction(fabricRef.current);
+      autosaving.current = true;
+      void fetch("/api/fabrics/autosave", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(fabricRef.current),
+      })
+        .catch(() => {
+          dirty.current = true;
+        })
+        .finally(() => {
+          autosaving.current = false;
+        });
     }, 8000);
     return () => window.clearInterval(timer);
   }, []);
@@ -152,13 +164,29 @@ export function useFabricEditor(
     }
     const result = await publishFabricAction(payload);
     if (!result.ok) return { ok: false as const, reason: "art" as const };
-    await fetch("/api/mockups/render", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ fabricId: payload.id }),
-    }).catch(() => undefined);
     dirty.current = false;
+    void renderMockupsInBackground(payload.id);
     return { ok: true as const, catalogs: result.catalogs };
+  }
+
+  async function renderMockupsInBackground(fabricId: string) {
+    try {
+      const response = await fetch("/api/mockups/render", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ fabricId }),
+      });
+      const data = (await response.json()) as { ok?: boolean; fabrics?: { fabricId: string; mockups: Mockup[] }[] };
+      if (!response.ok || !data.ok) {
+        toast(t("designs.mockupRenderFailed"));
+        return;
+      }
+      const mockups = data.fabrics?.find((item) => item.fabricId === fabricId)?.mockups;
+      if (mockups && fabricRef.current.id === fabricId) setFabric((current) => ({ ...current, mockups }));
+      toast(t("designs.mockupsReady"));
+    } catch {
+      toast(t("designs.mockupRenderFailed"));
+    }
   }
 
   return {

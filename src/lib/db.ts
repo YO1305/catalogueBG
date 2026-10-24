@@ -119,6 +119,108 @@ export async function getCatalogListData() {
   return { catalogs, fabrics };
 }
 
+async function readDoc<T>(name: string, id: string, idField: keyof T): Promise<T | null> {
+  const snap = await firestore().collection(name).doc(id).get();
+  if (!snap.exists) return null;
+  const data = fromRemote(snap.data()) as T;
+  if (!(data as Record<string, unknown>)[idField as string]) (data as Record<string, unknown>)[idField as string] = snap.id;
+  return data;
+}
+
+async function readGlossary(): Promise<GlossaryTerm[]> {
+  const snap = await firestore().doc("settings/glossary").get();
+  const data = snap.exists ? (fromRemote(snap.data()) as { terms?: GlossaryTerm[] }) : undefined;
+  return data?.terms ?? [];
+}
+
+export async function getFabric(id: string): Promise<Fabric | null> {
+  if (!firebaseAdminConfigured()) return readLocal().fabrics.find((item) => item.id === id) ?? null;
+  return readDoc<Fabric>("fabrics", id, "id");
+}
+
+export async function getCatalog(slug: string): Promise<Catalog | null> {
+  if (!firebaseAdminConfigured()) return readLocal().catalogs.find((item) => item.slug === slug) ?? null;
+  return readDoc<Catalog>("catalogs", slug, "slug");
+}
+
+export async function getCatalogs(): Promise<Catalog[]> {
+  if (!firebaseAdminConfigured()) return readLocal().catalogs;
+  return readCollection<Catalog>("catalogs", "slug");
+}
+
+export async function getGlossary(): Promise<GlossaryTerm[]> {
+  if (!firebaseAdminConfigured()) return readLocal().glossary;
+  return readGlossary();
+}
+
+export async function getDictionaries() {
+  if (!firebaseAdminConfigured()) {
+    const db = readLocal();
+    return { collections: db.collections, fabricTypes: db.fabricTypes, productTypes: db.productTypes, glossary: db.glossary };
+  }
+  const [collections, fabricTypes, productTypes, glossary] = await Promise.all([
+    readCollection<Collection>("collections", "id"),
+    readCollection<FabricType>("fabricTypes", "id"),
+    readCollection<ProductType>("productTypes", "id"),
+    readGlossary(),
+  ]);
+  return { collections, fabricTypes, productTypes, glossary };
+}
+
+/** Article numbers only, so the uniqueness check does not download every fabric's mockups. */
+export async function isFabricArtTaken(art: string, exceptId: string): Promise<boolean> {
+  const wanted = art.trim().toLowerCase();
+  if (!wanted) return false;
+  if (!firebaseAdminConfigured()) {
+    return readLocal().fabrics.some((item) => item.id !== exceptId && item.art.toLowerCase() === wanted);
+  }
+  const snap = await firestore().collection("fabrics").select("art").get();
+  return snap.docs.some((doc) => doc.id !== exceptId && String(doc.get("art") ?? "").toLowerCase() === wanted);
+}
+
+export async function getFabricsBoardData() {
+  if (!firebaseAdminConfigured()) {
+    const db = readLocal();
+    return { fabrics: db.fabrics, collections: db.collections, fabricTypes: db.fabricTypes, productTypes: db.productTypes, catalogs: db.catalogs };
+  }
+  const [fabrics, collections, fabricTypes, productTypes, catalogs] = await Promise.all([
+    readCollection<Fabric>("fabrics", "id"),
+    readCollection<Collection>("collections", "id"),
+    readCollection<FabricType>("fabricTypes", "id"),
+    readCollection<ProductType>("productTypes", "id"),
+    readCollection<Catalog>("catalogs", "slug"),
+  ]);
+  return { fabrics, collections, fabricTypes, productTypes, catalogs };
+}
+
+export async function getLeadsData() {
+  if (!firebaseAdminConfigured()) {
+    const db = readLocal();
+    return { leads: db.leads, fabrics: db.fabrics };
+  }
+  const [leads, fabrics] = await Promise.all([readCollection<Lead>("leads", "id"), readCollection<Fabric>("fabrics", "id")]);
+  return { leads, fabrics };
+}
+
+export async function getStatsData() {
+  if (!firebaseAdminConfigured()) {
+    const db = readLocal();
+    return { catalogs: db.catalogs, events: db.events, leads: db.leads, fabrics: db.fabrics };
+  }
+  const [catalogs, events, leads, fabrics] = await Promise.all([
+    readCollection<Catalog>("catalogs", "slug"),
+    readCollection<AnalyticsEvent>("events", "id"),
+    readCollection<Lead>("leads", "id"),
+    readCollection<Fabric>("fabrics", "id"),
+  ]);
+  return { catalogs, events, leads, fabrics };
+}
+
+export async function getUsers(): Promise<AppUser[]> {
+  if (!firebaseAdminConfigured()) return readLocal().users;
+  return readCollection<AppUser>("users", "id");
+}
+
 export async function getCatalogEditorData() {
   if (!firebaseAdminConfigured()) {
     const db = readLocal();

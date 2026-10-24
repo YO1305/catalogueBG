@@ -6,8 +6,7 @@ import { emptyFabric } from "@/lib/fabricDraft";
 export const dynamic = "force-dynamic";
 
 export default async function NewFabricPage() {
-  const session = await requireSession(["admin", "designer"]);
-  const db = await getFabricEditorData();
+  const [session, db] = await Promise.all([requireSession(["admin", "designer"]), getFabricEditorData()]);
   const initial = emptyFabric(session.uid);
   return (
     <FabricEditor

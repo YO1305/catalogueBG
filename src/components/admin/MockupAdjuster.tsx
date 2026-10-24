@@ -3,18 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/field";
+import { Input, Select } from "@/components/ui/field";
 import { renderMockup } from "@/components/mockup/MockupRenderer";
 import { loadImage as loadWebglImage } from "@/components/mockup/MockupRenderer";
 import { buildStripeFabricInput, fabricUsesStripes } from "@/lib/uvgrid/buildFabricInput";
-import {
-  fetchTemplateManifest,
-  loadBackgroundRgba,
-  loadPatternRgba,
-  loadUvgridZoneAssets,
-} from "@/lib/uvgrid/loadManifest";
+import { patternPreview, templatePreview } from "@/lib/uvgrid/previewCache";
 import { renderUvgridToCanvas } from "@/lib/uvgrid/render";
-import { scaleManifestForSize } from "@/lib/uvgrid/scaleManifest";
 import { SCALE_PRESETS, scaleToSlider, sliderToScale } from "@/lib/mockupMath";
 import type { Fabric, Mockup, Template } from "@/types";
 
@@ -50,7 +44,7 @@ export function MockupAdjuster({
       if (renderTimer.current) window.clearTimeout(renderTimer.current);
       renderTimer.current = window.setTimeout(() => {
         void draw();
-      }, 80);
+      }, 120);
     }
 
     async function draw() {
@@ -58,31 +52,25 @@ export function MockupAdjuster({
       if (isUvgrid) {
         if (!useStripes && !fabric.design.webUrl) return;
         try {
-          setPreviewError(null);
-          const manifestRaw = await fetchTemplateManifest(template.baked.jsonUrl);
-          const previewW = Math.min(1600, manifestRaw.size[0]);
-          const [sw, sh] = manifestRaw.size;
-          const previewH = Math.max(200, Math.round((previewW * sh) / sw));
-          const manifest = scaleManifestForSize(manifestRaw, previewW, previewH);
-          const [background, zones] = await Promise.all([
-            loadBackgroundRgba(template.baked.backgroundUrl, previewW, previewH),
-            loadUvgridZoneAssets(manifest, previewW, previewH),
+          const [preview, pattern] = await Promise.all([
+            templatePreview(template.baked.jsonUrl, template.baked.backgroundUrl),
+            useStripes ? Promise.resolve(null) : patternPreview(fabric.design.webUrl),
           ]);
-          const fabricInput = useStripes
-            ? buildStripeFabricInput(fabric)
-            : {
-                ...(await loadPatternRgba(fabric.design.webUrl)),
+          const fabricInput = pattern
+            ? {
+                ...pattern,
                 mode: "pattern" as const,
                 rapportWidthCm: fabric.rapport.widthCm || 8,
                 rapportHeightCm: fabric.rapport.heightCm || fabric.rapport.widthCm || 8,
-              };
+              }
+            : buildStripeFabricInput(fabric);
           if (cancel || !node) return;
           renderUvgridToCanvas(node, {
-            manifest,
-            width: previewW,
-            height: previewH,
-            background,
-            zones,
+            manifest: preview.manifest,
+            width: preview.width,
+            height: preview.height,
+            background: preview.background,
+            zones: preview.zones,
             fabric: fabricInput,
             settings: mockup.areas.map((area) => ({
               areaId: area.areaId,
@@ -176,12 +164,12 @@ export function MockupAdjuster({
         }}
       />
       <label className="mt-3 block text-xs uppercase text-ink/50">{t("wizard.zone")}</label>
-      <select className="h-10 w-full border border-ink/15 bg-white px-2 text-sm" value={mockup.sameForAllAreas ? "all" : areaId} onChange={(event) => patch({}, event.target.value === "all")}>
+      <Select value={mockup.sameForAllAreas ? "all" : areaId} onChange={(event) => patch({}, event.target.value === "all")}>
         <option value="all">{t("wizard.allZones")}</option>
         {template.areas.map((area) => (
           <option key={area.id} value={area.id}>{area.label}</option>
         ))}
-      </select>
+      </Select>
       <label className="mt-3 block text-xs uppercase text-ink/50">{t("wizard.scale")}</label>
       <div className="flex items-center gap-2">
         <span className="text-xs">×0.1</span>

@@ -3,18 +3,17 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ADMIN_GRID_CLASS, AdminMarketplaceCard } from "@/components/admin/AdminMarketplaceCard";
+import { Trash2 } from "lucide-react";
+import { ADMIN_GRID_CLASS, AdminFilterBar, AdminMarketplaceCard, AdminPageHeader, cardIconActionClass, cardSelectClass } from "@/components/admin/AdminMarketplaceCard";
 import { TemplateUploadDialog } from "@/components/admin/TemplateUploadDialog";
 import { useI18n } from "@/components/i18n/I18n";
+import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/field";
 import { deleteTemplateAction, saveTemplateAction } from "@/lib/actions";
 import { MOCKUP_CATEGORIES, mockupCategoryLabelKey } from "@/lib/mockupCategories";
 import { sortTemplatesForWizard } from "@/lib/templateSort";
 import { isAdmin } from "@/lib/roles";
 import type { MockupCategory, ProductType, Role, Template } from "@/types";
-
-function cardBtnClass(extra?: string) {
-  return `inline-flex h-7 items-center rounded border border-black/10 bg-white px-2 text-[0.6875rem] hover:bg-black/[0.03] ${extra ?? ""}`;
-}
 
 export function TemplateBoard({ templates, products, role }: { templates: Template[]; products: ProductType[]; role: Role }) {
   const { t } = useI18n();
@@ -43,20 +42,24 @@ export function TemplateBoard({ templates, products, role }: { templates: Templa
 
   return (
     <div className="max-w-[1600px]">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl md:text-3xl">{t("nav.mockups")}</h1>
-        {canUpload ? (
-          <button type="button" className="h-9 bg-majolica px-4 text-sm text-paper" onClick={() => setUploadOpen(true)}>
-            {t("templates.importZip")}
-          </button>
-        ) : null}
-      </div>
-      <select className="mt-4 h-9 rounded-md border border-black/10 bg-white px-2 text-sm" value={filter} onChange={(event) => setFilter(event.target.value as MockupCategory | "")}>
-        <option value="">{t("designs.allCategories")}</option>
-        {MOCKUP_CATEGORIES.map((item) => (
-          <option key={item} value={item}>{t(mockupCategoryLabelKey(item))}</option>
-        ))}
-      </select>
+      <AdminPageHeader
+        title={t("nav.mockups")}
+        action={
+          canUpload ? (
+            <Button type="button" onClick={() => setUploadOpen(true)}>
+              {t("templates.importZip")}
+            </Button>
+          ) : null
+        }
+      />
+      <AdminFilterBar>
+        <Select className="sm:w-60" value={filter} onChange={(event) => setFilter(event.target.value as MockupCategory | "")}>
+          <option value="">{t("designs.allCategories")}</option>
+          {MOCKUP_CATEGORIES.map((item) => (
+            <option key={item} value={item}>{t(mockupCategoryLabelKey(item))}</option>
+          ))}
+        </Select>
+      </AdminFilterBar>
       {!rows.length ? <p className="mt-6 text-sm text-ink/55">{t("mockups.emptyList")}</p> : null}
       <ul className={ADMIN_GRID_CLASS}>
         {rows.map((template) => (
@@ -75,7 +78,8 @@ export function TemplateBoard({ templates, products, role }: { templates: Templa
                 <>
                   {canUpload ? (
                     <select
-                      className={cardBtnClass()}
+                      className={cardSelectClass}
+                      aria-label={t("mockups.categoryLabel")}
                       value={template.category ?? "bedding"}
                       onChange={(event) => void changeCategory(template, event.target.value as MockupCategory)}
                     >
@@ -85,8 +89,8 @@ export function TemplateBoard({ templates, products, role }: { templates: Templa
                     </select>
                   ) : null}
                   {canUpload ? (
-                    <button type="button" className={cardBtnClass("text-red-900 border-red-200")} onClick={() => void remove(template)}>
-                      {t("common.delete")}
+                    <button type="button" className={cardIconActionClass("danger")} aria-label={t("common.delete")} title={t("common.delete")} onClick={() => void remove(template)}>
+                      <Trash2 className="h-4 w-4" aria-hidden />
                     </button>
                   ) : null}
                 </>

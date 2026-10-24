@@ -1,24 +1,38 @@
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
-import { Check } from "lucide-react";
-import type { InputHTMLAttributes, LabelHTMLAttributes, TextareaHTMLAttributes } from "react";
+import { Check, ChevronDown, Search } from "lucide-react";
+import type { InputHTMLAttributes, LabelHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
+const control =
+  "rounded-lg border border-black/10 bg-white text-sm leading-normal text-ink shadow-sm outline-none transition-colors placeholder:text-ink/40 hover:border-black/20 focus:border-majolica focus:ring-2 focus:ring-majolica/15 disabled:opacity-60";
+
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+  return <input className={cn(control, "h-10 w-full px-3", className)} {...props} />;
+}
+
+export function SearchInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <input
-      className={cn("h-10 w-full rounded-md border border-ink/15 bg-white px-3 text-sm outline-none focus:border-majolica", className)}
-      {...props}
-    />
+    <div className={cn("relative", className)}>
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" aria-hidden />
+      <input type="search" className={cn(control, "h-10 w-full pl-9 pr-3")} {...props} />
+    </div>
+  );
+}
+
+/** Native select without browser chrome, so the label stays vertically centred in Safari and iOS. */
+export function Select({ className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <div className={cn("relative", className)}>
+      <select className={cn(control, "h-10 w-full cursor-pointer appearance-none truncate py-0 pl-3 pr-9")} {...props}>
+        {children}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/45" aria-hidden />
+    </div>
   );
 }
 
 export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return (
-    <textarea
-      className={cn("min-h-24 w-full rounded-md border border-ink/15 bg-white px-3 py-2 text-sm outline-none focus:border-majolica", className)}
-      {...props}
-    />
-  );
+  return <textarea className={cn(control, "min-h-24 w-full px-3 py-2", className)} {...props} />;
 }
 
 export function Label({ className, ...props }: LabelHTMLAttributes<HTMLLabelElement>) {
@@ -32,7 +46,7 @@ export function Badge({ children, tone = "default" }: { children: React.ReactNod
     ok: "bg-emerald-100 text-emerald-900",
     warn: "bg-amber-100 text-amber-950",
   };
-  return <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs", tones[tone])}>{children}</span>;
+  return <span className={cn("inline-flex h-5 items-center rounded-full px-2 text-[0.6875rem] font-medium leading-none", tones[tone])}>{children}</span>;
 }
 
 export function Checkbox({ checked, onCheckedChange, label }: { checked: boolean; onCheckedChange: (value: boolean) => void; label: string }) {

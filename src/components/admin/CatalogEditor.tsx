@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { CatalogThemePicker } from "@/components/admin/CatalogThemePicker";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Textarea } from "@/components/ui/field";
+import { Input, Label, Select, Textarea } from "@/components/ui/field";
 import { createCatalogAction, saveCatalogAction } from "@/lib/actions";
 import { buildPages } from "@/lib/catalog";
 import type { Catalog, Collection, Fabric, FabricType, ProductType } from "@/types";
@@ -47,8 +47,9 @@ export function CatalogEditor({
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const resolved = useMemo(() => resolvePreviewFabrics(catalog, fabrics), [catalog, fabrics]);
-  const pages = useMemo(() => buildPages(catalog, resolved), [catalog, resolved]);
+  const previewCatalog = useDeferredValue(catalog);
+  const resolved = useMemo(() => resolvePreviewFabrics(previewCatalog, fabrics), [previewCatalog, fabrics]);
+  const pages = useMemo(() => buildPages(previewCatalog, resolved), [previewCatalog, resolved]);
 
   function patch(partial: Partial<Catalog>) {
     setCatalog((current) => ({ ...current, ...partial }));
@@ -117,11 +118,11 @@ export function CatalogEditor({
           />
           <div>
             <Label>{t("catalogs.accessLabel")}</Label>
-            <select className="h-10 w-full border bg-white px-2 text-sm" value={catalog.access} onChange={(event) => patch({ access: event.target.value as Catalog["access"] })}>
+            <Select className="w-full" value={catalog.access} onChange={(event) => patch({ access: event.target.value as Catalog["access"] })}>
               <option value="public">{t("catalogs.accessPublic")}</option>
               <option value="unlisted">{t("catalogs.accessUnlisted")}</option>
               <option value="pin">{t("catalogs.accessPin")}</option>
-            </select>
+            </Select>
           </div>
           {catalog.access === "pin" ? (
             <div>
@@ -154,7 +155,7 @@ export function CatalogEditor({
         </div>
         <div className="min-h-[70vh] overflow-hidden border bg-sand">
           <p className="bg-white/80 px-3 py-2 text-xs text-ink/60">{t("catalogs.preview")}</p>
-          <CatalogScreen model={{ catalog, fabrics: resolved, pages, fabricTypes, collections, productTypes, qr: "" }} initialPage={0} />
+          <CatalogScreen model={{ catalog: previewCatalog, fabrics: resolved, pages, fabricTypes, collections, productTypes, qr: "" }} initialPage={0} />
         </div>
       </div>
     </div>

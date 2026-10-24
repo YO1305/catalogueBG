@@ -6,9 +6,7 @@ import { getCatalogEditorData } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 export default async function CatalogEditPage({ params }: { params: Promise<{ slug: string }> }) {
-  await requireSession(["admin", "manager"]);
-  const { slug } = await params;
-  const db = await getCatalogEditorData();
+  const [, { slug }, db] = await Promise.all([requireSession(["admin", "manager"]), params, getCatalogEditorData()]);
   const catalog = db.catalogs.find((item) => item.slug === slug);
   if (!catalog) notFound();
   const { pinHash: _pin, ...safe } = catalog;

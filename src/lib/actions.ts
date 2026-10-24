@@ -7,7 +7,12 @@ import {
   deleteCatalog,
   deleteFabric,
   deleteUser,
+  getCatalog,
+  getCatalogs,
   getDb,
+  getDictionaries,
+  getFabric,
+  getUsers,
   saveCatalog,
   saveCollection,
   saveFabric,
@@ -19,9 +24,9 @@ import {
   saveTemplate,
   saveUser,
 } from "@/lib/db";
+import { persistFabric } from "@/lib/fabricSave";
 import { fallbackTranslate } from "@/lib/glossary";
 import { uniqueSlug } from "@/lib/ids";
-import { parseDensity, parseWidths } from "@/lib/parseSpecs";
 import { hashPassword, hashPin } from "@/lib/password";
 import { presetCatalog } from "@/lib/presets";
 import { canEditCatalogs, canEditDictionaries, canEditFabrics, canReadLeads, isAdmin } from "@/lib/roles";
@@ -45,32 +50,26 @@ function touch(path: string) {
   revalidatePath(path);
 }
 
+async function getDictionariesWithCatalogs() {
+  const [dictionaries, catalogs] = await Promise.all([getDictionaries(), getCatalogs()]);
+  return { ...dictionaries, catalogs };
+}
+
 export async function saveFabricAction(fabric: Fabric) {
   const session = await actor(canEditFabrics);
-  const db = await getDb();
-  const art = fabric.art.trim();
-  if (art && db.fabrics.some((item) => item.id !== fabric.id && item.art.toLowerCase() === art.toLowerCase())) return { ok: false as const, error: "art_taken" };
-  const previous = db.fabrics.find((item) => item.id === fabric.id);
-  const next: Fabric = {
-    ...fabric,
-    art,
-    densityRange: parseDensity(fabric.density),
-    widthList: parseWidths(fabric.width),
-    createdAt: previous?.createdAt ?? fabric.createdAt,
-    createdBy: previous?.createdBy ?? session.uid,
-    updatedAt: new Date().toISOString(),
-  };
-  await saveFabric(next);
-  touch("/admin/fabrics");
-  return { ok: true as const, fabric: next };
+  const saved = await persistFabric(session, fabric);
+  if (saved.ok) touch("/admin/fabrics");
+  return saved;
 }
 
 export async function publishFabricAction(fabric: Fabric) {
-  const saved = await saveFabricAction({ ...fabric, status: "published" });
+  const session = await actor(canEditFabrics);
+  const saved = await persistFabric(session, { ...fabric, status: "published" });
   if (!saved.ok) return saved;
-  const db = await getDb();
-  const names = matchingCatalogs(saved.fabric, db.catalogs);
-  for (const catalog of names) await saveCatalog({ ...catalog, updatedAt: new Date().toISOString() });
+  const names = matchingCatalogs(saved.fabric, await getCatalogs());
+  const now = new Date().toISOString();
+  await Promise.all(names.map((catalog) => saveCatalog({ ...catalog, updatedAt: now })));
+  touch("/admin/fabrics");
   touch("/admin/catalogs");
   return { ok: true as const, catalogs: names.map((catalog) => catalog.title.ru) };
 }
@@ -78,14 +77,13 @@ export async function publishFabricAction(fabric: Fabric) {
 export async function setFabricStatusAction(ids: string[], status: Fabric["status"]) {
   const session = await actor((role) => canEditFabrics(role) || (status === "archived" && isAdmin(role)));
   if (status !== "archived" && !canEditFabrics(session.role)) throw new Error("forbidden");
-  const db = await getDb();
+  const [fabrics, catalogs] = await Promise.all([Promise.all(ids.map((id) => getFabric(id))), status === "published" ? getCatalogs() : Promise.resolve([])]);
   const titles: string[] = [];
-  for (const id of ids) {
-    const fabric = db.fabrics.find((item) => item.id === id);
+  for (const fabric of fabrics) {
     if (!fabric) continue;
     const next = { ...fabric, status, updatedAt: new Date().toISOString() };
     await saveFabric(next);
-    if (status === "published") titles.push(...matchingCatalogs(next, db.catalogs).map((catalog) => catalog.title.ru));
+    if (status === "published") titles.push(...matchingCatalogs(next, catalogs).map((catalog) => catalog.title.ru));
   }
   touch("/admin/fabrics");
   return { ok: true as const, catalogs: [...new Set(titles)] };
@@ -100,8 +98,7 @@ export async function deleteFabricAction(id: string) {
 
 export async function addFabricsToCatalogAction(ids: string[], slug: string) {
   await actor(canEditCatalogs);
-  const db = await getDb();
-  const catalog = db.catalogs.find((item) => item.slug === slug);
+  const catalog = await getCatalog(slug);
   if (!catalog) return { ok: false as const, error: "missing" };
   const fabricIds = [...new Set([...(catalog.fabricIds ?? []), ...ids])];
   await saveCatalog({ ...catalog, mode: "manual", fabricIds, updatedAt: new Date().toISOString() });
@@ -114,9 +111,9 @@ export async function createCatalogAction(catalog: Catalog, pin?: string) {
   if (!gate.ok) return gate;
   const { session } = gate;
   try {
-    const db = await getDb();
     const titleRu = catalog.title.ru.trim();
     if (!titleRu) return { ok: false as const, error: "title" as const };
+    const db = await getDictionariesWithCatalogs();
     const slug = uniqueSlug(titleRu, db.catalogs.map((item) => item.slug));
     const translated = await translateFieldsSafe({ title: titleRu, subtitle: catalog.subtitle.ru }, db.glossary);
     const pinHash = pin ? hashPin(pin) : catalog.access === "pin" ? catalog.pinHash : undefined;
@@ -165,8 +162,7 @@ export async function saveCatalogAction(catalog: Catalog, pin?: string) {
   if (!gate.ok) return gate;
   const { session } = gate;
   try {
-    const db = await getDb();
-    const previous = db.catalogs.find((item) => item.slug === catalog.slug);
+    const previous = await getCatalog(catalog.slug);
     const needsPin = catalog.access === "pin";
     const pinHash = pin ? hashPin(pin) : needsPin ? catalog.pinHash || previous?.pinHash : undefined;
     const titleRu = catalog.title.ru.trim();
@@ -193,7 +189,7 @@ export async function saveCatalogAction(catalog: Catalog, pin?: string) {
 
 export async function quickCatalogAction(title: string) {
   const session = await actor(canEditCatalogs);
-  const db = await getDb();
+  const db = await getDictionariesWithCatalogs();
   const slug = uniqueSlug(title, db.catalogs.map((item) => item.slug));
   const translated = await translateFields({ title }, db.glossary);
   const now = new Date().toISOString();
@@ -222,7 +218,7 @@ export async function quickCatalogAction(title: string) {
 
 export async function presetCatalogAction(preset: string) {
   const session = await actor(canEditCatalogs);
-  const db = await getDb();
+  const db = await getDictionariesWithCatalogs();
   const draft = presetCatalog(preset, "tmp", session.uid, db.productTypes);
   const slug = uniqueSlug(draft.title.ru, db.catalogs.map((item) => item.slug));
   await saveCatalog({ ...draft, slug });
@@ -231,7 +227,7 @@ export async function presetCatalogAction(preset: string) {
 
 export async function createCollectionAction(input: { nameRu: string; autoCatalog: boolean }) {
   const session = await actor(canEditDictionaries);
-  const db = await getDb();
+  const db = await getDictionariesWithCatalogs();
   const id = uniqueSlug(input.nameRu, db.collections.map((item) => item.id));
   const translated = await translateFields({ name: input.nameRu }, db.glossary);
   const item: Collection = {
@@ -276,7 +272,7 @@ export async function saveCollectionAction(item: Collection) {
 
 export async function createFabricTypeAction(input: { nameRu: string; suggestedProductTypes: string[] }) {
   await actor(canEditDictionaries);
-  const db = await getDb();
+  const db = await getDictionaries();
   const id = uniqueSlug(input.nameRu, db.fabricTypes.map((item) => item.id));
   const translated = await translateFields({ name: input.nameRu }, db.glossary);
   const item: FabricType = {
@@ -298,7 +294,7 @@ export async function saveFabricTypeAction(item: FabricType) {
 
 export async function createProductTypeAction(input: { nameRu: string; suggestedFor: string[] }) {
   await actor(canEditDictionaries);
-  const db = await getDb();
+  const db = await getDictionaries();
   const id = uniqueSlug(input.nameRu, db.productTypes.map((item) => item.id));
   const translated = await translateFields({ name: input.nameRu }, db.glossary);
   const item: ProductType = {
@@ -372,8 +368,8 @@ export async function updateLeadAction(id: string, status: Lead["status"]) {
 
 export async function createUserAction(input: { email: string; name: string; role: Role; password: string }) {
   await actor(isAdmin);
-  const db = await getDb();
-  if (db.users.some((user) => user.email.toLowerCase() === input.email.toLowerCase())) return { ok: false as const, error: "exists" };
+  const users = await getUsers();
+  if (users.some((user) => user.email.toLowerCase() === input.email.toLowerCase())) return { ok: false as const, error: "exists" };
   const user: AppUser = { id: crypto.randomUUID(), email: input.email.trim(), name: input.name.trim(), role: input.role, passwordHash: hashPassword(input.password) };
   await saveUser(user);
   return { ok: true as const };
@@ -388,7 +384,7 @@ export async function deleteUserAction(id: string) {
 
 export async function reorderAction(kind: "collections" | "fabricTypes" | "productTypes", ids: string[]) {
   await actor(canEditDictionaries);
-  const db = await getDb();
+  const db = await getDictionaries();
   if (kind === "collections") {
     for (const [index, id] of ids.entries()) {
       const item = db.collections.find((row) => row.id === id);
