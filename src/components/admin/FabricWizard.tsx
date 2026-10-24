@@ -35,6 +35,10 @@ export function FabricWizard({
   const [step, setStep] = useState(0);
   const [fabric, setFabric] = useState(initial);
   const [lists, setLists] = useState({ collections, fabricTypes, productTypes });
+
+  useEffect(() => {
+    setLists({ collections, fabricTypes, productTypes });
+  }, [collections, fabricTypes, productTypes]);
   const [progress, setProgress] = useState(0);
   const [suspects, setSuspects] = useState<string[]>([]);
   const [engine, setEngine] = useState("");

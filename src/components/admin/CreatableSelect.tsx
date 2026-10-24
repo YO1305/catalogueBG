@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -22,28 +22,81 @@ export function CreatableSelect<T extends { id: string }>({
   extra?: { label: string; options: Array<{ id: string; label: string }>; auto?: boolean };
 }) {
   const { t } = useI18n();
+  const listId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
   const [auto, setAuto] = useState(true);
   const [ids, setIds] = useState<string[]>([]);
   const current = options.find((item) => item.id === value);
-  const shown = options.filter((item) => JSON.stringify(item).toLowerCase().includes(query.toLowerCase()));
+  const shown = options.filter((item) => {
+    if (!query.trim()) return true;
+    return optionLabel(item).toLowerCase().includes(query.toLowerCase());
+  });
+
+  useEffect(() => {
+    setQuery("");
+    setListOpen(false);
+  }, [value]);
+
+  useEffect(() => {
+    if (!listOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setListOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [listOpen]);
+
+  const fieldValue = listOpen ? query : current ? optionLabel(current) : query;
+
   return (
-    <div>
+    <div ref={rootRef}>
       <Label>{label}</Label>
-      <Input value={query} placeholder={current ? optionLabel(current) : t("common.search")} onChange={(event) => setQuery(event.target.value)} />
-      <div className="mt-1 max-h-40 overflow-auto border border-ink/10 bg-white">
-        {shown.map((item) => (
-          <button key={item.id} type="button" className={`block w-full px-3 py-2 text-left text-sm ${item.id === value ? "bg-sand" : ""}`} onClick={() => onChange(item.id)}>
-            {optionLabel(item)}
+      <Input
+        value={fieldValue}
+        placeholder={t("common.search")}
+        aria-expanded={listOpen}
+        aria-controls={listId}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          setListOpen(true);
+        }}
+        onFocus={() => setListOpen(true)}
+      />
+      {listOpen ? (
+        <div id={listId} className="mt-1 max-h-40 overflow-auto border border-ink/10 bg-white shadow-sm">
+          {shown.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`block w-full px-3 py-2 text-left text-sm ${item.id === value ? "bg-sand font-medium" : "hover:bg-sand/40"}`}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                onChange(item.id);
+                setListOpen(false);
+                setQuery("");
+              }}
+            >
+              {optionLabel(item)}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="block w-full border-t px-3 py-2 text-left text-sm text-majolica"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              setListOpen(false);
+              setDialogOpen(true);
+            }}
+          >
+            {t("wizard.addNew")}
           </button>
-        ))}
-        <button type="button" className="block w-full px-3 py-2 text-left text-sm text-majolica" onClick={() => setOpen(true)}>
-          {t("wizard.addNew")}
-        </button>
-      </div>
-      <Dialog open={open} onOpenChange={setOpen}>
+        </div>
+      ) : null}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogTitle>{t("wizard.addNew")}</DialogTitle>
           <div className="mt-4 space-y-3">
@@ -53,7 +106,12 @@ export function CreatableSelect<T extends { id: string }>({
               <div className="space-y-1">
                 <p className="text-xs uppercase text-ink/50">{extra.label}</p>
                 {extra.options.map((option) => (
-                  <Checkbox key={option.id} checked={ids.includes(option.id)} label={option.label} onCheckedChange={(checked) => setIds((currentIds) => (checked ? [...currentIds, option.id] : currentIds.filter((id) => id !== option.id)))} />
+                  <Checkbox
+                    key={option.id}
+                    checked={ids.includes(option.id)}
+                    label={option.label}
+                    onCheckedChange={(checked) => setIds((currentIds) => (checked ? [...currentIds, option.id] : currentIds.filter((id) => id !== option.id)))}
+                  />
                 ))}
               </div>
             ) : null}
@@ -62,8 +120,9 @@ export function CreatableSelect<T extends { id: string }>({
               onClick={async () => {
                 const created = await onCreate(name, { auto, ids });
                 if (created) onChange(created.id);
-                setOpen(false);
+                setDialogOpen(false);
                 setName("");
+                setIds([]);
               }}
             >
               {t("common.save")}
