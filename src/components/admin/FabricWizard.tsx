@@ -70,13 +70,14 @@ export function FabricWizard({
           resolve(JSON.parse(xhr.responseText) as { webUrl: string; thumbUrl: string; originalUrl: string; widthPx: number; heightPx: number; colors: string[] });
           return;
         }
-        reject(new Error(xhr.status === 403 ? "forbidden" : "file"));
+        reject(new Error(xhr.status === 403 ? "forbidden" : xhr.status === 503 ? "storage" : "file"));
       };
       xhr.onerror = () => reject(new Error("network"));
       xhr.send(body);
     }).catch((error: unknown) => {
       const code = error instanceof Error ? error.message : "file";
       if (code === "forbidden") toast(t("error.forbidden"));
+      else if (code === "storage") toast(t("error.storage"));
       else if (code === "network") toast(t("error.network"));
       else toast(t("error.file"));
       return null;

@@ -35,15 +35,24 @@ export async function POST(request: Request) {
   const thumb = await image.clone().resize({ width: 400, height: 400, fit: "cover" }).webp({ quality: 78 }).toBuffer();
   const mid = await image.clone().resize({ width: 1200, height: 1200, fit: "inside", withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
   const small = await image.clone().resize({ width: 600, height: 600, fit: "inside", withoutEnlargement: true }).webp({ quality: 78 }).toBuffer();
-  const [originalUrl, webUrl, thumbUrl] = await Promise.all([
-    saveBuffer(`uploads/${id}/original${ext(file.name)}`, original, type || "application/octet-stream"),
-    saveBuffer(`uploads/${id}/web.webp`, web, "image/webp"),
-    saveBuffer(`uploads/${id}/thumb.webp`, thumb, "image/webp"),
-  ]);
-  await saveBuffer(`uploads/${id}/web-1200.webp`, mid, "image/webp");
-  await saveBuffer(`uploads/${id}/web-600.webp`, small, "image/webp");
-  const colors = await dominantColors(web);
-  return Response.json({ originalUrl, webUrl, thumbUrl, widthPx: meta.width ?? 0, heightPx: meta.height ?? 0, colors });
+  try {
+    const [originalUrl, webUrl, thumbUrl] = await Promise.all([
+      saveBuffer(`uploads/${id}/original${ext(file.name)}`, original, type || "application/octet-stream"),
+      saveBuffer(`uploads/${id}/web.webp`, web, "image/webp"),
+      saveBuffer(`uploads/${id}/thumb.webp`, thumb, "image/webp"),
+    ]);
+    await saveBuffer(`uploads/${id}/web-1200.webp`, mid, "image/webp");
+    await saveBuffer(`uploads/${id}/web-600.webp`, small, "image/webp");
+    const colors = await dominantColors(web);
+    return Response.json({ originalUrl, webUrl, thumbUrl, widthPx: meta.width ?? 0, heightPx: meta.height ?? 0, colors });
+  } catch (error) {
+    console.error("images/process storage", error);
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("bucket") || message.includes("storage")) {
+      return Response.json({ error: "storage" }, { status: 503 });
+    }
+    return Response.json({ error: "file" }, { status: 500 });
+  }
 }
 
 function ext(name: string) {
