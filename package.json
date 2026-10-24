@@ -11,6 +11,8 @@
     "test": "tsx --test src/lib/parseSpecs.test.ts src/lib/catalog.test.ts",
     "generate": "tsx scripts/generate.ts",
     "seed": "tsx scripts/seed.ts",
+    "reset:content": "tsx scripts/reset-content.ts",
+    "reset:content:dry": "tsx scripts/reset-content.ts --dry-run",
     "bootstrap-auth": "tsx scripts/bootstrap-auth.ts",
     "set-role": "tsx scripts/set-role.ts"
   },

@@ -148,6 +148,16 @@ export async function saveCatalog(catalog: Catalog) {
   });
 }
 
+export async function deleteCatalog(slug: string) {
+  if (firebaseAdminConfigured()) {
+    await firestore().collection("catalogs").doc(slug).delete();
+    return;
+  }
+  await mutate((db) => {
+    db.catalogs = db.catalogs.filter((item) => item.slug !== slug);
+  });
+}
+
 export async function saveCollection(item: Collection) {
   if (firebaseAdminConfigured()) return upsert("collections", item.id, item);
   await mutate((db) => {
