@@ -279,9 +279,10 @@ const ru: Record<string, string> = {
   "error.rate": "Слишком много заявок. Подождите минуту.",
   "error.lead": "Проверьте имя и контакт",
   "error.file": "Нужен JPG, PNG или TIFF до 50 МБ",
-  "error.forbidden": "Нет доступа. Войдите в админку снова",
+  "error.uploadTooLarge": "Файл слишком большой для загрузки на сайт. Попробуйте JPG поменьше или сожмите PNG",
+  "error.forbidden": "Nет доступа. Войдите в админку снова",
   "error.network": "Сеть или сервер не ответил. Попробуйте ещё раз",
-  "error.storage": "В Firebase включите Storage (Build → Storage → Get started), затем redeploy на Vercel",
+  "error.storage": "Хранилище файлов недоступно. Проверьте Vercel Blob и redeploy",
   "error.psd": "Нужен файл PSD",
 };
 
@@ -564,9 +565,10 @@ const en: Record<string, string> = {
   "error.rate": "Too many enquiries. Please wait a minute.",
   "error.lead": "Check the name and contact",
   "error.file": "Use a JPG, PNG or TIFF up to 50 MB",
+  "error.uploadTooLarge": "The file is too large for the live site. Try a smaller JPG or compress the PNG",
   "error.forbidden": "Access denied. Sign in to admin again",
   "error.network": "Network or server error. Try again",
-  "error.storage": "Enable Firebase Storage (Build → Storage → Get started), then redeploy on Vercel",
+  "error.storage": "File storage is unavailable. Check Vercel Blob and redeploy",
   "error.psd": "A PSD file is required",
 };
 
@@ -849,9 +851,10 @@ const uz: Record<string, string> = {
   "error.rate": "So'rovlar juda ko'p. Bir daqiqa kuting.",
   "error.lead": "Ism va aloqani tekshiring",
   "error.file": "50 MB gacha JPG, PNG yoki TIFF kerak",
+  "error.uploadTooLarge": "Fayl saytga yuklash uchun juda katta. Kichikroq JPG yoki siqilgan PNG yuboring",
   "error.forbidden": "Ruxsat yo'q. Admin panelga qayta kiring",
   "error.network": "Tarmoq yoki server javob bermadi. Qayta urinib ko'ring",
-  "error.storage": "Firebase Storage yoqing (Build → Storage → Get started), keyin Vercel redeploy",
+  "error.storage": "Fayl saqlash ishlamayapti. Vercel Blob va redeploy ni tekshiring",
   "error.psd": "PSD fayl kerak",
 };
 

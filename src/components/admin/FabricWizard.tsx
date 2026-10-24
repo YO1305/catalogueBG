@@ -10,6 +10,7 @@ import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Input, Label } from "@/components/ui/field";
 import { createCollectionAction, createFabricTypeAction, createProductTypeAction, publishFabricAction, saveFabricAction } from "@/lib/actions";
+import { prepareUploadImage } from "@/lib/prepareUploadImage";
 import type { Collection, Fabric, FabricType, GlossaryTerm, Mockup, ProductType, Template } from "@/types";
 
 const STEPS = ["wizard.design", "wizard.data", "wizard.mockups", "wizard.publish"] as const;
@@ -55,8 +56,14 @@ export function FabricWizard({
     setFabric((current) => ({ ...current, ...partial }));
   }
 
-  async function upload(file: File) {
-    if (file.size > 50 * 1024 * 1024) return toast(t("error.file"));
+  async function upload(raw: File) {
+    if (raw.size > 50 * 1024 * 1024) return toast(t("error.file"));
+    let file: File;
+    try {
+      file = await prepareUploadImage(raw);
+    } catch {
+      return toast(t("error.file"));
+    }
     const body = new FormData();
     body.append("file", file);
     const data = await new Promise<{ webUrl: string; thumbUrl: string; originalUrl: string; widthPx: number; heightPx: number; colors: string[] }>((resolve, reject) => {
@@ -70,7 +77,7 @@ export function FabricWizard({
           resolve(JSON.parse(xhr.responseText) as { webUrl: string; thumbUrl: string; originalUrl: string; widthPx: number; heightPx: number; colors: string[] });
           return;
         }
-        reject(new Error(xhr.status === 403 ? "forbidden" : xhr.status === 503 ? "storage" : "file"));
+        reject(new Error(xhr.status === 403 ? "forbidden" : xhr.status === 503 ? "storage" : xhr.status === 413 ? "tooLarge" : "file"));
       };
       xhr.onerror = () => reject(new Error("network"));
       xhr.send(body);
@@ -78,6 +85,7 @@ export function FabricWizard({
       const code = error instanceof Error ? error.message : "file";
       if (code === "forbidden") toast(t("error.forbidden"));
       else if (code === "storage") toast(t("error.storage"));
+      else if (code === "tooLarge") toast(t("error.uploadTooLarge"));
       else if (code === "network") toast(t("error.network"));
       else toast(t("error.file"));
       return null;

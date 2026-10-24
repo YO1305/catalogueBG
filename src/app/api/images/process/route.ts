@@ -5,6 +5,7 @@ import { canEditFabrics, isAdmin } from "@/lib/roles";
 import { saveBuffer, storageProvider } from "@/lib/storage";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function allowedImage(file: File) {
   if (["image/jpeg", "image/png", "image/tiff", "image/webp"].includes(file.type)) return true;
