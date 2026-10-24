@@ -30,17 +30,22 @@ export function storageProvider(): StorageProvider {
 }
 
 function blobConfigured() {
-  if (process.env.BLOB_READ_WRITE_TOKEN && process.env.BLOB_READ_WRITE_TOKEN.length > 20) return true;
-  return Boolean(process.env.BLOB_STORE_ID && process.env.VERCEL_OIDC_TOKEN);
+  if (!process.env.BLOB_STORE_ID?.trim()) return false;
+  const rw = process.env.BLOB_READ_WRITE_TOKEN ?? "";
+  if (rw.length > 20) return true;
+  if (process.env.VERCEL === "1") return true;
+  return Boolean(process.env.VERCEL_OIDC_TOKEN?.trim());
 }
 
 async function saveVercelBlob(relativePath: string, data: Buffer, contentType: string) {
   if (!blobConfigured()) throw new Error("storage_blob");
   const clean = relativePath.replace(/^\/+/, "");
+  const rw = process.env.BLOB_READ_WRITE_TOKEN?.trim();
   const result = await put(clean, data, {
     access: "public",
     contentType,
     addRandomSuffix: false,
+    ...(rw && rw.length > 20 ? { token: rw } : {}),
   });
   return result.url;
 }
