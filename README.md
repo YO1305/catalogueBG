@@ -36,6 +36,7 @@ npm run dev
 - `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` — тогда чтение и запись идут в Firestore, файлы в Storage. `npm run seed` заливает стартовые данные.
 - `NEXT_PUBLIC_FIREBASE_*` — вход сотрудников через Firebase Auth. Роль берётся из custom claim `role` (`admin`, `designer`, `manager`).
 - `SESSION_SECRET` — подпись cookie. В проде задайте свой.
-- `NEXT_PUBLIC_DEMO_AUTH=0` — отключает локальные пароли, когда Firebase уже подключён.
+- `NEXT_PUBLIC_DEMO_AUTH=0` — только Firebase Auth (нужны пользователи в Authentication и `npm run bootstrap-auth`). Пока `1` — вход по паролям из таблицы выше, даже если `NEXT_PUBLIC_FIREBASE_*` заданы.
+- `npm run bootstrap-auth` — создаёт `admin@bahmal.uz` / `designer@` / `manager@` в Firebase Auth с ролями. `npm run set-role -- email admin` — выдать роль вручную.
 
 Секреты не кладутся в репозиторий и не попадают в клиентский бандл.
