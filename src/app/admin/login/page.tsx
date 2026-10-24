@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
 import { firebaseClientConfigured, getFirebaseApp } from "@/lib/firebase";
 
+function useFirebaseLogin() {
+  return firebaseClientConfigured() && process.env.NEXT_PUBLIC_DEMO_AUTH === "0";
+}
+
 function LoginForm() {
   const { t } = useI18n();
   const router = useRouter();
@@ -15,23 +19,28 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
   const next = params.get("next") || "/admin";
+  const firebaseLogin = useFirebaseLogin();
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError(false);
-    if (firebaseClientConfigured()) {
-      const { getAuth, signInWithEmailAndPassword } = await import("firebase/auth");
-      const app = getFirebaseApp();
-      if (!app) return setError(true);
-      const cred = await signInWithEmailAndPassword(getAuth(app), email, password);
-      const idToken = await cred.user.getIdToken();
-      const response = await fetch("/api/auth/session", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ idToken }) });
-      if (!response.ok) return setError(true);
-    } else {
-      const response = await fetch("/api/auth/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password }) });
-      if (!response.ok) return setError(true);
+    try {
+      if (firebaseLogin) {
+        const { getAuth, signInWithEmailAndPassword } = await import("firebase/auth");
+        const app = getFirebaseApp();
+        if (!app) return setError(true);
+        const cred = await signInWithEmailAndPassword(getAuth(app), email, password);
+        const idToken = await cred.user.getIdToken(true);
+        const response = await fetch("/api/auth/session", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ idToken }) });
+        if (!response.ok) return setError(true);
+      } else {
+        const response = await fetch("/api/auth/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password }) });
+        if (!response.ok) return setError(true);
+      }
+      router.push(next);
+      router.refresh();
+    } catch {
+      setError(true);
     }
-    router.push(next);
-    router.refresh();
   }
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
@@ -43,9 +52,9 @@ function LoginForm() {
         <Label>{t("auth.password")}</Label>
         <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
         {error ? <p className="text-sm text-red-800">{t("auth.error")}</p> : null}
-        <Button type="submit">{firebaseClientConfigured() ? t("auth.firebase") : t("auth.submit")}</Button>
+        <Button type="submit">{firebaseLogin ? t("auth.firebase") : t("auth.submit")}</Button>
       </form>
-      {process.env.NEXT_PUBLIC_DEMO_AUTH !== "0" && !firebaseClientConfigured() ? <p className="mt-4 text-xs text-ink/60">{t("auth.demoHint")}</p> : null}
+      {process.env.NEXT_PUBLIC_DEMO_AUTH !== "0" && !firebaseLogin ? <p className="mt-4 text-xs text-ink/60">{t("auth.demoHint")}</p> : null}
     </main>
   );
 }

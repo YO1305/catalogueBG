@@ -8,7 +8,9 @@
     "lint": "next lint",
     "test": "tsx --test src/lib/parseSpecs.test.ts src/lib/catalog.test.ts",
     "generate": "tsx scripts/generate.ts",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "bootstrap-auth": "tsx scripts/bootstrap-auth.ts",
+    "set-role": "tsx scripts/set-role.ts"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "^1.1.1",

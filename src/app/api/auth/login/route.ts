@@ -2,6 +2,8 @@ import { getDb } from "@/lib/db";
 import { verifyPassword } from "@/lib/password";
 import { SESSION_COOKIE, cookieHeader, signSession } from "@/lib/session";
 
+export const runtime = "nodejs";
+
 export async function POST(request: Request) {
   if (process.env.NEXT_PUBLIC_DEMO_AUTH === "0" && process.env.FIREBASE_PROJECT_ID) {
     return Response.json({ error: "firebase" }, { status: 400 });
