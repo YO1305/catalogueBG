@@ -8,6 +8,7 @@ import { TemplateUploadDialog } from "@/components/admin/TemplateUploadDialog";
 import { useI18n } from "@/components/i18n/I18n";
 import { deleteTemplateAction, saveTemplateAction } from "@/lib/actions";
 import { MOCKUP_CATEGORIES, mockupCategoryLabelKey } from "@/lib/mockupCategories";
+import { sortTemplatesForWizard } from "@/lib/templateSort";
 import { isAdmin } from "@/lib/roles";
 import type { MockupCategory, ProductType, Role, Template } from "@/types";
 
@@ -23,8 +24,9 @@ export function TemplateBoard({ templates, products, role }: { templates: Templa
   const canUpload = isAdmin(role);
 
   const rows = useMemo(() => {
-    if (!filter) return templates;
-    return templates.filter((item) => item.category === filter || (!item.category && filter === "bedding"));
+    const sorted = sortTemplatesForWizard(templates);
+    if (!filter) return sorted;
+    return sorted.filter((item) => item.category === filter || (!item.category && filter === "bedding"));
   }, [templates, filter]);
 
   async function remove(template: Template) {
@@ -63,7 +65,12 @@ export function TemplateBoard({ templates, products, role }: { templates: Templa
               image={template.thumbnailUrl || undefined}
               placeholder={template.name.slice(0, 1)}
               title={template.name}
-              meta={template.category ? t(mockupCategoryLabelKey(template.category)) : t("mockups.noCategory")}
+              meta={[
+                template.kind === "zip" || template.engine === "uvgrid" ? "ZIP" : template.kind === "demo" ? t("templates.demo") : null,
+                template.category ? t(mockupCategoryLabelKey(template.category)) : t("mockups.noCategory"),
+              ]
+                .filter(Boolean)
+                .join(" · ")}
               actions={
                 <>
                   {canUpload ? (

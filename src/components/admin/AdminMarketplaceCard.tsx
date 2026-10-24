@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 export const ADMIN_GRID_CLASS =
@@ -20,12 +21,24 @@ export function AdminMarketplaceCard({
   badges?: ReactNode;
   actions: ReactNode;
 }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const showImage = Boolean(image?.trim()) && !imageFailed;
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [image]);
+
   return (
     <article className="group flex flex-col overflow-hidden rounded-lg border border-black/[0.08] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-md">
       <div className="relative aspect-square w-full overflow-hidden bg-[#f3efe8]">
-        {image ? (
+        {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt="" className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.04]" />
+          <img
+            src={image}
+            alt=""
+            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.04]"
+            onError={() => setImageFailed(true)}
+          />
         ) : (
           <div className="flex h-full items-center justify-center px-2 text-center text-[0.65rem] leading-snug text-ink/40">{placeholder}</div>
         )}
