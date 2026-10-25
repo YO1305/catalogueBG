@@ -7,10 +7,9 @@ export function SpecsTable({ fabric, catalog }: { fabric: Fabric; catalog: Catal
   const { lang, t } = useI18n();
   const rows = [
     [t("catalog.composition"), fabric.composition[lang]],
-    [t("catalog.density"), `${fabric.density} ${t("common.gm2")}`],
-    [t("catalog.width"), `${fabric.width} ${t("common.cm")}`],
-    [t("catalog.rapport"), `${fabric.rapport.widthCm} × ${fabric.rapport.heightCm} ${t("common.cm")}`],
-  ];
+    [t("catalog.density"), fabric.density && `${fabric.density} ${t("common.gm2")}`],
+    [t("catalog.width"), fabric.width && `${fabric.width} ${t("common.cm")}`],
+  ].filter(([, value]) => value);
   return (
     <div className="space-y-3 text-sm">
       <dl>

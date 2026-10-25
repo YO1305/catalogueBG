@@ -44,14 +44,14 @@ export function ZoomViewer({ src, alt, rapportCm, seamless, onZoomed }: { src: s
         // eslint-disable-next-line @next/next/no-img-element
         <img ref={imageRef} src={src} alt={alt} className="h-full w-full object-contain" style={{ transform: `scale(${zoom})` }} />
       )}
-      <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-paper/90 px-2 py-1 text-xs">
+      <div className="absolute bottom-3 left-3 flex h-7 items-center gap-2 rounded-full bg-paper/90 px-3 text-xs leading-none shadow-sm">
         <span className="inline-block h-px bg-ink" style={{ width: ruler }} />
         <span>{t("catalog.ruler")}</span>
       </div>
-      <button type="button" className="absolute right-3 top-3 bg-paper px-2 py-1 text-xs" onClick={() => setTile((value) => !value)}>
+      <button type="button" className="absolute right-3 top-3 flex h-8 items-center rounded-full bg-paper/90 px-3 text-xs leading-none shadow-sm" onClick={() => setTile((value) => !value)}>
         {t("catalog.tile")}
       </button>
-      <p className="absolute bottom-3 right-3 text-[10px] text-ink/70">{t("catalog.zoomHint")}</p>
+      <p className="absolute bottom-3 right-3 hidden text-[10px] text-ink/70 md:block">{t("catalog.zoomHint")}</p>
     </div>
   );
 }
