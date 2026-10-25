@@ -16,12 +16,14 @@ export function FabricDesignSection({
   fabric,
   progress,
   weave,
+  wovenType,
   onChange,
   onUpload,
 }: {
   fabric: Fabric;
   progress: number;
   weave: WeaveControls;
+  wovenType: boolean;
   onChange: (partial: Partial<Fabric>) => void;
   onUpload: (file: File) => void;
 }) {
@@ -40,6 +42,7 @@ export function FabricDesignSection({
       <div className="mb-4 rounded border border-black/10 bg-black/[0.02] p-3">
         <Checkbox checked={woven} onCheckedChange={weave.setWoven} label={t("weave.toggle")} />
         <p className="mt-1 text-xs text-ink/50">{t("weave.toggleHint")}</p>
+        {wovenType && !woven ? <p className="mt-1 text-xs text-amber-700">{t("weave.typeHint")}</p> : null}
       </div>
       <h2 className="font-display text-lg">{woven ? t("weave.photo") : t("wizard.design")}</h2>
       <p className="mt-1 text-sm text-ink/60">{woven ? t("weave.photoHint") : t("wizard.dropHint")}</p>

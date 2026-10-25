@@ -12,6 +12,7 @@ import { WizardMockupCategoryStep } from "@/components/admin/WizardMockupCategor
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { addFabricsToCatalogAction } from "@/lib/actions";
+import { isWovenType } from "@/lib/mockup/weave";
 import { useFabricEditor } from "@/lib/useFabricEditor";
 import type { Catalog, Collection, Fabric, FabricType, ProductType, Template } from "@/types";
 
@@ -72,7 +73,7 @@ export function FabricEditor({
       <Link href="/admin/fabrics" className="text-sm underline">{t("common.back")}</Link>
       <h1 className="font-display mt-2 text-2xl md:text-3xl">{isNew ? t("designs.createTitle") : t("designs.editTitle")}</h1>
       <div className="mt-5 space-y-5">
-        <FabricDesignSection fabric={fabric} progress={progress} weave={editor.weave} onChange={update} onUpload={upload} />
+        <FabricDesignSection fabric={fabric} progress={progress} weave={editor.weave} wovenType={isWovenType(lists.fabricTypes.find((item) => item.id === fabric.fabricTypeId))} onChange={update} onUpload={upload} />
         {!fabric.woven ? (
           <FabricVariantsSection fabric={fabric} progress={progress} onChange={update} onAdd={(file) => void editor.addVariant(file)} onPatch={editor.patchVariant} onRemove={editor.removeVariant} />
         ) : null}

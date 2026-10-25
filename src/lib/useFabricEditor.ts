@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createCollectionAction, createFabricTypeAction, createProductTypeAction, publishFabricAction, saveFabricAction } from "@/lib/actions";
-import { isWovenType } from "@/lib/mockup/weave";
 import { prepareUploadImage } from "@/lib/prepareUploadImage";
 import { useWeaveEditor } from "@/lib/useWeaveEditor";
 import type { Collection, Fabric, FabricType, FabricVariant, Mockup, ProductType, Template } from "@/types";
@@ -64,13 +63,8 @@ export function useFabricEditor(
 
   function update(partial: Partial<Fabric>) {
     dirty.current = true;
-    const typeChanged = partial.fabricTypeId !== undefined && partial.fabricTypeId !== fabricRef.current.fabricTypeId;
     fabricRef.current = { ...fabricRef.current, ...partial };
     setFabric((current) => ({ ...current, ...partial }));
-    if (typeChanged && partial.woven === undefined) {
-      const woven = isWovenType(lists.fabricTypes.find((item) => item.id === partial.fabricTypeId));
-      if (woven !== Boolean(fabricRef.current.woven)) weave.setWoven(woven);
-    }
   }
 
   const weave = useWeaveEditor(fabricRef, update, templates, uploadDesign);
