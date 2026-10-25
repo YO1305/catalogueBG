@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FabricCatalogPickSection } from "@/components/admin/FabricCatalogPickSection";
@@ -12,7 +12,7 @@ import { WizardMockupCategoryStep } from "@/components/admin/WizardMockupCategor
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { addFabricsToCatalogAction } from "@/lib/actions";
-import { isWovenType } from "@/lib/mockup/weave";
+import { fabricKind, kindReady } from "@/lib/fabricKind";
 import { useFabricEditor } from "@/lib/useFabricEditor";
 import { FabricToneSection } from "@/components/admin/FabricToneSection";
 import { missingTones } from "@/lib/variants";
@@ -44,13 +44,16 @@ export function FabricEditor({
   const [catalogSlugs, setCatalogSlugs] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
+  const kind = fabricKind(fabric);
   const missing = missingTones(fabric);
+  const { fillMissingColors } = editor.tones;
+  useEffect(() => {
+    void fillMissingColors();
+  }, [fabric.id]);
   const ready = useMemo(
     () =>
       Boolean(
-        fabric.design.webUrl &&
-          !missingTones(fabric).length &&
-          (fabric.woven ? Boolean(fabric.weave?.color) : fabric.rapport.widthCm > 0 && fabric.rapport.heightCm > 0) &&
+        kindReady(fabric) &&
           fabric.art &&
           fabric.name.ru &&
           fabric.mockupCategory &&
@@ -70,7 +73,7 @@ export function FabricEditor({
       const id = fabric.id;
       await Promise.all(catalogSlugs.map((slug) => addFabricsToCatalogAction([id], slug)));
       toast(saveLive ? t("designs.savedPublished") : t("wizard.saved"));
-      if (isNew) router.push("/admin/fabrics");
+      if (isNew) router.push(`/admin/fabrics?kind=${kind}`);
     } catch {
       toast(t("designs.saveFailed"));
     } finally {
@@ -81,18 +84,20 @@ export function FabricEditor({
 
   return (
     <div className="max-w-3xl">
-      <Link href="/admin/fabrics" className="text-sm underline">{t("common.back")}</Link>
-      <h1 className="font-display mt-2 text-2xl md:text-3xl">{isNew ? t("designs.createTitle") : t("designs.editTitle")}</h1>
+      <Link href={`/admin/fabrics?kind=${kind}`} className="text-sm underline">{t("common.back")}</Link>
+      <h1 className="font-display mt-2 text-2xl md:text-3xl">{t(isNew ? `designs.createTitle.${kind}` : "designs.editTitle")}</h1>
+      <p className="mt-1 text-sm text-ink/60">{t(`designs.kind.${kind}`)}</p>
       <div className="mt-5 space-y-5">
-        <FabricDesignSection fabric={fabric} progress={progress} weave={editor.weave} wovenType={isWovenType(lists.fabricTypes.find((item) => item.id === fabric.fabricTypeId))} onChange={update} onUpload={upload} />
-        {!fabric.woven && !fabric.toned ? (
-          <FabricVariantsSection fabric={fabric} progress={progress} onChange={update} onAdd={(file) => void editor.addVariant(file)} onPatch={editor.patchVariant} onRemove={editor.removeVariant} />
-        ) : null}
+        {kind === "dyed" ? (
+          <FabricToneSection fabric={fabric} progress={progress} onUploadMain={upload} onUploadTone={(tone, file) => void editor.tones.uploadTone(tone, file)} onPatchTone={editor.tones.patchTone} onPatchWeave={editor.weave.patchWeave} />
+        ) : (
+          <>
+            <FabricDesignSection fabric={fabric} progress={progress} weave={editor.weave} onChange={update} onUpload={upload} />
+            <FabricVariantsSection fabric={fabric} progress={progress} onChange={update} onAdd={(file) => void editor.addVariant(file)} onPatch={editor.patchVariant} onRemove={editor.removeVariant} />
+          </>
+        )}
         <div><h2 className="font-display text-lg">{t("wizard.data")}</h2></div>
         <WizardCardStep fabric={fabric} collections={lists.collections} fabricTypes={lists.fabricTypes} finishes={lists.finishes} productTypes={lists.productTypes} onChange={update} hideCollection onCreateCollection={onCreateCollection} onCreateFabricType={onCreateFabricType} onCreateFinish={editor.onCreateFinish} />
-        {fabric.toned ? (
-          <FabricToneSection fabric={fabric} progress={progress} onUploadMain={upload} onUploadTone={(tone, file) => void editor.tones.uploadTone(tone, file)} onPatchTone={editor.tones.patchTone} onPatchWeave={editor.weave.patchWeave} />
-        ) : null}
         <WizardMockupCategoryStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} onSaveMockup={editor.mockupJobs.run} />
         <FabricCatalogPickSection catalogs={catalogs} selected={catalogSlugs} onChange={setCatalogSlugs} />
       </div>

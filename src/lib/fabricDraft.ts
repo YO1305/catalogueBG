@@ -1,8 +1,10 @@
-import type { Fabric } from "@/types";
+import { kindFields } from "@/lib/fabricKind";
+import type { Fabric, FabricKind } from "@/types";
 
-export function emptyFabric(userId: string): Fabric {
+export function emptyFabric(userId: string, kind: FabricKind = "printed"): Fabric {
   const now = new Date().toISOString();
   return {
+    ...kindFields(kind, {}),
     id: crypto.randomUUID(),
     art: "",
     collectionId: "",
@@ -21,7 +23,7 @@ export function emptyFabric(userId: string): Fabric {
     tags: [],
     productTypes: [],
     mockupCategory: "bedding",
-    design: { originalUrl: "", webUrl: "", thumbUrl: "", widthPx: 0, heightPx: 0, seamless: true },
+    design: { originalUrl: "", webUrl: "", thumbUrl: "", widthPx: 0, heightPx: 0, seamless: kind === "printed" },
     realPhotos: [],
     mockups: [],
     status: "draft",

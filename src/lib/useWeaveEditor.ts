@@ -3,8 +3,8 @@
 import type { RefObject } from "react";
 import { toast } from "sonner";
 import { autoFabricColor } from "@/lib/mockup/fabricColor";
-import { defaultWeave, templateFitsFabric } from "@/lib/mockup/weave";
-import type { Fabric, FabricWeave, Template } from "@/types";
+import { defaultWeave } from "@/lib/mockup/weave";
+import type { Fabric, FabricWeave } from "@/types";
 
 type Upload = (file: File) => Promise<{ webUrl: string } | null>;
 
@@ -12,7 +12,6 @@ type Upload = (file: File) => Promise<{ webUrl: string } | null>;
 export function useWeaveEditor(
   fabricRef: RefObject<Fabric>,
   update: (partial: Partial<Fabric>) => void,
-  templates: Template[],
   uploadDesign: Upload,
 ) {
   function patchWeave(partial: Partial<FabricWeave>) {
@@ -30,24 +29,10 @@ export function useWeaveEditor(
     }
   }
 
-  function setWoven(on: boolean) {
-    const current = fabricRef.current;
-    const fits = (templateId: string) => {
-      const template = templates.find((item) => item.id === templateId);
-      return Boolean(template && templateFitsFabric({ woven: true }, template));
-    };
-    update({
-      woven: on,
-      weave: on ? current.weave ?? defaultWeave() : current.weave,
-      mockups: on ? current.mockups.filter((item) => fits(item.templateId)) : current.mockups,
-    });
-    if (on && !current.weave && current.design.webUrl) void autoColor(current.design.webUrl);
-  }
-
   async function uploadMap(file: File) {
     const data = await uploadDesign(file);
     if (data) patchWeave({ pattern: "map", mapUrl: data.webUrl, mapWidthCm: fabricRef.current.weave?.mapWidthCm || 10 });
   }
 
-  return { patchWeave, autoColor, setWoven, uploadMap };
+  return { patchWeave, autoColor, uploadMap };
 }

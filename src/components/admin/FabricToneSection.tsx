@@ -43,7 +43,7 @@ export function FabricToneSection({
               label={t(`tone.${tone}`)}
               design={design}
               mockups={mockups}
-              color={fabric.woven ? color : undefined}
+              color={color}
               busy={progress > 0 && progress < 1}
               uploadLabel={design?.webUrl ? t("tone.replace") : t("tone.upload")}
               missingLabel={t("tone.missing")}

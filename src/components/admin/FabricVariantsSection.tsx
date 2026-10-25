@@ -28,7 +28,7 @@ export function FabricVariantsSection({
   return (
     <section className="rounded-sm border border-black/10 bg-white/80 p-4">
       <h2 className="font-display text-lg">{t("designs.variants")}</h2>
-      <p className="mt-1 text-sm text-ink/60">{t("designs.variantsHint")}</p>
+      <p className="mt-1 text-sm text-ink/60">{t(fabric.woven ? "designs.variantsHintWoven" : "designs.variantsHint")}</p>
       <div className="mt-4 space-y-3">
         <Row thumb={fabric.design.thumbUrl || fabric.design.webUrl} label={t("designs.baseColorName")}>
           <Input value={fabric.colorName ?? ""} placeholder={t("designs.colorNamePlaceholder")} onChange={(event) => onChange({ colorName: event.target.value })} />
@@ -37,6 +37,9 @@ export function FabricVariantsSection({
           <Row key={variant.id} thumb={variant.design.thumbUrl || variant.design.webUrl} label={t("designs.variantName", { n: index + 2 })} mockups={variant.mockups.filter((item) => item.webUrl).map((item) => item.thumbUrl)}>
             <div className="flex gap-2">
               <Input value={variant.name} placeholder={t("designs.colorNamePlaceholder")} onChange={(event) => onPatch(variant.id, { name: event.target.value })} />
+              {fabric.woven ? (
+                <Input className="w-12 shrink-0 p-1" type="color" aria-label={t("weave.color")} value={variant.weaveColor ?? fabric.weave?.color ?? "#e8e2d6"} onChange={(event) => onPatch(variant.id, { weaveColor: event.target.value })} />
+              ) : null}
               <Button type="button" variant="outline" size="icon" aria-label={t("designs.removeVariant")} onClick={() => onRemove(variant.id)}>
                 <Trash2 className="h-4 w-4" />
               </Button>

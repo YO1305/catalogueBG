@@ -75,8 +75,13 @@ export type FabricDesign = {
   seamless: boolean;
 };
 
+/** Раздел дизайнов: жаккардовые (тканый рисунок), однотонные (крашение, три тона), рисунок (печать, раппорт). */
+export type FabricKind = "woven" | "dyed" | "printed";
+
 export type Fabric = {
   id: string;
+  /** Нет у старых записей — тогда раздел выводится из woven / toned. */
+  kind?: FabricKind;
   art: string;
   collectionId: string;
   fabricTypeId: string;
@@ -85,7 +90,7 @@ export type Fabric = {
   composition: Localized;
   /** Отделка из справочника; finish хранит её название для каталога */
   finishId?: string;
-  /** Крашение: три обязательных тона (светлый, средний, тёмный) */
+  /** Однотонные (крашение): три обязательных тона; ставится разделом kind = "dyed" */
   toned?: boolean;
   finish?: Localized;
   finishExtra?: Localized;
@@ -144,8 +149,6 @@ export type Finish = {
   name: Localized;
   order: number;
   active: boolean;
-  /** Крашение: у ткани три тона и подпись про цвета Pantone в каталоге */
-  toned?: boolean;
 };
 
 export type ProductType = {

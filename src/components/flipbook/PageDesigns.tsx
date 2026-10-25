@@ -1,12 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { CatalogImage, PageHeader } from "@/components/flipbook/PageHeader";
 import { PageFooter } from "@/components/flipbook/PageFooter";
-import { VariantDots } from "@/components/flipbook/VariantDots";
 import { useI18n } from "@/components/i18n/I18n";
 import { designsPerPage, heroMockup } from "@/lib/catalog";
-import { BASE_VARIANT, colorOptions, withVariant } from "@/lib/variants";
 import type { Catalog, Fabric, FabricType } from "@/types";
 
 type OpenFabric = (id: string, variantId?: string) => void;
@@ -58,10 +55,7 @@ function DesignRow({
   onRequest: (id: string) => void;
 }) {
   const { lang, t } = useI18n();
-  const options = fabric.toned ? [] : colorOptions(fabric);
-  const [variantId, setVariantId] = useState(options.length ? BASE_VARIANT : undefined);
-  const shown = withVariant(fabric, variantId);
-  const mockup = heroMockup(shown, catalog.showProductTypes);
+  const mockup = heroMockup(fabric, catalog.showProductTypes);
   const typeName = fabricTypes.find((item) => item.id === fabric.fabricTypeId)?.name[lang] ?? "";
   const specs = [typeName, fabric.density && `${fabric.density} ${t("common.gm2")}`, fabric.width && `${fabric.width} ${t("common.cm")}`].filter(Boolean).join(" · ");
   return (
@@ -70,24 +64,23 @@ function DesignRow({
         type="button"
         className="lift cursor-zoom relative min-h-0 overflow-hidden rounded-[0.7em] bg-black/5"
         aria-label={`${fabric.name[lang]} — ${t("catalog.click")}`}
-        onClick={() => onOpen(fabric.id, variantId)}
+        onClick={() => onOpen(fabric.id)}
       >
         <CatalogImage
-          src={mockup?.url || shown.design.webUrl}
+          src={mockup?.url || fabric.design.webUrl}
           thumbUrl={mockup?.thumbUrl}
           webUrl={mockup?.webUrl}
-          fallbackSrc={shown.design.webUrl || shown.design.thumbUrl}
+          fallbackSrc={fabric.design.webUrl || fabric.design.thumbUrl}
           alt={`${fabric.name[lang]} — ${typeName}`}
           active={active}
         />
       </button>
       <div className="flex min-w-0 flex-col justify-center gap-[0.35em]">
-        <button type="button" className="min-w-0 text-left" onClick={() => onOpen(fabric.id, variantId)}>
+        <button type="button" className="min-w-0 text-left" onClick={() => onOpen(fabric.id)}>
           <span className="font-display line-clamp-2 block text-[1.2em] leading-tight">{fabric.name[lang]}</span>
           <span className="font-mono mt-[0.15em] block text-[0.68em]" style={{ color: "var(--muted)" }}>{fabric.art}</span>
         </button>
         {specs ? <p className="line-clamp-2 text-[0.72em] leading-snug" style={{ color: "var(--muted)" }}>{specs}</p> : null}
-        {options.length ? <VariantDots options={options} value={variantId} onChange={setVariantId} /> : null}
         {fabric.isNew ? <span className="text-[0.66em] uppercase tracking-wider text-[#a6843d]">{t("catalog.newBadge")}</span> : null}
         {catalog.showPrices && fabric.priceVisible ? (
           <p className="font-mono text-[0.72em]">

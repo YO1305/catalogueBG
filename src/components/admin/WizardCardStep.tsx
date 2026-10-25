@@ -92,11 +92,10 @@ export function WizardCardStep({
           options={finishes.filter((item) => item.active || item.id === fabric.finishId)}
           onChange={(finishId) => {
             const item = finishes.find((row) => row.id === finishId);
-            onChange({ finishId, finish: item?.name, toned: Boolean(item?.toned) });
+            onChange({ finishId, finish: item?.name });
           }}
           onCreate={(name) => onCreateFinish(name)}
         />
-        {fabric.toned ? <p className="mt-1 text-xs text-ink/55">{t("tone.formHint")}</p> : null}
       </div>
       <div>
         <Label>{t("designs.finishExtra")}</Label>

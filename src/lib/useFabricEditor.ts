@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createCollectionAction, createFabricTypeAction, createFinishAction, createProductTypeAction, publishFabricAction, saveFabricAction } from "@/lib/actions";
+import { autoFabricColor } from "@/lib/mockup/fabricColor";
+import { DEFAULT_CORRECTION } from "@/lib/mockup/weave";
 import { prepareUploadImage } from "@/lib/prepareUploadImage";
 import { useMockupJobs } from "@/lib/useMockupJobs";
 import { useToneEditor } from "@/lib/useToneEditor";
@@ -64,7 +66,7 @@ export function useFabricEditor(
     setFabric((current) => ({ ...current, ...partial }));
   }
 
-  const weave = useWeaveEditor(fabricRef, update, templates, uploadDesign);
+  const weave = useWeaveEditor(fabricRef, update, uploadDesign);
   const tones = useToneEditor(fabricRef, update, uploadDesign);
   const mockupJobs = useMockupJobs(fabricRef, setFabric, templates);
 
@@ -72,7 +74,7 @@ export function useFabricEditor(
     const data = await uploadDesign(raw);
     if (!data) return;
     update({ design: { ...fabricRef.current.design, ...data, seamless: fabricRef.current.design.seamless }, colors: data.colors });
-    if (fabricRef.current.woven) void weave.autoColor(data.webUrl);
+    if (fabricRef.current.woven || fabricRef.current.toned) void weave.autoColor(data.webUrl);
   }
 
   async function addVariant(raw: File) {
@@ -81,6 +83,9 @@ export function useFabricEditor(
     const design = { originalUrl: data.originalUrl, webUrl: data.webUrl, thumbUrl: data.thumbUrl, widthPx: data.widthPx, heightPx: data.heightPx, seamless: fabricRef.current.design.seamless };
     const variant: FabricVariant = { id: crypto.randomUUID(), name: "", design, mockups: [] };
     update({ variants: [...(fabricRef.current.variants ?? []), variant] });
+    if (!fabricRef.current.woven) return;
+    const weaveColor = await autoFabricColor(data.webUrl, fabricRef.current.weave?.correction ?? DEFAULT_CORRECTION).catch(() => undefined);
+    if (weaveColor) patchVariant(variant.id, { weaveColor });
   }
 
   function patchVariant(id: string, partial: Partial<FabricVariant>) {

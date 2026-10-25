@@ -8,6 +8,7 @@ export type FillPlan =
   | { kind: "weave"; color: string; stripes?: Array<{ widthCm: number; shiny: boolean }>; mapUrl?: string; mapWidthCm?: number };
 
 export function fillPlan(fabric: Fabric, design: FabricDesign = fabric.design): FillPlan | null {
+  if (fabric.toned && fabric.weave?.color) return { kind: "weave", color: fabric.weave.color };
   if (fabric.woven) {
     const weave = fabric.weave;
     if (!weave?.color) return null;
