@@ -12,7 +12,7 @@ import { Input, Label, Select, Textarea } from "@/components/ui/field";
 import { LangTabs } from "@/components/ui/lang-tabs";
 import { createCatalogAction, saveCatalogAction } from "@/lib/actions";
 import { buildPages } from "@/lib/catalog";
-import { localizeCatalogModel } from "@/lib/localize";
+import { addressField, localizeCatalogModel, setAddress } from "@/lib/localize";
 import type { Catalog, Collection, Fabric, FabricType, Lang, ProductType } from "@/types";
 
 const CatalogScreen = dynamic(() => import("@/components/flipbook/CatalogScreen").then((mod) => mod.CatalogScreen), { ssr: false });
@@ -156,8 +156,12 @@ export function CatalogEditor({
             <Input type="email" value={catalog.contacts.email} onChange={(event) => patch({ contacts: { ...catalog.contacts, email: event.target.value } })} />
           </div>
           <div>
-            <Label>{t("catalogs.contactAddress")}</Label>
-            <Textarea value={catalog.contacts.address} onChange={(event) => patch({ contacts: { ...catalog.contacts, address: event.target.value } })} />
+            <Label>{`${t("catalogs.contactAddress")} · ${editLang.toUpperCase()}`}</Label>
+            <Textarea
+              value={addressField(catalog.contacts, editLang)}
+              placeholder={editLang === "ru" ? undefined : catalog.contacts.address}
+              onChange={(event) => patch({ contacts: setAddress(catalog.contacts, editLang, event.target.value) })}
+            />
           </div>
           <div className="flex flex-wrap gap-2 pt-2">
             <Button type="button" disabled={busy} onClick={() => void persist(false)}>{t("common.save")}</Button>

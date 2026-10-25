@@ -1,6 +1,8 @@
 "use client";
 
 import { Mail, MapPin, Phone, Send } from "lucide-react";
+import { useI18n } from "@/components/i18n/I18n";
+import { contactAddress } from "@/lib/localize";
 import type { Catalog } from "@/types";
 
 function telegramHandle(value: string) {
@@ -10,7 +12,9 @@ function telegramHandle(value: string) {
 
 /** Contacts on every inner page: small, but large enough to read on a phone. */
 export function PageFooter({ catalog }: { catalog: Catalog }) {
-  const { phone, telegram, email, address } = catalog.contacts;
+  const { lang } = useI18n();
+  const { phone, telegram, email } = catalog.contacts;
+  const address = contactAddress(catalog, lang);
   const items = [
     phone ? { key: "phone", icon: Phone, text: phone } : null,
     telegram ? { key: "telegram", icon: Send, text: telegramHandle(telegram) } : null,

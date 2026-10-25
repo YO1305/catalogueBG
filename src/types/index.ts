@@ -192,7 +192,8 @@ export type Catalog = {
   showPrices: boolean;
   access: "public" | "unlisted" | "pin";
   pinHash?: string;
-  contacts: { phone: string; telegram: string; email: string; address: string };
+  /** address is the Russian text; addressI18n holds EN/UZ versions typed in the editor */
+  contacts: { phone: string; telegram: string; email: string; address: string; addressI18n?: Localized };
   expiresAt?: Timestamp;
   status: "draft" | "live" | "archived";
   createdBy: string;

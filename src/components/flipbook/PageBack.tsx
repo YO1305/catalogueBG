@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useI18n } from "@/components/i18n/I18n";
+import { contactAddress } from "@/lib/localize";
 import type { Catalog } from "@/types";
 
 export function PageBack({ catalog, onLead }: { catalog: Catalog; onLead: () => void }) {
-  const { t } = useI18n();
+  const { lang, t } = useI18n();
   return (
     <div className="flex h-full flex-col justify-between px-[8%] py-[8%]">
       <div>
@@ -14,7 +15,7 @@ export function PageBack({ catalog, onLead }: { catalog: Catalog; onLead: () => 
         <CopyRow label={t("catalog.telegram")} value={catalog.contacts.telegram} />
         <CopyRow label={t("catalog.email")} value={catalog.contacts.email} />
         <p className="mt-[1em] text-[0.9em]" style={{ color: "var(--muted)" }}>
-          {catalog.contacts.address}
+          {contactAddress(catalog, lang)}
         </p>
       </div>
       <div className="flex justify-end">
