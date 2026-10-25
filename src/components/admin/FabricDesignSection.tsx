@@ -1,22 +1,32 @@
 "use client";
 
+import { FabricWeaveSection } from "@/components/admin/FabricWeaveSection";
 import { useI18n } from "@/components/i18n/I18n";
 import { Checkbox, Input, Label } from "@/components/ui/field";
-import { StripeConstructor } from "@/components/admin/StripeConstructor";
-import type { Fabric } from "@/types";
+import type { Fabric, FabricWeave } from "@/types";
+
+export type WeaveControls = {
+  setWoven: (on: boolean) => void;
+  patchWeave: (partial: Partial<FabricWeave>) => void;
+  autoColor: () => Promise<void>;
+  uploadMap: (file: File) => Promise<void>;
+};
 
 export function FabricDesignSection({
   fabric,
   progress,
+  weave,
   onChange,
   onUpload,
 }: {
   fabric: Fabric;
   progress: number;
+  weave: WeaveControls;
   onChange: (partial: Partial<Fabric>) => void;
   onUpload: (file: File) => void;
 }) {
   const { t } = useI18n();
+  const woven = Boolean(fabric.woven);
   return (
     <section
       className="rounded-sm border border-black/10 bg-white/80 p-4"
@@ -27,32 +37,41 @@ export function FabricDesignSection({
         if (file) onUpload(file);
       }}
     >
-      <h2 className="font-display text-lg">{t("wizard.design")}</h2>
-      <p className="mt-1 text-sm text-ink/60">{t("wizard.dropHint")}</p>
+      <div className="mb-4 rounded border border-black/10 bg-black/[0.02] p-3">
+        <Checkbox checked={woven} onCheckedChange={weave.setWoven} label={t("weave.toggle")} />
+        <p className="mt-1 text-xs text-ink/50">{t("weave.toggleHint")}</p>
+      </div>
+      <h2 className="font-display text-lg">{woven ? t("weave.photo") : t("wizard.design")}</h2>
+      <p className="mt-1 text-sm text-ink/60">{woven ? t("weave.photoHint") : t("wizard.dropHint")}</p>
       <input className="mt-3 block w-full text-sm" type="file" accept="image/jpeg,image/png,image/tiff,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) onUpload(file); }} />
       {progress > 0 && progress < 1 ? <p className="mt-2 text-sm">{Math.round(progress * 100)}%</p> : null}
-      {fabric.design.webUrl ? (
+      {woven ? null : fabric.design.webUrl ? (
         <img src={fabric.design.thumbUrl || fabric.design.webUrl} alt="" className="mt-4 aspect-square max-h-52 w-full max-w-xs object-cover" />
       ) : (
         <p className="mt-4 text-sm text-ink/45">{t("designs.noImage")}</p>
       )}
       {fabric.design.widthPx ? <p className="mt-2 font-mono text-xs text-ink/55">{fabric.design.widthPx} × {fabric.design.heightPx} px</p> : null}
-      <div className="mt-4">
-        <Checkbox checked={fabric.design.seamless} onCheckedChange={(seamless) => onChange({ design: { ...fabric.design, seamless } })} label={t("wizard.seamless")} />
-        <p className="mt-1 text-xs text-ink/50">{t("designs.seamlessHint")}</p>
-      </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <div>
-          <Label>{t("designs.rapportShort")}</Label>
-          <Input type="number" min={0} step={0.1} value={fabric.rapport.widthCm || ""} onChange={(event) => onChange({ rapport: { ...fabric.rapport, widthCm: Number(event.target.value) } })} />
-        </div>
-        <div>
-          <Label>{t("designs.rapportLong")}</Label>
-          <Input type="number" min={0} step={0.1} value={fabric.rapport.heightCm || ""} onChange={(event) => onChange({ rapport: { ...fabric.rapport, heightCm: Number(event.target.value) } })} />
-        </div>
-      </div>
-      {fabric.fabricTypeId === "stripe-sateen" ? <StripeConstructor fabric={fabric} onChange={onChange} /> : null}
-      {fabric.colors.length ? (
+      {woven ? (
+        <FabricWeaveSection fabric={fabric} controls={weave} />
+      ) : (
+        <>
+          <div className="mt-4">
+            <Checkbox checked={fabric.design.seamless} onCheckedChange={(seamless) => onChange({ design: { ...fabric.design, seamless } })} label={t("wizard.seamless")} />
+            <p className="mt-1 text-xs text-ink/50">{t("designs.seamlessHint")}</p>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label>{t("designs.rapportShort")}</Label>
+              <Input type="number" min={0} step={0.1} value={fabric.rapport.widthCm || ""} onChange={(event) => onChange({ rapport: { ...fabric.rapport, widthCm: Number(event.target.value) } })} />
+            </div>
+            <div>
+              <Label>{t("designs.rapportLong")}</Label>
+              <Input type="number" min={0} step={0.1} value={fabric.rapport.heightCm || ""} onChange={(event) => onChange({ rapport: { ...fabric.rapport, heightCm: Number(event.target.value) } })} />
+            </div>
+          </div>
+        </>
+      )}
+      {fabric.colors.length && !woven ? (
         <div className="mt-4 flex flex-wrap gap-2">
           {fabric.colors.map((color) => (
             <span key={color} className="h-7 w-7 rounded-full border border-black/10" style={{ background: color }} title={color} />

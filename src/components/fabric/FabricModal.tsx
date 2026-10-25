@@ -50,7 +50,7 @@ export function FabricModal({
   const fabric = withVariant(base, variant);
   const mockups = visibleMockups(fabric, catalog.showProductTypes);
   const tabs: MediaTab[] = [
-    { id: "design", label: t("catalog.designTab"), src: fabric.design.webUrl, thumb: fabric.design.thumbUrl },
+    { id: "design", label: t(fabric.woven ? "catalog.fabricTab" : "catalog.designTab"), src: fabric.design.webUrl, thumb: fabric.design.thumbUrl },
     ...mockups.map((mockup) => ({
       id: mockup.templateId + mockup.productType,
       label: productTypes.find((item) => item.id === mockup.productType)?.name[lang] ?? mockup.productType,
@@ -79,7 +79,7 @@ export function FabricModal({
         <div className="flex min-h-[52%] flex-1 flex-col md:min-h-0">
           <div className="relative min-h-0 flex-1">
             {current ? (
-              <ZoomViewer src={current.src} alt={`${fabric.name[lang]} — ${current.label}`} rapportCm={fabric.rapport.widthCm} seamless={fabric.design.seamless && tab === 0} onZoomed={onZoomed} />
+              <ZoomViewer src={current.src} alt={`${fabric.name[lang]} — ${current.label}`} rapportCm={fabric.rapport.widthCm} seamless={!fabric.woven && fabric.design.seamless && tab === 0} onZoomed={onZoomed} />
             ) : null}
           </div>
           <MediaTiles tabs={tabs} value={tab} onChange={setTab} />

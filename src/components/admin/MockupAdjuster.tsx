@@ -1,14 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
-import { renderMockup } from "@/components/mockup/MockupRenderer";
-import { loadImage as loadWebglImage } from "@/components/mockup/MockupRenderer";
-import { buildStripeFabricInput, fabricUsesStripes } from "@/lib/uvgrid/buildFabricInput";
-import { patternPreview, templatePreview } from "@/lib/uvgrid/previewCache";
-import { renderUvgridToCanvas } from "@/lib/uvgrid/render";
+import { useMockupPreview } from "@/lib/mockup/useMockupPreview";
 import { SCALE_PRESETS, scaleToSlider, sliderToScale } from "@/lib/mockupMath";
 import type { Fabric, Mockup, Template } from "@/types";
 
@@ -26,106 +22,14 @@ export function MockupAdjuster({
   const { t } = useI18n();
   const canvas = useRef<HTMLCanvasElement>(null);
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
-  const renderTimer = useRef<number | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const preview = useMockupPreview(canvas, fabric, template, mockup);
+  const { isUvgrid } = preview;
+  const previewError = saveError ?? preview.error;
   const areaId = mockup.sameForAllAreas ? "all" : mockup.areas[0]?.areaId ?? template.areas[0]?.id ?? "all";
   const setting = mockup.areas.find((item) => item.areaId === (mockup.sameForAllAreas ? mockup.areas[0]?.areaId : areaId)) ?? mockup.areas[0];
   const scale = setting?.scale ?? 1;
-  const isUvgrid = template.engine === "uvgrid" && Boolean(template.baked.jsonUrl);
-  const useStripes = fabricUsesStripes(fabric, template);
-  const drawKey = JSON.stringify([
-    fabric.design.webUrl,
-    fabric.designMode,
-    fabric.stripes,
-    fabric.rapport,
-    mockup.areas,
-    mockup.sameForAllAreas,
-    template.id,
-    template.baked.jsonUrl,
-    template.baked.backgroundUrl,
-  ]);
-
-  useEffect(() => {
-    const node = canvas.current;
-    if (!node) return;
-    let cancel = false;
-
-    function scheduleRender() {
-      if (renderTimer.current) window.clearTimeout(renderTimer.current);
-      renderTimer.current = window.setTimeout(() => {
-        void draw();
-      }, 120);
-    }
-
-    async function draw() {
-      if (cancel || !node) return;
-      if (isUvgrid) {
-        if (!useStripes && !fabric.design.webUrl) return;
-        try {
-          const [preview, pattern] = await Promise.all([
-            templatePreview(template.baked.jsonUrl, template.baked.backgroundUrl),
-            useStripes ? Promise.resolve(null) : patternPreview(fabric.design.webUrl),
-          ]);
-          const fabricInput = pattern
-            ? {
-                ...pattern,
-                mode: "pattern" as const,
-                rapportWidthCm: fabric.rapport.widthCm || 8,
-                rapportHeightCm: fabric.rapport.heightCm || fabric.rapport.widthCm || 8,
-              }
-            : buildStripeFabricInput(fabric);
-          if (cancel || !node) return;
-          renderUvgridToCanvas(node, {
-            manifest: preview.manifest,
-            width: preview.width,
-            height: preview.height,
-            background: preview.background,
-            zones: preview.zones,
-            fabric: fabricInput,
-            settings: mockup.areas.map((area) => ({
-              areaId: area.areaId,
-              scale: area.scale,
-              offsetX: area.offsetX,
-              offsetY: area.offsetY,
-              rotation: area.rotation,
-            })),
-            sameForAllAreas: mockup.sameForAllAreas,
-          });
-          if (!cancel) setPreviewError(null);
-        } catch (error) {
-          if (cancel) return;
-          setPreviewError(error instanceof Error ? error.message : "preview_failed");
-        }
-        return;
-      }
-      if (!fabric.design.webUrl) return;
-      const pattern = await loadWebglImage(fabric.design.webUrl);
-      const background = template.baked.backgroundUrl ? await loadWebglImage(template.baked.backgroundUrl).catch(() => null) : null;
-      const overlays = await Promise.all(template.baked.overlays.map(async (overlay) => ({ ...overlay, image: await loadWebglImage(overlay.url) })));
-      if (cancel || !node) return;
-      const width = 1000;
-      const height = Math.max(200, Math.round((width * template.source.heightPx) / Math.max(template.source.widthPx, 1)));
-      renderMockup(node, {
-        width,
-        height,
-        background,
-        pattern,
-        overlays,
-        areas: template.areas,
-        settings: mockup.areas,
-        rapport: fabric.rapport,
-        sameForAllAreas: mockup.sameForAllAreas,
-      });
-    }
-
-    scheduleRender();
-    return () => {
-      cancel = true;
-      if (renderTimer.current) window.clearTimeout(renderTimer.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- redraw only when the inputs in drawKey change, not on every new fabric object from the server
-  }, [drawKey, isUvgrid, useStripes]);
 
   function patch(partial: Partial<NonNullable<typeof setting>>, all = mockup.sameForAllAreas) {
     const areas = (all ? template.areas : template.areas.filter((area) => area.id === areaId)).map((area) => ({
@@ -149,8 +53,10 @@ export function MockupAdjuster({
       {previewError ? (
         <p className="mt-2 text-sm text-red-700" role="alert">
           {t("wizard.mockupPreviewError")}
+          <span className="mt-1 block font-mono text-xs">{previewError}</span>
         </p>
       ) : null}
+      {preview.busy ? <p className="mt-2 text-xs text-ink/50">{t("wizard.previewRendering")}</p> : null}
       <canvas
         ref={canvas}
         className="mt-2 w-full cursor-grab bg-sand"
@@ -218,15 +124,15 @@ export function MockupAdjuster({
                   fabrics?: { fabricId: string; mockups: Mockup[] }[];
                 };
                 if (!response.ok || !data.ok) {
-                  setPreviewError(data.error ?? "render_failed");
+                  setSaveError(data.error ?? "render_failed");
                   return;
                 }
-                setPreviewError(null);
+                setSaveError(null);
                 const row = data.fabrics?.find((item) => item.fabricId === fabric.id);
                 const saved = row?.mockups.find((item) => item.templateId === template.id && item.productType === mockup.productType);
                 if (saved) onChange(saved);
               })
-              .catch(() => setPreviewError("render_failed"))
+              .catch(() => setSaveError("render_failed"))
               .finally(() => setSaving(false));
           }}
         >

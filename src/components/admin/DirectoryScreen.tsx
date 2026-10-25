@@ -6,7 +6,10 @@ import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { createCollectionAction, createFabricTypeAction, createProductTypeAction, removeDictionaryAction, reorderAction, saveCollectionAction, saveFabricTypeAction, saveGlossaryAction, saveProductTypeAction } from "@/lib/actions";
+import { isWovenType } from "@/lib/mockup/weave";
 import type { Collection, FabricType, GlossaryTerm, ProductType, Role } from "@/types";
+
+type Row = { id: string; name: string; active: boolean; raw: object; flag?: boolean };
 
 export function DirectoryScreen({ role, collections, fabricTypes, productTypes, glossary }: { role: Role; collections: Collection[]; fabricTypes: FabricType[]; productTypes: ProductType[]; glossary: GlossaryTerm[] }) {
   const { t } = useI18n();
@@ -28,14 +31,14 @@ export function DirectoryScreen({ role, collections, fabricTypes, productTypes, 
         ))}
       </div>
       {tab === "collections" ? <Rows role={role} kind="collections" rows={collections.map((item) => ({ id: item.id, name: item.name.ru, active: item.active, raw: item }))} onHide={(item) => saveCollectionAction({ ...(item.raw as Collection), active: !item.active })} onDelete={(id) => removeDictionaryAction("collections", id)} onReorder={(ids) => reorderAction("collections", ids)} onCreate={(name) => createCollectionAction({ nameRu: name, autoCatalog: true })} /> : null}
-      {tab === "types" ? <Rows role={role} kind="fabricTypes" rows={fabricTypes.map((item) => ({ id: item.id, name: item.name.ru, active: item.active, raw: item }))} onHide={(item) => saveFabricTypeAction({ ...(item.raw as FabricType), active: !item.active })} onDelete={(id) => removeDictionaryAction("fabricTypes", id)} onReorder={(ids) => reorderAction("fabricTypes", ids)} onCreate={(name) => createFabricTypeAction({ nameRu: name, suggestedProductTypes: [] })} /> : null}
+      {tab === "types" ? <Rows role={role} kind="fabricTypes" rows={fabricTypes.map((item) => ({ id: item.id, name: item.name.ru, active: item.active, raw: item, flag: isWovenType(item) }))} flagLabel={t("settings.woven")} onFlag={(item) => saveFabricTypeAction({ ...(item.raw as FabricType), woven: !item.flag })} onHide={(item) => saveFabricTypeAction({ ...(item.raw as FabricType), active: !item.active })} onDelete={(id) => removeDictionaryAction("fabricTypes", id)} onReorder={(ids) => reorderAction("fabricTypes", ids)} onCreate={(name) => createFabricTypeAction({ nameRu: name, suggestedProductTypes: [] })} /> : null}
       {tab === "products" ? <Rows role={role} kind="productTypes" rows={productTypes.map((item) => ({ id: item.id, name: item.name.ru, active: item.active, raw: item }))} onHide={(item) => saveProductTypeAction({ ...(item.raw as ProductType), active: !item.active })} onDelete={(id) => removeDictionaryAction("productTypes", id)} onReorder={(ids) => reorderAction("productTypes", ids)} onCreate={(name) => createProductTypeAction({ nameRu: name, suggestedFor: [] })} /> : null}
       {tab === "glossary" ? <GlossaryEditor role={role} initial={glossary} /> : null}
     </div>
   );
 }
 
-function Rows({ role, kind, rows, onHide, onDelete, onReorder, onCreate }: { role: Role; kind: string; rows: Array<{ id: string; name: string; active: boolean; raw: object }>; onHide: (row: { id: string; name: string; active: boolean; raw: object }) => Promise<unknown>; onDelete: (id: string) => Promise<{ ok: boolean }>; onReorder: (ids: string[]) => Promise<unknown>; onCreate: (name: string) => Promise<unknown> }) {
+function Rows({ role, kind, rows, flagLabel, onFlag, onHide, onDelete, onReorder, onCreate }: { role: Role; kind: string; rows: Row[]; flagLabel?: string; onFlag?: (row: Row) => Promise<unknown>; onHide: (row: Row) => Promise<unknown>; onDelete: (id: string) => Promise<{ ok: boolean }>; onReorder: (ids: string[]) => Promise<unknown>; onCreate: (name: string) => Promise<unknown> }) {
   const { t } = useI18n();
   const router = useRouter();
   const [name, setName] = useState("");
@@ -53,7 +56,13 @@ function Rows({ role, kind, rows, onHide, onDelete, onReorder, onCreate }: { rol
           await onReorder(next.map((item) => item.id));
         }}>
           <span>{row.name}{row.active ? "" : ` · ${t("common.hidden")}`}</span>
-          <span className="flex gap-2 text-sm">
+          <span className="flex flex-wrap items-center justify-end gap-2 text-sm">
+            {onFlag && flagLabel ? (
+              <label className="flex items-center gap-1 text-xs text-ink/70">
+                <input type="checkbox" checked={Boolean(row.flag)} onChange={async () => { setItems(items.map((item) => (item.id === row.id ? { ...item, flag: !item.flag } : item))); await onFlag(row); router.refresh(); }} />
+                {flagLabel}
+              </label>
+            ) : null}
             <button type="button" onClick={async () => { await onHide(row); router.refresh(); }}>{row.active ? t("common.hide") : t("common.add")}</button>
             {role === "admin" ? <button type="button" onClick={async () => { const result = await onDelete(row.id); if (!result.ok) return; router.refresh(); }}>{t("common.delete")}</button> : null}
           </span>

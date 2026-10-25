@@ -34,7 +34,7 @@ async function renderAll(fabric: Fabric, mockups: Mockup[], templates: Template[
 /** A colourway reuses the main mockups' templates and placement with its own picture. */
 async function renderVariant(fabric: Fabric, variantId: string, templates: Template[]) {
   const variant = fabric.variants?.find((item) => item.id === variantId);
-  if (!variant?.design.webUrl) return { fabric, count: 0 };
+  if (fabric.woven || !variant?.design.webUrl) return { fabric, count: 0 };
   const source = { ...fabric, id: `${fabric.id}-${variant.id}`, design: { ...variant.design, seamless: fabric.design.seamless } };
   const result = await renderAll(source, fabric.mockups, templates);
   const variants = (fabric.variants ?? []).map((item) => (item.id === variantId ? { ...item, mockups: result.mockups } : item));

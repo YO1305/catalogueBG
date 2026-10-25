@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createCollectionAction, createFabricTypeAction, createProductTypeAction, publishFabricAction, saveFabricAction } from "@/lib/actions";
+import { isWovenType } from "@/lib/mockup/weave";
 import { prepareUploadImage } from "@/lib/prepareUploadImage";
+import { useWeaveEditor } from "@/lib/useWeaveEditor";
 import type { Collection, Fabric, FabricType, FabricVariant, Mockup, ProductType, Template } from "@/types";
 
 type Lists = { collections: Collection[]; fabricTypes: FabricType[]; productTypes: ProductType[] };
@@ -62,13 +64,22 @@ export function useFabricEditor(
 
   function update(partial: Partial<Fabric>) {
     dirty.current = true;
+    const typeChanged = partial.fabricTypeId !== undefined && partial.fabricTypeId !== fabricRef.current.fabricTypeId;
+    fabricRef.current = { ...fabricRef.current, ...partial };
     setFabric((current) => ({ ...current, ...partial }));
+    if (typeChanged && partial.woven === undefined) {
+      const woven = isWovenType(lists.fabricTypes.find((item) => item.id === partial.fabricTypeId));
+      if (woven !== Boolean(fabricRef.current.woven)) weave.setWoven(woven);
+    }
   }
+
+  const weave = useWeaveEditor(fabricRef, update, templates, uploadDesign);
 
   async function upload(raw: File) {
     const data = await uploadDesign(raw);
     if (!data) return;
     update({ design: { ...fabricRef.current.design, ...data, seamless: fabricRef.current.design.seamless }, colors: data.colors });
+    if (fabricRef.current.woven) void weave.autoColor(data.webUrl);
   }
 
   async function addVariant(raw: File) {
@@ -177,7 +188,7 @@ export function useFabricEditor(
 
   /** One request per colourway keeps each call well inside the serverless time limit. */
   async function renderMockupsInBackground(fabricId: string) {
-    const variantIds = (fabricRef.current.variants ?? []).filter((item) => item.design.webUrl).map((item) => item.id);
+    const variantIds = fabricRef.current.woven ? [] : (fabricRef.current.variants ?? []).filter((item) => item.design.webUrl).map((item) => item.id);
     try {
       for (const variantId of [undefined, ...variantIds]) {
         const response = await fetch("/api/mockups/render", {
@@ -211,6 +222,7 @@ export function useFabricEditor(
     addVariant,
     patchVariant,
     removeVariant,
+    weave,
     saveDraft,
     publish,
     templates,

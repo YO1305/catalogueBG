@@ -49,6 +49,17 @@ export type FabricVariant = {
   mockups: Mockup[];
 };
 
+export type WeavePattern = "stripes" | "map" | "none";
+
+export type FabricWeave = {
+  color: string;
+  correction: number;
+  pattern: WeavePattern;
+  stripes?: Array<{ widthCm: number; shiny: boolean }>;
+  mapUrl?: string;
+  mapWidthCm?: number;
+};
+
 export type FabricDesign = {
   originalUrl: string;
   webUrl: string;
@@ -78,9 +89,12 @@ export type Fabric = {
   tags: string[];
   productTypes: string[];
   mockupCategory?: MockupCategory;
-  /** upload = файл рисунка; stripes = конструктор полос (страйп-сатин, SPEC 5.7.5) */
+  /** Старые ткани из конструктора полос; новые тканые ткани используют woven + weave */
   designMode?: "upload" | "stripes";
   stripes?: Array<{ widthCm: number; color: string; shiny: boolean }>;
+  /** Тканый рисунок (жаккард, страйп-сатин): design — фото ткани, макеты — цвет + переплетение */
+  woven?: boolean;
+  weave?: FabricWeave;
   design: FabricDesign;
   realPhotos: Photo[];
   mockups: Mockup[];
@@ -112,6 +126,8 @@ export type FabricType = {
   suggestedProductTypes: string[];
   order: number;
   active: boolean;
+  /** Узор в переплетении (страйп-сатин, жаккард, дамаск) — у ткани сразу ставится woven */
+  woven?: boolean;
 };
 
 export type ProductType = {

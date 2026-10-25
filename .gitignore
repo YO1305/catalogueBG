@@ -13,3 +13,6 @@ tsconfig.tsbuildinfo
 .DS_Store
 public/fabrics
 public/mockups
+
+# uvgrid parity test output
+scripts/uvgrid/actual_*.png

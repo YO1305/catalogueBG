@@ -84,7 +84,8 @@
         "pillowcase"
       ],
       "order": 3,
-      "active": true
+      "active": true,
+      "woven": true
     },
     {
       "id": "flannel",
@@ -182,6 +183,40 @@
       ],
       "order": 10,
       "active": true
+    },
+    {
+      "id": "jacquard",
+      "name": {
+        "ru": "Жаккард",
+        "en": "Jacquard",
+        "uz": "Jakkard"
+      },
+      "suggestedProductTypes": [
+        "kpb",
+        "duvet",
+        "sheet",
+        "pillowcase"
+      ],
+      "order": 11,
+      "active": true,
+      "woven": true
+    },
+    {
+      "id": "damask",
+      "name": {
+        "ru": "Дамаск",
+        "en": "Damask",
+        "uz": "Damask"
+      },
+      "suggestedProductTypes": [
+        "kpb",
+        "duvet",
+        "sheet",
+        "tablecloth"
+      ],
+      "order": 12,
+      "active": true,
+      "woven": true
     }
   ],
   "productTypes": [

@@ -2,15 +2,15 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import sharp, { type OverlayOptions } from "sharp";
-import { buildStripeFabricInput, fabricUsesStripes } from "@/lib/uvgrid/buildFabricInput";
-import { floatRgbToRgba, renderUvgrid } from "@/lib/uvgrid/render";
-import { loadZoneAssetsNode, readBackgroundRgba, readPatternRgba } from "@/lib/uvgrid/nodeAssets";
-import { fitRenderSize, scaleManifestForSize } from "@/lib/uvgrid/scaleManifest";
-import type { UvgridAreaSetting } from "@/lib/uvgrid/types";
+import { fillPlan, mockupOptions, resolveFill } from "@/lib/mockup/fill";
+import { loadTemplateAssets, readRgba } from "@/lib/mockup/serverAssets";
+import { renderUvgrid } from "@/lib/mockup/uvgridRender";
+import { templateFitsFabric } from "@/lib/mockup/weave";
 import { tileSizePx } from "@/lib/mockupMath";
 import { saveBuffer } from "@/lib/storage";
-import type { ZipTemplateManifest } from "@/lib/templateZip/types";
 import type { Fabric, Mockup, Template } from "@/types";
+
+const MAX_EDGE = 2000;
 
 async function readUrl(url: string) {
   if (url.startsWith("/")) return readFile(path.join(process.cwd(), "public", url.replace(/^\//, "")));
@@ -19,46 +19,17 @@ async function readUrl(url: string) {
   return Buffer.from(await response.arrayBuffer());
 }
 
-async function readManifest(jsonUrl: string): Promise<ZipTemplateManifest> {
-  const buf = await readUrl(jsonUrl);
-  return JSON.parse(buf.toString("utf8")) as ZipTemplateManifest;
-}
-
 async function renderUvgridMockup(fabric: Fabric, template: Template, mockup: Mockup) {
-  const manifestRaw = await readManifest(template.baked.jsonUrl);
-  const [srcW, srcH] = manifestRaw.size;
-  const fitted = fitRenderSize(srcW, srcH, 2000);
-  const manifest = scaleManifestForSize(manifestRaw, fitted.width, fitted.height);
-  const background = await readBackgroundRgba(template.baked.backgroundUrl, fitted.width, fitted.height);
-  const zones = await loadZoneAssetsNode(manifest, fitted.width, fitted.height);
-  let fabricInput;
-  if (fabricUsesStripes(fabric, template)) {
-    fabricInput = buildStripeFabricInput(fabric);
-  } else {
-    const pattern = await readPatternRgba(fabric.design.webUrl || fabric.design.originalUrl);
-    pattern.rapportWidthCm = fabric.rapport.widthCm || 8;
-    pattern.rapportHeightCm = fabric.rapport.heightCm || fabric.rapport.widthCm || 8;
-    fabricInput = pattern;
-  }
-  const settings: UvgridAreaSetting[] = mockup.areas.map((area) => ({
-    areaId: area.areaId,
-    scale: area.scale,
-    offsetX: area.offsetX,
-    offsetY: area.offsetY,
-    rotation: area.rotation,
-  }));
-  const flat = renderUvgrid({
-    manifest,
-    width: fitted.width,
-    height: fitted.height,
-    background,
-    zones,
-    fabric: fabricInput,
-    settings,
-    sameForAllAreas: mockup.sameForAllAreas,
-  });
-  const rgba = floatRgbToRgba(flat, fitted.width, fitted.height);
-  const full = await sharp(Buffer.from(rgba), { raw: { width: fitted.width, height: fitted.height, channels: 4 } })
+  if (!templateFitsFabric(fabric, template)) throw new Error(`Шаблон «${template.name}» не подходит для тканых тканей: нужен сатиновый шаблон`);
+  const plan = fillPlan(fabric);
+  if (!plan) throw new Error("Нет рисунка или цвета ткани для макета");
+  const { tpl, background, layers } = await loadTemplateAssets(template.baked.jsonUrl, template.baked.backgroundUrl);
+  const fill = await resolveFill(plan, (url) => readRgba(url));
+  const outputScale = Math.min(1, MAX_EDGE / Math.max(tpl.size[0], tpl.size[1]));
+  const image = renderUvgrid(tpl, background, layers, fill, { ...mockupOptions(mockup), outputScale });
+  const full = await sharp(Buffer.from(image.data.buffer, image.data.byteOffset, image.data.byteLength), {
+    raw: { width: image.width, height: image.height, channels: 4 },
+  })
     .webp({ quality: 82 })
     .toBuffer();
   const thumb = await sharp(full).resize(600, 600, { fit: "inside" }).webp({ quality: 76 }).toBuffer();

@@ -4,6 +4,7 @@ import { MockupAdjuster } from "@/components/admin/MockupAdjuster";
 import { useI18n } from "@/components/i18n/I18n";
 import { Checkbox, Label, Select } from "@/components/ui/field";
 import { MOCKUP_CATEGORIES, mockupCategoryLabelKey, templatesInCategory } from "@/lib/mockupCategories";
+import { templateFitsFabric } from "@/lib/mockup/weave";
 import type { Fabric, Mockup, MockupCategory, Template } from "@/types";
 
 export function WizardMockupCategoryStep({
@@ -41,6 +42,13 @@ export function WizardMockupCategoryStep({
       {list.map((template) => {
         const productType = template.productTypes[0] ?? "fabric-roll";
         const selected = fabric.mockups.find((item) => item.templateId === template.id);
+        if (!templateFitsFabric(fabric, template)) {
+          return (
+            <div key={template.id} className="rounded border border-black/10 bg-black/[0.03] p-3 text-sm text-ink/40" aria-disabled="true">
+              {template.name} · {t("weave.notForWoven")}
+            </div>
+          );
+        }
         return (
           <div key={template.id} className="rounded border border-black/10 bg-white p-3">
             <Checkbox

@@ -42,9 +42,8 @@ export function FabricEditor({
   const ready = useMemo(
     () =>
       Boolean(
-        (fabric.design.webUrl || fabric.designMode === "stripes") &&
-          fabric.rapport.widthCm > 0 &&
-          fabric.rapport.heightCm > 0 &&
+        fabric.design.webUrl &&
+          (fabric.woven ? Boolean(fabric.weave?.color) : fabric.rapport.widthCm > 0 && fabric.rapport.heightCm > 0) &&
           fabric.art &&
           fabric.name.ru &&
           fabric.mockupCategory &&
@@ -73,8 +72,8 @@ export function FabricEditor({
       <Link href="/admin/fabrics" className="text-sm underline">{t("common.back")}</Link>
       <h1 className="font-display mt-2 text-2xl md:text-3xl">{isNew ? t("designs.createTitle") : t("designs.editTitle")}</h1>
       <div className="mt-5 space-y-5">
-        <FabricDesignSection fabric={fabric} progress={progress} onChange={update} onUpload={upload} />
-        {fabric.designMode !== "stripes" ? (
+        <FabricDesignSection fabric={fabric} progress={progress} weave={editor.weave} onChange={update} onUpload={upload} />
+        {!fabric.woven ? (
           <FabricVariantsSection fabric={fabric} progress={progress} onChange={update} onAdd={(file) => void editor.addVariant(file)} onPatch={editor.patchVariant} onRemove={editor.removeVariant} />
         ) : null}
         <div><h2 className="font-display text-lg">{t("wizard.data")}</h2></div>

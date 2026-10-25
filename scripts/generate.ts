@@ -288,8 +288,18 @@ function dictionaryFabrics(): FabricType[] {
     ["duck", "Дак", "Duck canvas", "Dak", ["tablecloth", "napkins"]],
     ["kurpacha-fabric", "Ткань для курпачи", "Kurpacha fabric", "Ko'rpacha matosi", ["kurpacha", "pillow"]],
     ["twill", "Твил", "Twill", "Tvil", ["robe", "roll"]],
+    ["jacquard", "Жаккард", "Jacquard", "Jakkard", ["kpb", "duvet", "sheet", "pillowcase"]],
+    ["damask", "Дамаск", "Damask", "Damask", ["kpb", "duvet", "sheet", "tablecloth"]],
   ];
-  return items.map(([id, ru, en, uz, suggested], order) => ({ id, name: loc(ru, en, uz), suggestedProductTypes: suggested, order: order + 1, active: true }));
+  const woven = new Set(["stripe-sateen", "jacquard", "damask"]);
+  return items.map(([id, ru, en, uz, suggested], order) => ({
+    id,
+    name: loc(ru, en, uz),
+    suggestedProductTypes: suggested,
+    order: order + 1,
+    active: true,
+    ...(woven.has(id) ? { woven: true } : {}),
+  }));
 }
 
 function dictionaryProducts(): ProductType[] {
