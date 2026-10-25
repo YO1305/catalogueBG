@@ -10,21 +10,10 @@ import { ThumbGrid } from "@/components/flipbook/ThumbGrid";
 import { Toolbar } from "@/components/flipbook/Toolbar";
 import { useCatalogChrome } from "@/components/flipbook/useCatalogChrome";
 import { I18nProvider, useI18n } from "@/components/i18n/I18n";
+import { searchFabrics } from "@/lib/catalogSearch";
 import type { Lang } from "@/types";
 
 const Book = dynamic(() => import("@/components/flipbook/Book").then((mod) => mod.Book), { ssr: false });
-
-const COLOR_ALIASES: Record<string, string[]> = {
-  blue: ["синий"],
-  gold: ["золото"],
-  red: ["бордовый"],
-  green: ["зелёный", "мята"],
-  beige: ["песок"],
-  black: ["чёрный"],
-  "ko'k": ["синий"],
-  oltin: ["золото"],
-  yashil: ["мята", "зелёный"],
-};
 
 export function CatalogScreen({ model, initialPage, initialArt }: { model: BookModel; initialPage: number; initialArt?: string }) {
   const [lang, setLang] = useState<Lang>(model.catalog.defaultLang);
@@ -42,6 +31,8 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   const [box, setBox] = useState({ w: 420, h: 594, portrait: false });
   const [page, setPage] = useState(Math.min(initialPage, Math.max(model.pages.length - 1, 0)));
   const [openId, setOpenId] = useState<string | undefined>(initialArt);
+  const [openVariant, setOpenVariant] = useState<string | undefined>();
+  const [requestId, setRequestId] = useState<string | undefined>();
   const [thumbs, setThumbs] = useState(false);
   const [search, setSearch] = useState(false);
   const [query, setQuery] = useState("");
@@ -81,8 +72,9 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
       body: JSON.stringify({ events: [{ catalogSlug: model.catalog.slug, type: "page", page: index + 1, sessionId: sessionId.current, ts: new Date().toISOString() }] }),
     });
   }
-  function openFabric(id: string) {
+  function openFabric(id: string, variantId?: string) {
     setOpenId(id);
+    setOpenVariant(variantId);
     const fabric = model.fabrics.find((item) => item.id === id);
     const url = `/c/${model.catalog.slug}/d/${fabric?.art ?? id}`;
     history.replaceState(null, "", url);
@@ -92,15 +84,11 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
       body: JSON.stringify({ events: [{ catalogSlug: model.catalog.slug, type: "fabric_open", fabricId: id, sessionId: sessionId.current, ts: new Date().toISOString() }] }),
     });
   }
-  const results = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return [];
-    const aliases = COLOR_ALIASES[needle] ?? [];
-    return model.fabrics.filter((fabric) => {
-      const hay = [fabric.art, fabric.name.ru, fabric.name.en, fabric.name.uz, ...fabric.tags, ...fabric.colors].join(" ").toLowerCase();
-      return hay.includes(needle) || aliases.some((alias) => hay.includes(alias));
-    });
-  }, [model.fabrics, query]);
+  function requestSample(id: string) {
+    setRequestId(id);
+    setLead(true);
+  }
+  const results = useMemo(() => searchFabrics(model.fabrics, query), [model.fabrics, query]);
   const opened = model.fabrics.find((fabric) => fabric.id === openId);
   const currentPage = model.pages[page];
 
@@ -108,9 +96,9 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     <div ref={root} className="catalog-root relative min-h-screen" data-theme={model.catalog.layout.theme} style={{ fontSize: box.w / 28 }}>
       <div className="flex min-h-screen items-center justify-center pb-24">
         {reduced && currentPage ? (
-          <StaticPage model={model} page={currentPage} index={page} width={box.w} height={box.h} onOpen={openFabric} onLead={() => setLead(true)} onJump={turn} />
+          <StaticPage model={model} page={currentPage} index={page} width={box.w} height={box.h} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} />
         ) : (
-          <Book model={model} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} onFlip={setPage} onOpen={openFabric} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
+          <Book model={model} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} onFlip={setPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
         )}
       </div>
       <Toolbar
@@ -147,6 +135,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
       {opened ? (
         <FabricModal
           fabric={opened}
+          variantId={openVariant}
           fabrics={model.fabrics}
           catalog={model.catalog}
           fabricTypes={model.fabricTypes}
@@ -183,10 +172,13 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
         share={share}
         setShare={setShare}
         lead={lead}
-        setLead={setLead}
-        fabricIds={cart.length ? cart : openId ? [openId] : []}
+        setLead={(open) => {
+          setLead(open);
+          if (!open) setRequestId(undefined);
+        }}
+        fabricIds={requestId ? [requestId] : cart.length ? cart : openId ? [openId] : []}
         onOpen={openFabric}
-        onDone={(text) => { setNotice(text); setLead(false); setCart([]); }}
+        onDone={(text) => { setNotice(text); setLead(false); setRequestId(undefined); if (!requestId) setCart([]); }}
       />
       {notice ? <p className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 bg-ink px-3 py-2 text-sm text-paper">{notice}</p> : null}
     </div>

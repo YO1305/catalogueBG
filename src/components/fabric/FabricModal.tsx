@@ -5,11 +5,14 @@ import { useEffect, useState } from "react";
 import { SpecsTable } from "@/components/fabric/SpecsTable";
 import { ZoomViewer } from "@/components/fabric/ZoomViewer";
 import { useI18n } from "@/components/i18n/I18n";
+import { VariantDots } from "@/components/flipbook/VariantDots";
 import { visibleMockups } from "@/lib/catalog";
+import { colorOptions, withVariant } from "@/lib/variants";
 import type { Catalog, Collection, Fabric, FabricType, ProductType } from "@/types";
 
 export function FabricModal({
-  fabric,
+  fabric: base,
+  variantId,
   fabrics,
   catalog,
   fabricTypes,
@@ -23,6 +26,7 @@ export function FabricModal({
   onShare,
 }: {
   fabric: Fabric;
+  variantId?: string;
   fabrics: Fabric[];
   catalog: Catalog;
   fabricTypes: FabricType[];
@@ -36,6 +40,10 @@ export function FabricModal({
   onShare: () => void;
 }) {
   const { lang, t } = useI18n();
+  const options = colorOptions(base);
+  const [variant, setVariant] = useState(variantId ?? options[0]?.id);
+  useEffect(() => setVariant(variantId ?? colorOptions(base)[0]?.id), [base, variantId]);
+  const fabric = withVariant(base, variant);
   const mockups = visibleMockups(fabric, catalog.showProductTypes);
   const tabs = [
     { id: "design", label: t("catalog.designTab"), src: fabric.design.webUrl },
@@ -58,7 +66,7 @@ export function FabricModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [fabrics, index, onClose, onPick]);
-  useEffect(() => setTab(0), [fabric.id]);
+  useEffect(() => setTab(0), [fabric.id, variant]);
   const typeName = fabricTypes.find((item) => item.id === fabric.fabricTypeId)?.name[lang] ?? "";
   const collectionName = collections.find((item) => item.id === fabric.collectionId)?.name[lang] ?? "";
   return (
@@ -86,6 +94,7 @@ export function FabricModal({
               <X />
             </button>
           </div>
+          {options.length ? <VariantDots options={options} value={variant} onChange={setVariant} size="2rem" /> : null}
           <p>{typeName}</p>
           <p className="text-sm text-ink/60">{collectionName}</p>
           <SpecsTable fabric={fabric} catalog={catalog} />

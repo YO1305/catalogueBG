@@ -2,6 +2,7 @@ import "server-only";
 import { getFabric, isFabricArtTaken, saveFabric } from "@/lib/db";
 import { parseDensity, parseWidths } from "@/lib/parseSpecs";
 import type { Session } from "@/lib/session";
+import { mergeVariants } from "@/lib/variants";
 import type { Fabric } from "@/types";
 
 export async function persistFabric(session: Session, fabric: Fabric) {
@@ -14,6 +15,7 @@ export async function persistFabric(session: Session, fabric: Fabric) {
     densityRange: parseDensity(fabric.density),
     widthList: parseWidths(fabric.width),
     mockups: mergeRenderedMockups(fabric.mockups, previous?.mockups ?? []),
+    variants: mergeVariants(fabric.variants, previous?.variants),
     createdAt: previous?.createdAt ?? fabric.createdAt,
     createdBy: previous?.createdBy ?? session.uid,
     updatedAt: new Date().toISOString(),

@@ -4,9 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createCollectionAction, createFabricTypeAction, createProductTypeAction, publishFabricAction, saveFabricAction } from "@/lib/actions";
 import { prepareUploadImage } from "@/lib/prepareUploadImage";
-import type { Collection, Fabric, FabricType, Mockup, ProductType, Template } from "@/types";
+import type { Collection, Fabric, FabricType, FabricVariant, Mockup, ProductType, Template } from "@/types";
 
 type Lists = { collections: Collection[]; fabricTypes: FabricType[]; productTypes: ProductType[] };
+
+/** Take fresh mockup URLs from the server without undoing edits made while it rendered. */
+function applyRendered(current: Fabric, row: { mockups: Mockup[]; variants?: FabricVariant[] }, variantId?: string): Fabric {
+  if (!variantId) return { ...current, mockups: row.mockups };
+  const rendered = row.variants?.find((item) => item.id === variantId)?.mockups;
+  if (!rendered) return current;
+  return { ...current, variants: (current.variants ?? []).map((item) => (item.id === variantId ? { ...item, mockups: rendered } : item)) };
+}
 
 export function useFabricEditor(
   initial: Fabric,
@@ -58,12 +66,38 @@ export function useFabricEditor(
   }
 
   async function upload(raw: File) {
-    if (raw.size > 50 * 1024 * 1024) return toast(t("error.file"));
+    const data = await uploadDesign(raw);
+    if (!data) return;
+    update({ design: { ...fabricRef.current.design, ...data, seamless: fabricRef.current.design.seamless }, colors: data.colors });
+  }
+
+  async function addVariant(raw: File) {
+    const data = await uploadDesign(raw);
+    if (!data) return;
+    const design = { originalUrl: data.originalUrl, webUrl: data.webUrl, thumbUrl: data.thumbUrl, widthPx: data.widthPx, heightPx: data.heightPx, seamless: fabricRef.current.design.seamless };
+    const variant: FabricVariant = { id: crypto.randomUUID(), name: "", design, mockups: [] };
+    update({ variants: [...(fabricRef.current.variants ?? []), variant] });
+  }
+
+  function patchVariant(id: string, partial: Partial<FabricVariant>) {
+    update({ variants: (fabricRef.current.variants ?? []).map((item) => (item.id === id ? { ...item, ...partial } : item)) });
+  }
+
+  function removeVariant(id: string) {
+    update({ variants: (fabricRef.current.variants ?? []).filter((item) => item.id !== id) });
+  }
+
+  async function uploadDesign(raw: File) {
+    if (raw.size > 50 * 1024 * 1024) {
+      toast(t("error.file"));
+      return null;
+    }
     let file: File;
     try {
       file = await prepareUploadImage(raw);
     } catch {
-      return toast(t("error.file"));
+      toast(t("error.file"));
+      return null;
     }
     const body = new FormData();
     body.append("file", file);
@@ -90,8 +124,8 @@ export function useFabricEditor(
       };
       xhr.send(body);
     });
-    if (!data) return;
-    update({ design: { ...fabricRef.current.design, ...data, seamless: fabricRef.current.design.seamless }, colors: data.colors });
+    setProgress(0);
+    return data;
   }
 
   function chooseTemplate(productType: string, template: Template, selected: boolean) {
@@ -169,20 +203,24 @@ export function useFabricEditor(
     return { ok: true as const, catalogs: result.catalogs };
   }
 
+  /** One request per colourway keeps each call well inside the serverless time limit. */
   async function renderMockupsInBackground(fabricId: string) {
+    const variantIds = (fabricRef.current.variants ?? []).filter((item) => item.design.webUrl).map((item) => item.id);
     try {
-      const response = await fetch("/api/mockups/render", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ fabricId }),
-      });
-      const data = (await response.json()) as { ok?: boolean; fabrics?: { fabricId: string; mockups: Mockup[] }[] };
-      if (!response.ok || !data.ok) {
-        toast(t("designs.mockupRenderFailed"));
-        return;
+      for (const variantId of [undefined, ...variantIds]) {
+        const response = await fetch("/api/mockups/render", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ fabricId, variantId }),
+        });
+        const data = (await response.json()) as { ok?: boolean; fabrics?: { fabricId: string; mockups: Mockup[]; variants?: FabricVariant[] }[] };
+        if (!response.ok || !data.ok) {
+          toast(t("designs.mockupRenderFailed"));
+          return;
+        }
+        const row = data.fabrics?.find((item) => item.fabricId === fabricId);
+        if (row && fabricRef.current.id === fabricId) setFabric((current) => applyRendered(current, row, variantId));
       }
-      const mockups = data.fabrics?.find((item) => item.fabricId === fabricId)?.mockups;
-      if (mockups && fabricRef.current.id === fabricId) setFabric((current) => ({ ...current, mockups }));
       toast(t("designs.mockupsReady"));
     } catch {
       toast(t("designs.mockupRenderFailed"));
@@ -198,6 +236,9 @@ export function useFabricEditor(
     upload,
     chooseTemplate,
     applyCollectionCategory,
+    addVariant,
+    patchVariant,
+    removeVariant,
     saveDraft,
     publish,
     templates,

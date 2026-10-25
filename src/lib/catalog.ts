@@ -49,8 +49,13 @@ function chunk<T>(items: T[], size: number) {
   return pages;
 }
 
+/** Rows on a design page: at least three, so a sheet never shows one stretched design. */
+export function designsPerPage(catalog: Catalog) {
+  return Math.max(3, catalog.layout.perPage);
+}
+
 export function buildPages(catalog: Catalog, fabrics: Fabric[]): BuiltPage[] {
-  const perPage = catalog.layout.perPage;
+  const perPage = designsPerPage(catalog);
   const content: Array<
     | { kind: "section"; group: "fabricType" | "collection"; groupId: string }
     | { kind: "designs"; fabricIds: string[] }

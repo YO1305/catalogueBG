@@ -1,9 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { CatalogImage, PageHeader } from "@/components/flipbook/PageHeader";
+import { VariantDots } from "@/components/flipbook/VariantDots";
 import { useI18n } from "@/components/i18n/I18n";
-import { heroMockup } from "@/lib/catalog";
+import { designsPerPage, heroMockup } from "@/lib/catalog";
+import { colorOptions, withVariant } from "@/lib/variants";
 import type { Catalog, Fabric, FabricType } from "@/types";
+
+type OpenFabric = (id: string, variantId?: string) => void;
 
 export function PageDesigns({
   catalog,
@@ -12,76 +17,84 @@ export function PageDesigns({
   pageNumber,
   active,
   onOpen,
+  onRequest,
 }: {
   catalog: Catalog;
   fabrics: Fabric[];
   fabricTypes: FabricType[];
   pageNumber: number;
   active: boolean;
-  onOpen: (id: string) => void;
+  onOpen: OpenFabric;
+  onRequest: (id: string) => void;
 }) {
-  const { lang, t } = useI18n();
-  const rows = catalog.layout.perPage >= 3 ? "grid-cols-2" : "grid-cols-1";
+  const { lang } = useI18n();
   return (
     <div className="flex h-full flex-col text-[1em]">
       <PageHeader title={catalog.title[lang]} page={pageNumber} />
-      <div className={`grid min-h-0 flex-1 ${rows}`} style={{ gridTemplateRows: catalog.layout.perPage <= 2 ? `repeat(${Math.max(fabrics.length, 1)}, minmax(0, 1fr))` : undefined }}>
-        {fabrics.map((fabric, index) => {
-          const mockup = heroMockup(fabric, catalog.showProductTypes);
-          const typeName = fabricTypes.find((item) => item.id === fabric.fabricTypeId)?.name[lang] ?? "";
-          const mirror = index % 2 === 1 && catalog.layout.perPage === 2;
-          const image = (
-            <button type="button" className="lift cursor-zoom relative min-h-0 overflow-hidden" onClick={() => onOpen(fabric.id)}>
-              <CatalogImage
-                src={mockup?.url || fabric.design.webUrl}
-                thumbUrl={mockup?.thumbUrl}
-                webUrl={mockup?.webUrl}
-                fallbackSrc={fabric.design.webUrl || fabric.design.thumbUrl}
-                alt={`${fabric.name[lang]} — ${typeName}`}
-                active={active}
-              />
-            </button>
-          );
-          const copy = (
-            <div className="flex min-w-0 flex-col justify-center gap-[0.35em] px-[0.8em]">
-              <p className="pointer-events-none absolute text-[2.4em] uppercase tracking-wide opacity-[0.06]" style={{ fontFamily: "var(--font-display)" }}>
-                {typeName}
-              </p>
-              <button type="button" className="text-left" onClick={() => onOpen(fabric.id)}>
-                <span className="font-display block text-[1.35em] leading-tight">{fabric.name[lang]}</span>
-                <span className="font-mono mt-[0.2em] block text-[0.75em]" style={{ color: "var(--muted)" }}>
-                  {fabric.art}
-                </span>
-              </button>
-              <p className="text-[0.78em]" style={{ color: "var(--muted)" }}>
-                {typeName}
-              </p>
-              <p className="text-[0.78em]">
-                {fabric.density} {t("common.gm2")} · {fabric.width} {t("common.cm")}
-              </p>
-              <div className="flex gap-1">
-                {fabric.colors.slice(0, 5).map((color) => (
-                  <span key={color} className="h-[0.7em] w-[0.7em] rounded-full border" style={{ background: color, borderColor: "var(--line)" }} />
-                ))}
-              </div>
-              {fabric.isNew ? <span className="text-[0.72em] uppercase tracking-wider text-[#a6843d]">{t("catalog.newBadge")}</span> : null}
-              {catalog.showPrices && fabric.priceVisible ? (
-                <p className="font-mono text-[0.75em]">
-                  {fabric.priceVisible.usd ? `$${fabric.priceVisible.usd}` : ""} {fabric.priceVisible.uzs ? `${fabric.priceVisible.uzs} UZS` : ""}
-                </p>
-              ) : null}
-              <p className="text-[0.68em]" style={{ color: "var(--muted)" }}>
-                {t("catalog.click")}
-              </p>
-            </div>
-          );
-          return (
-            <div key={fabric.id} className="relative grid min-h-0 grid-cols-[1.4fr_0.9fr] gap-[0.4em] border-b px-[4%] py-[3%]" style={{ borderColor: "var(--line)" }}>
-              {mirror ? copy : image}
-              {mirror ? image : copy}
-            </div>
-          );
-        })}
+      <div className="grid min-h-0 flex-1 gap-[0.9em] px-[6%] py-[4%]" style={{ gridTemplateRows: `repeat(${designsPerPage(catalog)}, minmax(0, 1fr))` }}>
+        {fabrics.map((fabric) => (
+          <DesignRow key={fabric.id} catalog={catalog} fabric={fabric} fabricTypes={fabricTypes} active={active} onOpen={onOpen} onRequest={onRequest} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DesignRow({
+  catalog,
+  fabric,
+  fabricTypes,
+  active,
+  onOpen,
+  onRequest,
+}: {
+  catalog: Catalog;
+  fabric: Fabric;
+  fabricTypes: FabricType[];
+  active: boolean;
+  onOpen: OpenFabric;
+  onRequest: (id: string) => void;
+}) {
+  const { lang, t } = useI18n();
+  const options = colorOptions(fabric);
+  const [variantId, setVariantId] = useState(options[0]?.id);
+  const shown = withVariant(fabric, variantId);
+  const mockup = heroMockup(shown, catalog.showProductTypes);
+  const typeName = fabricTypes.find((item) => item.id === fabric.fabricTypeId)?.name[lang] ?? "";
+  const specs = [typeName, fabric.density && `${fabric.density} ${t("common.gm2")}`, fabric.width && `${fabric.width} ${t("common.cm")}`].filter(Boolean).join(" · ");
+  return (
+    <div className="grid min-h-0 grid-cols-[1.1fr_1fr] items-stretch gap-[0.9em]">
+      <button
+        type="button"
+        className="lift cursor-zoom relative min-h-0 overflow-hidden rounded-[0.7em] bg-black/5"
+        aria-label={`${fabric.name[lang]} — ${t("catalog.click")}`}
+        onClick={() => onOpen(fabric.id, variantId)}
+      >
+        <CatalogImage
+          src={mockup?.url || shown.design.webUrl}
+          thumbUrl={mockup?.thumbUrl}
+          webUrl={mockup?.webUrl}
+          fallbackSrc={shown.design.webUrl || shown.design.thumbUrl}
+          alt={`${fabric.name[lang]} — ${typeName}`}
+          active={active}
+        />
+      </button>
+      <div className="flex min-w-0 flex-col justify-center gap-[0.35em]">
+        <button type="button" className="min-w-0 text-left" onClick={() => onOpen(fabric.id, variantId)}>
+          <span className="font-display line-clamp-2 block text-[1.2em] leading-tight">{fabric.name[lang]}</span>
+          <span className="font-mono mt-[0.15em] block text-[0.68em]" style={{ color: "var(--muted)" }}>{fabric.art}</span>
+        </button>
+        {specs ? <p className="line-clamp-2 text-[0.72em] leading-snug" style={{ color: "var(--muted)" }}>{specs}</p> : null}
+        {options.length ? <VariantDots options={options} value={variantId} onChange={setVariantId} /> : null}
+        {fabric.isNew ? <span className="text-[0.66em] uppercase tracking-wider text-[#a6843d]">{t("catalog.newBadge")}</span> : null}
+        {catalog.showPrices && fabric.priceVisible ? (
+          <p className="font-mono text-[0.72em]">
+            {fabric.priceVisible.usd ? `$${fabric.priceVisible.usd}` : ""} {fabric.priceVisible.uzs ? `${fabric.priceVisible.uzs} UZS` : ""}
+          </p>
+        ) : null}
+        <button type="button" className="mt-[0.3em] self-start rounded-full bg-majolica px-[1em] py-[0.45em] text-[0.68em] leading-none text-paper" onClick={() => onRequest(fabric.id)}>
+          {t("catalog.sample")}
+        </button>
       </div>
     </div>
   );

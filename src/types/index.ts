@@ -42,6 +42,22 @@ export type Mockup = {
   generatedAt: Timestamp;
 };
 
+export type FabricVariant = {
+  id: string;
+  name: string;
+  design: FabricDesign;
+  mockups: Mockup[];
+};
+
+export type FabricDesign = {
+  originalUrl: string;
+  webUrl: string;
+  thumbUrl: string;
+  widthPx: number;
+  heightPx: number;
+  seamless: boolean;
+};
+
 export type Fabric = {
   id: string;
   art: string;
@@ -65,16 +81,13 @@ export type Fabric = {
   /** upload = файл рисунка; stripes = конструктор полос (страйп-сатин, SPEC 5.7.5) */
   designMode?: "upload" | "stripes";
   stripes?: Array<{ widthCm: number; color: string; shiny: boolean }>;
-  design: {
-    originalUrl: string;
-    webUrl: string;
-    thumbUrl: string;
-    widthPx: number;
-    heightPx: number;
-    seamless: boolean;
-  };
+  design: FabricDesign;
   realPhotos: Photo[];
   mockups: Mockup[];
+  /** Название цвета основного рисунка, показывается рядом с вариантами */
+  colorName?: string;
+  /** Тот же дизайн в других цветах; макеты строятся с настройками основных */
+  variants?: FabricVariant[];
   status: FabricStatus;
   isNew: boolean;
   priceVisible?: { uzs?: number; usd?: number };

@@ -68,6 +68,7 @@ export const Book = function Book({
   reduced,
   onFlip,
   onOpen,
+  onRequest,
   onLead,
   onJump,
   apiRef,
@@ -79,7 +80,8 @@ export const Book = function Book({
   current: number;
   reduced: boolean;
   onFlip: (index: number) => void;
-  onOpen: (id: string) => void;
+  onOpen: (id: string, variantId?: string) => void;
+  onRequest: (id: string) => void;
   onLead: () => void;
   onJump: (index: number) => void;
   apiRef: React.RefObject<FlipHandle | null>;
@@ -135,6 +137,7 @@ export const Book = function Book({
               pageNumber={page.index + 1}
               active={Math.abs(page.index - current) <= 5}
               onOpen={onOpen}
+              onRequest={onRequest}
             />
           ) : null}
           {page.kind === "back" ? <PageBack catalog={model.catalog} qr={model.qr} onLead={onLead} /> : null}

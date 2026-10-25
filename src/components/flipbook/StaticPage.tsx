@@ -15,6 +15,7 @@ export function StaticPage({
   width,
   height,
   onOpen,
+  onRequest,
   onLead,
   onJump,
 }: {
@@ -23,7 +24,8 @@ export function StaticPage({
   index: number;
   width: number;
   height: number;
-  onOpen: (id: string) => void;
+  onOpen: (id: string, variantId?: string) => void;
+  onRequest: (id: string) => void;
   onLead: () => void;
   onJump: (index: number) => void;
 }) {
@@ -44,6 +46,7 @@ export function StaticPage({
           pageNumber={index + 1}
           active
           onOpen={onOpen}
+          onRequest={onRequest}
         />
       ) : null}
       {page.kind === "back" ? <PageBack catalog={model.catalog} qr={model.qr} onLead={onLead} /> : null}

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FabricCatalogPickSection } from "@/components/admin/FabricCatalogPickSection";
 import { FabricDesignSection } from "@/components/admin/FabricDesignSection";
+import { FabricVariantsSection } from "@/components/admin/FabricVariantsSection";
 import { WizardCardStep } from "@/components/admin/WizardCardStep";
 import { WizardMockupCategoryStep } from "@/components/admin/WizardMockupCategoryStep";
 import { useI18n } from "@/components/i18n/I18n";
@@ -73,6 +74,9 @@ export function FabricEditor({
       <h1 className="font-display mt-2 text-2xl md:text-3xl">{isNew ? t("designs.createTitle") : t("designs.editTitle")}</h1>
       <div className="mt-5 space-y-5">
         <FabricDesignSection fabric={fabric} progress={progress} onChange={update} onUpload={upload} />
+        {fabric.designMode !== "stripes" ? (
+          <FabricVariantsSection fabric={fabric} progress={progress} onChange={update} onAdd={(file) => void editor.addVariant(file)} onPatch={editor.patchVariant} onRemove={editor.removeVariant} />
+        ) : null}
         <div><h2 className="font-display text-lg">{t("wizard.data")}</h2></div>
         <WizardCardStep fabric={fabric} collections={lists.collections} fabricTypes={lists.fabricTypes} productTypes={lists.productTypes} onChange={update} hideCollection onCreateCollection={onCreateCollection} onCreateFabricType={onCreateFabricType} />
         <WizardMockupCategoryStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} />
