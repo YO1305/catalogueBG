@@ -255,11 +255,6 @@ export type PublicUser = Pick<AppUser, "id" | "email" | "name" | "role">;
 
 export type BuiltPage =
   | { kind: "cover"; index: number }
-  | {
-      kind: "toc";
-      index: number;
-      entries: Array<{ target: number; label: "section" | "design" | "back"; id: string }>;
-    }
   | { kind: "section"; index: number; group: "fabricType" | "collection"; groupId: string }
   | { kind: "designs"; index: number; fabricIds: string[] }
   | { kind: "back"; index: number };

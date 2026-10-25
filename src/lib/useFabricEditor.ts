@@ -167,35 +167,7 @@ export function useFabricEditor(
   }
 
   async function publish() {
-    let payload = fabricRef.current;
-    if (!payload.name.en || !payload.name.uz) {
-      const response = await fetch("/api/translate", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          fields: { name: payload.name.ru, description: payload.description.ru, composition: payload.composition.ru },
-          locked: payload.translationLocked,
-        }),
-      });
-      if (response.ok) {
-        const data = (await response.json()) as { en: Record<string, string>; uz: Record<string, string> };
-        payload = {
-          ...payload,
-          name: { ...payload.name, en: payload.translationLocked.name ? payload.name.en : data.en.name || payload.name.en, uz: payload.translationLocked.name ? payload.name.uz : data.uz.name || payload.name.uz },
-          description: {
-            ...payload.description,
-            en: payload.translationLocked.description ? payload.description.en : data.en.description || payload.description.en,
-            uz: payload.translationLocked.description ? payload.description.uz : data.uz.description || payload.description.uz,
-          },
-          composition: {
-            ...payload.composition,
-            en: payload.translationLocked.composition ? payload.composition.en : data.en.composition || payload.composition.en,
-            uz: payload.translationLocked.composition ? payload.composition.uz : data.uz.composition || payload.composition.uz,
-          },
-        };
-        setFabric(payload);
-      }
-    }
+    const payload = fabricRef.current;
     const result = await publishFabricAction(payload);
     if (!result.ok) return { ok: false as const, reason: "art" as const };
     dirty.current = false;

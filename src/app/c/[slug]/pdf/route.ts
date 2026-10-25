@@ -53,7 +53,7 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
       sheet.drawText(catalog.contacts.telegram, { x: 48, y: 610, size: 14, font: sans, color: rgb(0.11, 0.1, 0.08) });
       sheet.drawText(catalog.contacts.address, { x: 48, y: 580, size: 12, font: sans, color: rgb(0.3, 0.27, 0.22) });
     } else {
-      const label = page.kind === "toc" ? "Contents" : page.kind === "section" ? page.groupId : "";
+      const label = page.kind === "section" ? page.groupId : "";
       sheet.drawText(label, { x: 48, y: 760, size: 28, font: serif, color: rgb(0.11, 0.1, 0.08) });
     }
     sheet.drawText(String(page.index + 1), { x: 540, y: 28, size: 9, font: sans, color: rgb(0.4, 0.36, 0.3) });

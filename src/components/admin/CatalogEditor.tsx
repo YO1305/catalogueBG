@@ -9,9 +9,11 @@ import { CatalogThemePicker } from "@/components/admin/CatalogThemePicker";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/field";
+import { LangTabs } from "@/components/ui/lang-tabs";
 import { createCatalogAction, saveCatalogAction } from "@/lib/actions";
 import { buildPages } from "@/lib/catalog";
-import type { Catalog, Collection, Fabric, FabricType, ProductType } from "@/types";
+import { localizeCatalogModel } from "@/lib/localize";
+import type { Catalog, Collection, Fabric, FabricType, Lang, ProductType } from "@/types";
 
 const CatalogScreen = dynamic(() => import("@/components/flipbook/CatalogScreen").then((mod) => mod.CatalogScreen), { ssr: false });
 
@@ -46,10 +48,15 @@ export function CatalogEditor({
   const [catalog, setCatalog] = useState(initial);
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
+  const [editLang, setEditLang] = useState<Lang>("ru");
 
   const previewCatalog = useDeferredValue(catalog);
   const resolved = useMemo(() => resolvePreviewFabrics(previewCatalog, fabrics), [previewCatalog, fabrics]);
   const pages = useMemo(() => buildPages(previewCatalog, resolved), [previewCatalog, resolved]);
+  const previewModel = useMemo(
+    () => localizeCatalogModel({ catalog: { ...previewCatalog, defaultLang: editLang }, fabrics: resolved, pages, fabricTypes, collections, productTypes, qr: "" }),
+    [previewCatalog, editLang, resolved, pages, fabricTypes, collections, productTypes],
+  );
 
   function patch(partial: Partial<Catalog>) {
     setCatalog((current) => ({ ...current, ...partial }));
@@ -96,13 +103,17 @@ export function CatalogEditor({
       <div className="grid gap-6 xl:grid-cols-[min(100%,22rem)_1fr]">
         <div className="space-y-4 bg-white p-4 shadow-sm">
           <div>
+            <LangTabs label={t("catalogs.textLang")} value={editLang} onChange={setEditLang} filled={(lang) => Boolean(catalog.title[lang]?.trim())} />
+            <p className="mt-1.5 text-xs text-ink/50">{t("catalogs.textLangHint")}</p>
+          </div>
+          <div>
             <Label>{t("common.name")}</Label>
-            <Input value={catalog.title.ru} onChange={(event) => patch({ title: { ...catalog.title, ru: event.target.value } })} />
+            <Input value={catalog.title[editLang] ?? ""} placeholder={editLang === "ru" ? undefined : catalog.title.ru} onChange={(event) => patch({ title: { ...catalog.title, [editLang]: event.target.value } })} />
             <p className="mt-1 text-xs text-ink/50">{t("catalogs.coverTitleHint")}</p>
           </div>
           <div>
             <Label>{t("catalogs.subtitle")}</Label>
-            <Textarea value={catalog.subtitle.ru} onChange={(event) => patch({ subtitle: { ...catalog.subtitle, ru: event.target.value } })} />
+            <Textarea value={catalog.subtitle[editLang] ?? ""} placeholder={editLang === "ru" ? undefined : catalog.subtitle.ru} onChange={(event) => patch({ subtitle: { ...catalog.subtitle, [editLang]: event.target.value } })} />
           </div>
           {!isNew ? (
             <div>
@@ -112,8 +123,8 @@ export function CatalogEditor({
           ) : null}
           <CatalogThemePicker
             theme={catalog.layout.theme}
-            title={catalog.title.ru}
-            subtitle={catalog.subtitle.ru}
+            title={catalog.title[editLang] || catalog.title.ru}
+            subtitle={catalog.subtitle[editLang] || catalog.subtitle.ru}
             onPick={(theme) => patch({ layout: { ...catalog.layout, theme } })}
           />
           <div>
@@ -155,7 +166,7 @@ export function CatalogEditor({
         </div>
         <div className="min-h-[70vh] overflow-hidden border bg-sand">
           <p className="bg-white/80 px-3 py-2 text-xs text-ink/60">{t("catalogs.preview")}</p>
-          <CatalogScreen model={{ catalog: previewCatalog, fabrics: resolved, pages, fabricTypes, collections, productTypes, qr: "" }} initialPage={0} />
+          <CatalogScreen key={editLang} model={previewModel} initialPage={0} />
         </div>
       </div>
     </div>

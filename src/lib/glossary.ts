@@ -30,12 +30,18 @@ function escapeReg(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function keepCase(source: string, dest: string) {
+  const first = source.charAt(0);
+  if (!dest || first === first.toLowerCase()) return dest;
+  return dest.charAt(0).toUpperCase() + dest.slice(1);
+}
+
 export function fallbackTranslate(text: string, target: "en" | "uz", terms: GlossaryTerm[]) {
   let output = text.replace(/«([^»]+)»/g, (_match, name: string) => `«${transliterateName(name)}»`);
   const sorted = [...terms].sort((a, b) => b.ru.length - a.ru.length);
   for (const term of sorted) {
     const dest = target === "en" ? term.en : term.uz;
-    output = output.replace(new RegExp(escapeReg(term.ru), "gi"), dest);
+    output = output.replace(new RegExp(escapeReg(term.ru), "gi"), (match) => keepCase(match, dest));
   }
   return output.replace(/[А-Яа-яЁё]/g, (ch) => transliterateName(ch));
 }

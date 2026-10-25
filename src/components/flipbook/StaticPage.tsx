@@ -5,7 +5,6 @@ import { PageBack } from "@/components/flipbook/PageBack";
 import { PageCover } from "@/components/flipbook/PageCover";
 import { PageDesigns } from "@/components/flipbook/PageDesigns";
 import { PageSection } from "@/components/flipbook/PageSection";
-import { PageToc } from "@/components/flipbook/PageToc";
 import type { BuiltPage } from "@/types";
 
 export function StaticPage({
@@ -32,9 +31,8 @@ export function StaticPage({
   const byId = new Map(model.fabrics.map((fabric) => [fabric.id, fabric]));
   return (
     <div className="paper-page shadow-2xl" style={{ width, height }}>
-      {page.kind === "cover" ? <PageCover catalog={model.catalog} count={model.fabrics.length} /> : null}
-      {page.kind === "toc" ? <PageToc catalog={model.catalog} page={page} fabricTypes={model.fabricTypes} collections={model.collections} fabrics={model.fabrics} onJump={onJump} /> : null}
-      {page.kind === "section" ? <PageSection page={page} fabricTypes={model.fabricTypes} collections={model.collections} /> : null}
+      {page.kind === "cover" ? <PageCover catalog={model.catalog} /> : null}
+      {page.kind === "section" ? <PageSection page={page} catalog={model.catalog} fabricTypes={model.fabricTypes} collections={model.collections} /> : null}
       {page.kind === "designs" ? (
         <PageDesigns
           catalog={model.catalog}

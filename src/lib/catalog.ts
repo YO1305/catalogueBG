@@ -88,22 +88,7 @@ export function buildPages(catalog: Catalog, fabrics: Fabric[]): BuiltPage[] {
   }
   content.push({ kind: "back" });
 
-  const entries = content.map((page, contentIndex) => {
-    if (page.kind === "section") return { label: "section" as const, id: page.groupId, contentIndex };
-    if (page.kind === "designs") return { label: "design" as const, id: page.fabricIds[0] ?? "", contentIndex };
-    return { label: "back" as const, id: "back", contentIndex };
-  });
-
-  const tocSlots = Math.max(1, Math.ceil(entries.length / 14));
   const pages: BuiltPage[] = [{ kind: "cover", index: 0 }];
-  for (let slot = 0; slot < tocSlots; slot += 1) {
-    const slice = entries.slice(slot * 14, slot * 14 + 14).map((entry) => ({
-      target: 1 + tocSlots + entry.contentIndex + 1,
-      label: entry.label,
-      id: entry.id,
-    }));
-    pages.push({ kind: "toc", index: pages.length, entries: slice });
-  }
   content.forEach((page) => {
     const index = pages.length;
     if (page.kind === "section") pages.push({ kind: "section", index, group: page.group, groupId: page.groupId });

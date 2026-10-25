@@ -6,7 +6,6 @@ import { PageBack } from "@/components/flipbook/PageBack";
 import { PageCover } from "@/components/flipbook/PageCover";
 import { PageDesigns } from "@/components/flipbook/PageDesigns";
 import { PageSection } from "@/components/flipbook/PageSection";
-import { PageToc } from "@/components/flipbook/PageToc";
 import { PaperPage } from "@/components/flipbook/PaperPage";
 import type { BuiltPage, Catalog, Collection, Fabric, FabricType, ProductType } from "@/types";
 
@@ -121,11 +120,8 @@ export const Book = function Book({
     >
       {model.pages.map((page) => (
         <PaperPage key={`${page.kind}-${page.index}`} hard={page.kind === "cover" || page.kind === "back"}>
-          {page.kind === "cover" ? <PageCover catalog={model.catalog} count={model.fabrics.length} /> : null}
-          {page.kind === "toc" ? (
-            <PageToc catalog={model.catalog} page={page} fabricTypes={model.fabricTypes} collections={model.collections} fabrics={model.fabrics} onJump={onJump} />
-          ) : null}
-          {page.kind === "section" ? <PageSection page={page} fabricTypes={model.fabricTypes} collections={model.collections} /> : null}
+          {page.kind === "cover" ? <PageCover catalog={model.catalog} /> : null}
+          {page.kind === "section" ? <PageSection page={page} catalog={model.catalog} fabricTypes={model.fabricTypes} collections={model.collections} /> : null}
           {page.kind === "designs" ? (
             <PageDesigns
               catalog={model.catalog}

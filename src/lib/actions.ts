@@ -30,7 +30,7 @@ import { uniqueSlug } from "@/lib/ids";
 import { hashPassword, hashPin } from "@/lib/password";
 import { presetCatalog } from "@/lib/presets";
 import { canEditCatalogs, canEditDictionaries, canEditFabrics, canReadLeads, isAdmin } from "@/lib/roles";
-import { translateFields, translateFieldsSafe } from "@/lib/translate";
+import { translateFields } from "@/lib/translate";
 import type { AppUser, Catalog, Collection, Fabric, FabricType, GlossaryTerm, Lead, ProductType, Role, Template } from "@/types";
 
 async function actor(check: (role: Role) => boolean) {
@@ -115,7 +115,6 @@ export async function createCatalogAction(catalog: Catalog, pin?: string) {
     if (!titleRu) return { ok: false as const, error: "title" as const };
     const db = await getDictionariesWithCatalogs();
     const slug = uniqueSlug(titleRu, db.catalogs.map((item) => item.slug));
-    const translated = await translateFieldsSafe({ title: titleRu, subtitle: catalog.subtitle.ru }, db.glossary);
     const pinHash = pin ? hashPin(pin) : catalog.access === "pin" ? catalog.pinHash : undefined;
     const showProductTypes = catalog.showProductTypes.length
       ? catalog.showProductTypes
@@ -123,12 +122,8 @@ export async function createCatalogAction(catalog: Catalog, pin?: string) {
     const next: Catalog = {
       ...catalog,
       slug,
-      title: { ru: titleRu, en: translated.en.title || titleRu, uz: translated.uz.title || titleRu },
-      subtitle: {
-        ru: catalog.subtitle.ru,
-        en: translated.en.subtitle || catalog.subtitle.ru,
-        uz: translated.uz.subtitle || catalog.subtitle.ru,
-      },
+      title: { ru: titleRu, en: catalog.title.en.trim(), uz: catalog.title.uz.trim() },
+      subtitle: catalog.subtitle,
       showProductTypes,
       mode: "manual",
       fabricIds: catalog.fabricIds ?? [],

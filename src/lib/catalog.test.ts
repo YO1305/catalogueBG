@@ -78,7 +78,7 @@ test("kurpacha catalog hero ignores bed mockups", () => {
 test("buildPages makes a cover, contents, design pages and a back cover", () => {
   const items = ["A", "B", "C", "D"].map((art) => fabric({ id: art.toLowerCase(), art }));
   const pages = buildPages(catalog({ layout: { perPage: 2, sectionBy: "none", theme: "light" } }), items);
-  assert.deepEqual(pages.map((page) => page.kind), ["cover", "toc", "designs", "designs", "back"]);
+  assert.deepEqual(pages.map((page) => page.kind), ["cover", "designs", "designs", "back"]);
   const designs = pages.filter((page) => page.kind === "designs");
   assert.equal(designs[0] && designs[0].kind === "designs" ? designs[0].fabricIds.length : 0, 3);
 });

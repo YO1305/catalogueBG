@@ -1,9 +1,13 @@
 "use client";
 
 import { CreatableSelect } from "@/components/admin/CreatableSelect";
+import { useState } from "react";
 import { Checkbox, Input, Label, Textarea } from "@/components/ui/field";
+import { LangTabs } from "@/components/ui/lang-tabs";
 import { useI18n } from "@/components/i18n/I18n";
-import type { Collection, Fabric, FabricType, ProductType } from "@/types";
+import type { Collection, Fabric, FabricType, Lang, Localized, ProductType } from "@/types";
+
+const EMPTY: Localized = { ru: "", en: "", uz: "" };
 
 export function WizardCardStep({
   fabric,
@@ -25,11 +29,24 @@ export function WizardCardStep({
   hideCollection?: boolean;
 }) {
   const { t } = useI18n();
+  const [lang, setLang] = useState<Lang>("ru");
+  const text = (field: "name" | "description" | "composition" | "finish" | "finishExtra") => {
+    const value = fabric[field] ?? EMPTY;
+    return {
+      value: value[lang] ?? "",
+      placeholder: lang === "ru" ? undefined : value.ru,
+      onChange: (event: { target: { value: string } }) => onChange({ [field]: { ...EMPTY, ...value, [lang]: event.target.value } }),
+    };
+  };
   return (
     <section className="grid gap-4 bg-white p-5 md:grid-cols-2">
+      <div className="md:col-span-2">
+        <LangTabs label={t("catalogs.textLang")} value={lang} onChange={setLang} filled={(item) => Boolean(fabric.name[item]?.trim())} />
+        <p className="mt-1.5 text-xs text-ink/50">{t("designs.textLangHint")}</p>
+      </div>
       <div>
         <Label>{t("common.name")}</Label>
-        <Input value={fabric.name.ru} onChange={(event) => onChange({ name: { ...fabric.name, ru: event.target.value } })} />
+        <Input {...text("name")} />
       </div>
       <div>
         <Label>{t("wizard.art")}</Label>
@@ -61,20 +78,20 @@ export function WizardCardStep({
       </div>
       <div className="md:col-span-2">
         <Label>{t("wizard.composition")}</Label>
-        <Input list="compositions" value={fabric.composition.ru} onChange={(event) => onChange({ composition: { ...fabric.composition, ru: event.target.value } })} />
+        <Input list="compositions" {...text("composition")} />
         <datalist id="compositions"><option value="100% хлопок" /><option value="100% полиэстер" /></datalist>
       </div>
       <div>
         <Label>{t("designs.finish")}</Label>
-        <Input value={fabric.finish?.ru ?? ""} onChange={(event) => onChange({ finish: { ru: event.target.value, en: fabric.finish?.en ?? "", uz: fabric.finish?.uz ?? "" } })} />
+        <Input {...text("finish")} />
       </div>
       <div>
         <Label>{t("designs.finishExtra")}</Label>
-        <Input value={fabric.finishExtra?.ru ?? ""} onChange={(event) => onChange({ finishExtra: { ru: event.target.value, en: fabric.finishExtra?.en ?? "", uz: fabric.finishExtra?.uz ?? "" } })} />
+        <Input {...text("finishExtra")} />
       </div>
       <div className="md:col-span-2">
         <Label>{t("common.description")}</Label>
-        <Textarea value={fabric.description.ru} onChange={(event) => onChange({ description: { ...fabric.description, ru: event.target.value } })} />
+        <Textarea {...text("description")} />
       </div>
       <div>
         <Label>{t("wizard.tags")}</Label>

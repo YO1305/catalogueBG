@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CatalogImage, PageHeader } from "@/components/flipbook/PageHeader";
+import { PageFooter } from "@/components/flipbook/PageFooter";
 import { VariantDots } from "@/components/flipbook/VariantDots";
 import { useI18n } from "@/components/i18n/I18n";
 import { designsPerPage, heroMockup } from "@/lib/catalog";
@@ -36,6 +37,7 @@ export function PageDesigns({
           <DesignRow key={fabric.id} catalog={catalog} fabric={fabric} fabricTypes={fabricTypes} active={active} onOpen={onOpen} onRequest={onRequest} />
         ))}
       </div>
+      <PageFooter catalog={catalog} />
     </div>
   );
 }
