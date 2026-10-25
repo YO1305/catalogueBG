@@ -6,5 +6,5 @@ export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const [session, db] = await Promise.all([requireSession(), getDictionaries()]);
-  return <DirectoryScreen role={session.role} collections={db.collections} fabricTypes={db.fabricTypes} productTypes={db.productTypes} glossary={db.glossary} />;
+  return <DirectoryScreen role={session.role} collections={db.collections} fabricTypes={db.fabricTypes} finishes={db.finishes} productTypes={db.productTypes} glossary={db.glossary} />;
 }

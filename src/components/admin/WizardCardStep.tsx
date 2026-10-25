@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Checkbox, Input, Label, Textarea } from "@/components/ui/field";
 import { LangTabs } from "@/components/ui/lang-tabs";
 import { useI18n } from "@/components/i18n/I18n";
-import type { Collection, Fabric, FabricType, Lang, Localized, ProductType } from "@/types";
+import type { Collection, Fabric, FabricType, Finish, Lang, Localized, ProductType } from "@/types";
 
 const EMPTY: Localized = { ru: "", en: "", uz: "" };
 
@@ -13,24 +13,28 @@ export function WizardCardStep({
   fabric,
   collections,
   fabricTypes,
+  finishes,
   productTypes,
   onChange,
   onCreateCollection,
   onCreateFabricType,
+  onCreateFinish,
   hideCollection,
 }: {
   fabric: Fabric;
   collections: Collection[];
   fabricTypes: FabricType[];
+  finishes: Finish[];
   productTypes: ProductType[];
   onChange: (partial: Partial<Fabric>) => void;
+  onCreateFinish: (name: string) => Promise<Finish | null>;
   onCreateCollection: (name: string, extra?: { ids?: string[]; auto?: boolean }) => Promise<Collection | null>;
   onCreateFabricType: (name: string, extra?: { ids?: string[]; auto?: boolean }) => Promise<FabricType | null>;
   hideCollection?: boolean;
 }) {
   const { t } = useI18n();
   const [lang, setLang] = useState<Lang>("ru");
-  const text = (field: "name" | "description" | "composition" | "finish" | "finishExtra") => {
+  const text = (field: "name" | "description" | "composition" | "finishExtra") => {
     const value = fabric[field] ?? EMPTY;
     return {
       value: value[lang] ?? "",
@@ -82,8 +86,17 @@ export function WizardCardStep({
         <datalist id="compositions"><option value="100% хлопок" /><option value="100% полиэстер" /></datalist>
       </div>
       <div>
-        <Label>{t("designs.finish")}</Label>
-        <Input {...text("finish")} />
+        <CreatableSelect
+          label={t("designs.finish")}
+          value={fabric.finishId ?? ""}
+          options={finishes.filter((item) => item.active || item.id === fabric.finishId)}
+          onChange={(finishId) => {
+            const item = finishes.find((row) => row.id === finishId);
+            onChange({ finishId, finish: item?.name, toned: Boolean(item?.toned) });
+          }}
+          onCreate={(name) => onCreateFinish(name)}
+        />
+        {fabric.toned ? <p className="mt-1 text-xs text-ink/55">{t("tone.formHint")}</p> : null}
       </div>
       <div>
         <Label>{t("designs.finishExtra")}</Label>

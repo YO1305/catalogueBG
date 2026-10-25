@@ -6,6 +6,7 @@ import { matchingCatalogs } from "@/lib/catalog";
 import {
   deleteCatalog,
   deleteFabric,
+  deleteFinish,
   deleteUser,
   getCatalog,
   getCatalogs,
@@ -17,6 +18,7 @@ import {
   saveCollection,
   saveFabric,
   saveFabricType,
+  saveFinish,
   saveGlossary,
   saveLead,
   saveProductType,
@@ -31,7 +33,7 @@ import { hashPassword, hashPin } from "@/lib/password";
 import { presetCatalog } from "@/lib/presets";
 import { canEditCatalogs, canEditDictionaries, canEditFabrics, canReadLeads, isAdmin } from "@/lib/roles";
 import { translateFields } from "@/lib/translate";
-import type { AppUser, Catalog, Collection, Fabric, FabricType, GlossaryTerm, Lead, ProductType, Role, Template } from "@/types";
+import type { AppUser, Catalog, Collection, Fabric, FabricType, Finish, GlossaryTerm, Lead, ProductType, Role, Template } from "@/types";
 
 async function actor(check: (role: Role) => boolean) {
   const session = await getSession();
@@ -306,6 +308,48 @@ export async function createProductTypeAction(input: { nameRu: string; suggested
 export async function saveProductTypeAction(item: ProductType) {
   await actor(canEditDictionaries);
   await saveProductType(item);
+  return { ok: true as const };
+}
+
+export async function createFinishAction(input: { nameRu: string }) {
+  await actor(canEditDictionaries);
+  const db = await getDictionaries();
+  const id = uniqueSlug(input.nameRu, db.finishes.map((item) => item.id));
+  const translated = await translateFields({ name: input.nameRu }, db.glossary);
+  const item: Finish = {
+    id,
+    name: { ru: input.nameRu, en: translated.en.name || input.nameRu, uz: translated.uz.name || input.nameRu },
+    order: db.finishes.length + 1,
+    active: true,
+  };
+  await saveFinish(item);
+  touch("/admin/settings");
+  return { ok: true as const, item };
+}
+
+export async function saveFinishAction(item: Finish) {
+  await actor(canEditDictionaries);
+  await saveFinish(item);
+  touch("/admin/settings");
+  return { ok: true as const };
+}
+
+export async function removeFinishAction(id: string) {
+  await actor(isAdmin);
+  const db = await getDb();
+  if (db.fabrics.some((fabric) => fabric.finishId === id)) return { ok: false as const, error: "used" };
+  await deleteFinish(id);
+  touch("/admin/settings");
+  return { ok: true as const };
+}
+
+export async function reorderFinishesAction(ids: string[]) {
+  await actor(canEditDictionaries);
+  const db = await getDictionaries();
+  for (const [index, id] of ids.entries()) {
+    const item = db.finishes.find((row) => row.id === id);
+    if (item) await saveFinish({ ...item, order: index + 1 });
+  }
   return { ok: true as const };
 }
 

@@ -8,7 +8,8 @@ import { ZoomViewer } from "@/components/fabric/ZoomViewer";
 import { useI18n } from "@/components/i18n/I18n";
 import { VariantDots } from "@/components/flipbook/VariantDots";
 import { visibleMockups } from "@/lib/catalog";
-import { colorOptions, withVariant } from "@/lib/variants";
+import { ToneSwitch } from "@/components/fabric/ToneSwitch";
+import { BASE_VARIANT, colorOptions, withVariant } from "@/lib/variants";
 import type { Catalog, Collection, Fabric, FabricType, ProductType } from "@/types";
 
 const ACTION = "flex h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm leading-none transition";
@@ -45,8 +46,8 @@ export function FabricModal({
 }) {
   const { lang, t } = useI18n();
   const options = colorOptions(base);
-  const [variant, setVariant] = useState(variantId ?? options[0]?.id);
-  useEffect(() => setVariant(variantId ?? colorOptions(base)[0]?.id), [base, variantId]);
+  const [variant, setVariant] = useState(variantId ?? BASE_VARIANT);
+  useEffect(() => setVariant(variantId ?? BASE_VARIANT), [base, variantId]);
   const fabric = withVariant(base, variant);
   const mockups = visibleMockups(fabric, catalog.showProductTypes);
   const tabs: MediaTab[] = [
@@ -94,7 +95,9 @@ export function FabricModal({
               <X />
             </button>
           </div>
-          {options.length ? <VariantDots options={options} value={variant} onChange={setVariant} size="2rem" /> : null}
+          {base.toned && options.length ? <ToneSwitch options={options} value={variant} onChange={setVariant} /> : null}
+          {!base.toned && options.length ? <VariantDots options={options} value={variant} onChange={setVariant} size="2rem" /> : null}
+          {base.toned ? <p className="text-xs leading-relaxed text-ink/60">{t("tone.pantone")}</p> : null}
           {typeName && typeName !== fabric.name[lang] ? <p className="text-sm text-ink/70">{typeName}</p> : null}
           <SpecsTable fabric={fabric} catalog={catalog} />
           <div className="grid gap-2">

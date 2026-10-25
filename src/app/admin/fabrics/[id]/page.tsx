@@ -16,6 +16,7 @@ export default async function EditFabricPage({ params }: { params: Promise<{ id:
       catalogs={db.catalogs}
       collections={db.collections}
       fabricTypes={db.fabricTypes}
+      finishes={db.finishes}
       productTypes={db.productTypes}
       templates={db.templates}
     />

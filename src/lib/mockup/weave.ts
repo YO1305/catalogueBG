@@ -43,14 +43,3 @@ export function scaleHex(hex: string, factor: number): string {
   };
   return `#${part(0)}${part(2)}${part(4)}`;
 }
-
-/** Spec line for the catalogue, e.g. "Полоса 1 см · сатин". */
-export function weaveSpec(weave: FabricWeave, t: (key: string) => string): string {
-  if (weave.pattern === "map") return t("weave.specJacquard");
-  if (weave.pattern === "stripes" && weave.stripes?.length) {
-    const widths = weave.stripes.map((item) => item.widthCm);
-    const width = widths.every((item) => item === widths[0]) ? String(widths[0]) : widths.join("+");
-    return `${t("weave.specStripe")} ${width} ${t("common.cm")} · ${t("weave.specSateen")}`;
-  }
-  return t("weave.specPlain");
-}

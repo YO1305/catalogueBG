@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
+import { renderAndSave } from "@/lib/mockup/clientRender";
 import { useMockupPreview } from "@/lib/mockup/useMockupPreview";
 import { SCALE_PRESETS, scaleToSlider, sliderToScale } from "@/lib/mockupMath";
 import type { Fabric, Mockup, Template } from "@/types";
@@ -112,27 +113,12 @@ export function MockupAdjuster({
           disabled={saving}
           onClick={() => {
             setSaving(true);
-            void fetch("/api/mockups/render", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ fabricId: fabric.id, templateId: template.id }),
-            })
-              .then(async (response) => {
-                const data = (await response.json()) as {
-                  ok?: boolean;
-                  error?: string;
-                  fabrics?: { fabricId: string; mockups: Mockup[] }[];
-                };
-                if (!response.ok || !data.ok) {
-                  setSaveError(data.error ?? "render_failed");
-                  return;
-                }
+            renderAndSave(fabric, template, mockup)
+              .then((saved) => {
                 setSaveError(null);
-                const row = data.fabrics?.find((item) => item.fabricId === fabric.id);
-                const saved = row?.mockups.find((item) => item.templateId === template.id && item.productType === mockup.productType);
-                if (saved) onChange(saved);
+                onChange(saved);
               })
-              .catch(() => setSaveError("render_failed"))
+              .catch((error: unknown) => setSaveError(error instanceof Error ? error.message : String(error)))
               .finally(() => setSaving(false));
           }}
         >

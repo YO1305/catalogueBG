@@ -5,25 +5,26 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
-import { createCollectionAction, createFabricTypeAction, createProductTypeAction, removeDictionaryAction, reorderAction, saveCollectionAction, saveFabricTypeAction, saveGlossaryAction, saveProductTypeAction } from "@/lib/actions";
+import { createCollectionAction, createFabricTypeAction, createFinishAction, createProductTypeAction, removeDictionaryAction, removeFinishAction, reorderAction, reorderFinishesAction, saveCollectionAction, saveFabricTypeAction, saveFinishAction, saveGlossaryAction, saveProductTypeAction } from "@/lib/actions";
 import { isWovenType } from "@/lib/mockup/weave";
-import type { Collection, FabricType, GlossaryTerm, ProductType, Role } from "@/types";
+import type { Collection, FabricType, Finish, GlossaryTerm, ProductType, Role } from "@/types";
 
 type Row = { id: string; name: string; active: boolean; raw: object; flag?: boolean };
 
-export function DirectoryScreen({ role, collections, fabricTypes, productTypes, glossary }: { role: Role; collections: Collection[]; fabricTypes: FabricType[]; productTypes: ProductType[]; glossary: GlossaryTerm[] }) {
+export function DirectoryScreen({ role, collections, fabricTypes, finishes, productTypes, glossary }: { role: Role; collections: Collection[]; fabricTypes: FabricType[]; finishes: Finish[]; productTypes: ProductType[]; glossary: GlossaryTerm[] }) {
   const { t } = useI18n();
-  const [tab, setTab] = useState<"collections" | "types" | "products" | "glossary">("collections");
+  const [tab, setTab] = useState<"collections" | "types" | "finishes" | "products" | "glossary">("collections");
   const tabs = [
     ["collections", t("settings.collections")],
     ["types", t("settings.types")],
+    ["finishes", t("settings.finishes")],
     ["products", t("settings.products")],
     ["glossary", t("settings.glossary")],
   ] as const;
   return (
     <div>
       <h1 className="font-display text-4xl">{t("nav.settings")}</h1>
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
         {tabs.map(([id, label]) => (
           <button key={id} type="button" className={`px-3 py-1 text-sm ${tab === id ? "bg-majolica text-paper" : "bg-white"}`} onClick={() => setTab(id)}>
             {label}
@@ -32,6 +33,7 @@ export function DirectoryScreen({ role, collections, fabricTypes, productTypes, 
       </div>
       {tab === "collections" ? <Rows role={role} kind="collections" rows={collections.map((item) => ({ id: item.id, name: item.name.ru, active: item.active, raw: item }))} onHide={(item) => saveCollectionAction({ ...(item.raw as Collection), active: !item.active })} onDelete={(id) => removeDictionaryAction("collections", id)} onReorder={(ids) => reorderAction("collections", ids)} onCreate={(name) => createCollectionAction({ nameRu: name, autoCatalog: true })} /> : null}
       {tab === "types" ? <Rows role={role} kind="fabricTypes" rows={fabricTypes.map((item) => ({ id: item.id, name: item.name.ru, active: item.active, raw: item, flag: isWovenType(item) }))} flagLabel={t("settings.woven")} onFlag={(item) => saveFabricTypeAction({ ...(item.raw as FabricType), woven: !item.flag })} onHide={(item) => saveFabricTypeAction({ ...(item.raw as FabricType), active: !item.active })} onDelete={(id) => removeDictionaryAction("fabricTypes", id)} onReorder={(ids) => reorderAction("fabricTypes", ids)} onCreate={(name) => createFabricTypeAction({ nameRu: name, suggestedProductTypes: [] })} /> : null}
+      {tab === "finishes" ? <Rows role={role} kind="finishes" rows={finishes.map((item) => ({ id: item.id, name: item.name.ru, active: item.active, raw: item, flag: Boolean(item.toned) }))} flagLabel={t("settings.toned")} onFlag={(item) => saveFinishAction({ ...(item.raw as Finish), toned: !item.flag })} onHide={(item) => saveFinishAction({ ...(item.raw as Finish), active: !item.active })} onDelete={(id) => removeFinishAction(id)} onReorder={(ids) => reorderFinishesAction(ids)} onCreate={(name) => createFinishAction({ nameRu: name })} /> : null}
       {tab === "products" ? <Rows role={role} kind="productTypes" rows={productTypes.map((item) => ({ id: item.id, name: item.name.ru, active: item.active, raw: item }))} onHide={(item) => saveProductTypeAction({ ...(item.raw as ProductType), active: !item.active })} onDelete={(id) => removeDictionaryAction("productTypes", id)} onReorder={(ids) => reorderAction("productTypes", ids)} onCreate={(name) => createProductTypeAction({ nameRu: name, suggestedFor: [] })} /> : null}
       {tab === "glossary" ? <GlossaryEditor role={role} initial={glossary} /> : null}
     </div>

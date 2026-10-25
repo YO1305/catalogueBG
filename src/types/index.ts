@@ -42,11 +42,17 @@ export type Mockup = {
   generatedAt: Timestamp;
 };
 
+export type Tone = "light" | "medium" | "dark";
+
 export type FabricVariant = {
   id: string;
   name: string;
   design: FabricDesign;
   mockups: Mockup[];
+  /** Тон крашеной ткани; средний тон — это основной рисунок ткани */
+  tone?: Exclude<Tone, "medium">;
+  /** Цвет этого тона для макетов тканой ткани */
+  weaveColor?: string;
 };
 
 export type WeavePattern = "stripes" | "map" | "none";
@@ -77,7 +83,10 @@ export type Fabric = {
   name: Localized;
   description: Localized;
   composition: Localized;
-  /** Доп. поля карточки (отделка) — необязательные */
+  /** Отделка из справочника; finish хранит её название для каталога */
+  finishId?: string;
+  /** Крашение: три обязательных тона (светлый, средний, тёмный) */
+  toned?: boolean;
   finish?: Localized;
   finishExtra?: Localized;
   density: string;
@@ -128,6 +137,15 @@ export type FabricType = {
   active: boolean;
   /** Узор в переплетении (страйп-сатин, жаккард, дамаск) — у ткани сразу ставится woven */
   woven?: boolean;
+};
+
+export type Finish = {
+  id: string;
+  name: Localized;
+  order: number;
+  active: boolean;
+  /** Крашение: у ткани три тона и подпись про цвета Pantone в каталоге */
+  toned?: boolean;
 };
 
 export type ProductType = {
@@ -258,6 +276,7 @@ export type AppUser = {
 export type Database = {
   collections: Collection[];
   fabricTypes: FabricType[];
+  finishes?: Finish[];
   productTypes: ProductType[];
   templates: Template[];
   fabrics: Fabric[];

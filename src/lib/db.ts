@@ -3,7 +3,8 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { getFirestore, type DocumentData, type Firestore, Timestamp } from "firebase-admin/firestore";
 import { firebaseAdminConfigured, getAdminApp } from "@/lib/firebaseAdmin";
-import type { AnalyticsEvent, AppUser, Catalog, Collection, Database, Fabric, FabricType, GlossaryTerm, Lead, ProductType, Template } from "@/types";
+import { withDefaultFinishes } from "@/lib/finishes";
+import type { AnalyticsEvent, AppUser, Catalog, Collection, Database, Fabric, FabricType, Finish, GlossaryTerm, Lead, ProductType, Template } from "@/types";
 
 const seedPath = path.join(process.cwd(), "data", "seed.json");
 const runtimePath = path.join(process.cwd(), "data", "runtime.json");
@@ -161,15 +162,16 @@ export async function getGlossary(): Promise<GlossaryTerm[]> {
 export async function getDictionaries() {
   if (!firebaseAdminConfigured()) {
     const db = readLocal();
-    return { collections: db.collections, fabricTypes: db.fabricTypes, productTypes: db.productTypes, glossary: db.glossary };
+    return { collections: db.collections, fabricTypes: db.fabricTypes, finishes: withDefaultFinishes(db.finishes), productTypes: db.productTypes, glossary: db.glossary };
   }
-  const [collections, fabricTypes, productTypes, glossary] = await Promise.all([
+  const [collections, fabricTypes, finishes, productTypes, glossary] = await Promise.all([
     readCollection<Collection>("collections", "id"),
     readCollection<FabricType>("fabricTypes", "id"),
+    readCollection<Finish>("finishes", "id"),
     readCollection<ProductType>("productTypes", "id"),
     readGlossary(),
   ]);
-  return { collections, fabricTypes, productTypes, glossary };
+  return { collections, fabricTypes, finishes: withDefaultFinishes(finishes), productTypes, glossary };
 }
 
 /** Article numbers only, so the uniqueness check does not download every fabric's mockups. */
@@ -362,6 +364,31 @@ export async function saveFabricType(item: FabricType) {
   });
 }
 
+/** The first edit stores the whole default list, so the directory never loses the presets. */
+export async function saveFinish(item: Finish) {
+  const current = (await getDictionaries()).finishes;
+  const rows = current.some((row) => row.id === item.id) ? current.map((row) => (row.id === item.id ? item : row)) : [...current, item];
+  if (firebaseAdminConfigured()) {
+    await Promise.all(rows.map((row) => upsert("finishes", row.id, row)));
+    return;
+  }
+  await mutate((db) => {
+    db.finishes = rows;
+  });
+}
+
+export async function deleteFinish(id: string) {
+  const rows = (await getDictionaries()).finishes.filter((item) => item.id !== id);
+  if (firebaseAdminConfigured()) {
+    await Promise.all(rows.map((row) => upsert("finishes", row.id, row)));
+    await firestore().collection("finishes").doc(id).delete();
+    return;
+  }
+  await mutate((db) => {
+    db.finishes = rows;
+  });
+}
+
 export async function deleteFabricType(id: string) {
   if (firebaseAdminConfigured()) {
     await firestore().collection("fabricTypes").doc(id).delete();
@@ -430,16 +457,17 @@ export async function getTemplatesBoardData() {
 export async function getFabricEditorData() {
   if (!firebaseAdminConfigured()) {
     const db = readLocal();
-    return { catalogs: db.catalogs, collections: db.collections, fabricTypes: db.fabricTypes, productTypes: db.productTypes, templates: db.templates };
+    return { catalogs: db.catalogs, collections: db.collections, fabricTypes: db.fabricTypes, finishes: withDefaultFinishes(db.finishes), productTypes: db.productTypes, templates: db.templates };
   }
-  const [catalogs, collections, fabricTypes, productTypes, templates] = await Promise.all([
+  const [catalogs, collections, fabricTypes, finishes, productTypes, templates] = await Promise.all([
     readCollection<Catalog>("catalogs", "slug"),
     readCollection<Collection>("collections", "id"),
     readCollection<FabricType>("fabricTypes", "id"),
+    readCollection<Finish>("finishes", "id"),
     readCollection<ProductType>("productTypes", "id"),
     readCollection<Template>("templates", "id"),
   ]);
-  return { catalogs, collections, fabricTypes, productTypes, templates };
+  return { catalogs, collections, fabricTypes, finishes: withDefaultFinishes(finishes), productTypes, templates };
 }
 
 export async function saveLead(item: Lead) {

@@ -6,7 +6,7 @@ import { PageFooter } from "@/components/flipbook/PageFooter";
 import { VariantDots } from "@/components/flipbook/VariantDots";
 import { useI18n } from "@/components/i18n/I18n";
 import { designsPerPage, heroMockup } from "@/lib/catalog";
-import { colorOptions, withVariant } from "@/lib/variants";
+import { BASE_VARIANT, colorOptions, withVariant } from "@/lib/variants";
 import type { Catalog, Fabric, FabricType } from "@/types";
 
 type OpenFabric = (id: string, variantId?: string) => void;
@@ -59,7 +59,7 @@ function DesignRow({
 }) {
   const { lang, t } = useI18n();
   const options = colorOptions(fabric);
-  const [variantId, setVariantId] = useState(options[0]?.id);
+  const [variantId, setVariantId] = useState(options.length ? BASE_VARIANT : undefined);
   const shown = withVariant(fabric, variantId);
   const mockup = heroMockup(shown, catalog.showProductTypes);
   const typeName = fabricTypes.find((item) => item.id === fabric.fabricTypeId)?.name[lang] ?? "";

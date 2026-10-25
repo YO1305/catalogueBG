@@ -15,6 +15,7 @@ export default async function NewFabricPage() {
       catalogs={db.catalogs}
       collections={db.collections}
       fabricTypes={db.fabricTypes}
+      finishes={db.finishes}
       productTypes={db.productTypes}
       templates={db.templates}
     />

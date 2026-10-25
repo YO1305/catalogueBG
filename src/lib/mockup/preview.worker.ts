@@ -3,9 +3,10 @@ import { resolveFill, type FillPlan } from "@/lib/mockup/fill";
 import { loadRgba, loadRgbaSized } from "@/lib/mockup/loadRgba";
 import { renderUvgrid, type RenderOptions, type RGBA, type TemplateJson, type ZoneLayers } from "@/lib/mockup/uvgridRender";
 
-export type PreviewRequest = { id: number; jsonUrl: string; backgroundUrl: string; plan: FillPlan; opts: RenderOptions };
+export type PreviewRequest = { id: number; jsonUrl: string; backgroundUrl: string; plan: FillPlan; opts: RenderOptions; final?: boolean };
 export type PreviewResponse =
   | { id: number; ok: true; width: number; height: number; buffer: ArrayBuffer }
+  | { id: number; ok: true; blob: Blob }
   | { id: number; ok: false; error: string };
 
 type Assets = { tpl: TemplateJson; background: RGBA; layers: Record<string, ZoneLayers> };
@@ -15,6 +16,7 @@ const templates = new Map<string, Promise<Assets>>();
 const images = new Map<string, Promise<RGBA>>();
 const KEEP_TEMPLATES = 2;
 const KEEP_IMAGES = 6;
+const FINAL_EDGE = 2000;
 
 function remember<T>(cache: Map<string, Promise<T>>, key: string, keep: number, load: () => Promise<T>): Promise<T> {
   const hit = cache.get(key);
@@ -53,12 +55,27 @@ async function loadTemplate(jsonUrl: string, backgroundUrl: string): Promise<Ass
   return { tpl, background, layers: Object.fromEntries(zones) };
 }
 
+/** Final mockup as JPEG: every browser can encode it, and the server turns it into WebP sizes. */
+async function encode(image: RGBA): Promise<Blob> {
+  const canvas = new OffscreenCanvas(image.width, image.height);
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Браузер не дал canvas для сохранения макета");
+  context.putImageData(new ImageData(new Uint8ClampedArray(image.data), image.width, image.height), 0, 0);
+  return canvas.convertToBlob({ type: "image/jpeg", quality: 0.92 });
+}
+
 scope.onmessage = async (event: MessageEvent<PreviewRequest>) => {
-  const { id, jsonUrl, backgroundUrl, plan, opts } = event.data;
+  const { id, jsonUrl, backgroundUrl, plan, opts, final } = event.data;
   try {
     const assets = await remember(templates, `${jsonUrl}|${backgroundUrl}`, KEEP_TEMPLATES, () => loadTemplate(jsonUrl, backgroundUrl));
     const fill = await resolveFill(plan, (url) => remember(images, url, KEEP_IMAGES, () => loadRgba(url)));
-    const image = renderUvgrid(assets.tpl, assets.background, assets.layers, fill, opts);
+    const outputScale = final ? Math.min(1, FINAL_EDGE / Math.max(assets.tpl.size[0], assets.tpl.size[1])) : opts.outputScale;
+    const image = renderUvgrid(assets.tpl, assets.background, assets.layers, fill, { ...opts, outputScale });
+    if (final) {
+      const message: PreviewResponse = { id, ok: true, blob: await encode(image) };
+      scope.postMessage(message);
+      return;
+    }
     const buffer = image.data.buffer as ArrayBuffer;
     const message: PreviewResponse = { id, ok: true, width: image.width, height: image.height, buffer };
     scope.postMessage(message, [buffer]);

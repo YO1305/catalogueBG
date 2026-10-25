@@ -2,20 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { createCollectionAction, createFabricTypeAction, createProductTypeAction, publishFabricAction, saveFabricAction } from "@/lib/actions";
+import { createCollectionAction, createFabricTypeAction, createFinishAction, createProductTypeAction, publishFabricAction, saveFabricAction } from "@/lib/actions";
+import { renderAndSave } from "@/lib/mockup/clientRender";
 import { prepareUploadImage } from "@/lib/prepareUploadImage";
+import { placeMockup } from "@/lib/variants";
+import { useToneEditor } from "@/lib/useToneEditor";
 import { useWeaveEditor } from "@/lib/useWeaveEditor";
-import type { Collection, Fabric, FabricType, FabricVariant, Mockup, ProductType, Template } from "@/types";
+import type { Collection, Fabric, FabricType, FabricVariant, Finish, Mockup, ProductType, Template } from "@/types";
 
-type Lists = { collections: Collection[]; fabricTypes: FabricType[]; productTypes: ProductType[] };
-
-/** Take fresh mockup URLs from the server without undoing edits made while it rendered. */
-function applyRendered(current: Fabric, row: { mockups: Mockup[]; variants?: FabricVariant[] }, variantId?: string): Fabric {
-  if (!variantId) return { ...current, mockups: row.mockups };
-  const rendered = row.variants?.find((item) => item.id === variantId)?.mockups;
-  if (!rendered) return current;
-  return { ...current, variants: (current.variants ?? []).map((item) => (item.id === variantId ? { ...item, mockups: rendered } : item)) };
-}
+type Lists = { collections: Collection[]; fabricTypes: FabricType[]; finishes: Finish[]; productTypes: ProductType[] };
 
 export function useFabricEditor(
   initial: Fabric,
@@ -31,9 +26,10 @@ export function useFabricEditor(
   const fabricRef = useRef(fabric);
   fabricRef.current = fabric;
 
+  const { collections, fabricTypes, finishes, productTypes } = listsIn;
   useEffect(() => {
-    setLists(listsIn);
-  }, [listsIn]);
+    setLists({ collections, fabricTypes, finishes, productTypes });
+  }, [collections, fabricTypes, finishes, productTypes]);
 
   useEffect(() => {
     setFabric(initial);
@@ -68,6 +64,7 @@ export function useFabricEditor(
   }
 
   const weave = useWeaveEditor(fabricRef, update, templates, uploadDesign);
+  const tones = useToneEditor(fabricRef, update, uploadDesign);
 
   async function upload(raw: File) {
     const data = await uploadDesign(raw);
@@ -180,28 +177,23 @@ export function useFabricEditor(
     return { ok: true as const, catalogs: result.catalogs };
   }
 
-  /** One request per colourway keeps each call well inside the serverless time limit. */
+  /** Each mockup is rendered in the browser worker and uploaded on its own; the page stays usable meanwhile. */
   async function renderMockupsInBackground(fabricId: string) {
-    const variantIds = fabricRef.current.woven ? [] : (fabricRef.current.variants ?? []).filter((item) => item.design.webUrl).map((item) => item.id);
-    try {
-      for (const variantId of [undefined, ...variantIds]) {
-        const response = await fetch("/api/mockups/render", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ fabricId, variantId }),
-        });
-        const data = (await response.json()) as { ok?: boolean; fabrics?: { fabricId: string; mockups: Mockup[]; variants?: FabricVariant[] }[] };
-        if (!response.ok || !data.ok) {
-          toast(t("designs.mockupRenderFailed"));
-          return;
-        }
-        const row = data.fabrics?.find((item) => item.fabricId === fabricId);
-        if (row && fabricRef.current.id === fabricId) setFabric((current) => applyRendered(current, row, variantId));
+    const snapshot = fabricRef.current;
+    const variantIds = (snapshot.variants ?? []).filter((item) => item.design.webUrl).map((item) => item.id);
+    const jobs = [undefined, ...variantIds].flatMap((variantId) => snapshot.mockups.map((mockup) => ({ variantId, mockup })));
+    for (const job of jobs) {
+      const template = templates.find((item) => item.id === job.mockup.templateId);
+      if (!template) continue;
+      try {
+        const saved = await renderAndSave(snapshot, template, job.mockup, job.variantId);
+        if (fabricRef.current.id === fabricId) setFabric((current) => placeMockup(current, saved, job.variantId));
+      } catch (error) {
+        toast(`${t("designs.mockupRenderFailed")}: ${error instanceof Error ? error.message : String(error)}`);
+        return;
       }
-      toast(t("designs.mockupsReady"));
-    } catch {
-      toast(t("designs.mockupRenderFailed"));
     }
+    if (jobs.length) toast(t("designs.mockupsReady"));
   }
 
   return {
@@ -217,6 +209,7 @@ export function useFabricEditor(
     patchVariant,
     removeVariant,
     weave,
+    tones,
     saveDraft,
     publish,
     templates,
@@ -230,6 +223,12 @@ export function useFabricEditor(
       const result = await createFabricTypeAction({ nameRu: name, suggestedProductTypes: extra?.ids ?? [] });
       if (!result.ok) return null;
       setLists((current) => ({ ...current, fabricTypes: [...current.fabricTypes, result.item] }));
+      return result.item;
+    },
+    onCreateFinish: async (name: string) => {
+      const result = await createFinishAction({ nameRu: name });
+      if (!result.ok) return null;
+      setLists((current) => ({ ...current, finishes: [...current.finishes, result.item] }));
       return result.item;
     },
     onCreateProduct: async (name: string, extra?: { ids: string[] }) => {

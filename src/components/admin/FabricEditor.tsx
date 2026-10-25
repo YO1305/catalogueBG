@@ -14,7 +14,9 @@ import { Button } from "@/components/ui/button";
 import { addFabricsToCatalogAction } from "@/lib/actions";
 import { isWovenType } from "@/lib/mockup/weave";
 import { useFabricEditor } from "@/lib/useFabricEditor";
-import type { Catalog, Collection, Fabric, FabricType, ProductType, Template } from "@/types";
+import { FabricToneSection } from "@/components/admin/FabricToneSection";
+import { missingTones } from "@/lib/variants";
+import type { Catalog, Collection, Fabric, FabricType, Finish, ProductType, Template } from "@/types";
 
 export function FabricEditor({
   initial,
@@ -22,6 +24,7 @@ export function FabricEditor({
   catalogs,
   collections,
   fabricTypes,
+  finishes,
   productTypes,
   templates,
 }: {
@@ -30,20 +33,23 @@ export function FabricEditor({
   catalogs: Catalog[];
   collections: Collection[];
   fabricTypes: FabricType[];
+  finishes: Finish[];
   productTypes: ProductType[];
   templates: Template[];
 }) {
   const { t } = useI18n();
   const router = useRouter();
-  const editor = useFabricEditor(initial, { collections, fabricTypes, productTypes }, templates, t);
+  const editor = useFabricEditor(initial, { collections, fabricTypes, finishes, productTypes }, templates, t);
   const { fabric, lists, progress, update, upload, chooseTemplate, saveDraft, publish, onCreateCollection, onCreateFabricType } = editor;
   const [catalogSlugs, setCatalogSlugs] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
+  const missing = missingTones(fabric);
   const ready = useMemo(
     () =>
       Boolean(
         fabric.design.webUrl &&
+          !missingTones(fabric).length &&
           (fabric.woven ? Boolean(fabric.weave?.color) : fabric.rapport.widthCm > 0 && fabric.rapport.heightCm > 0) &&
           fabric.art &&
           fabric.name.ru &&
@@ -74,17 +80,21 @@ export function FabricEditor({
       <h1 className="font-display mt-2 text-2xl md:text-3xl">{isNew ? t("designs.createTitle") : t("designs.editTitle")}</h1>
       <div className="mt-5 space-y-5">
         <FabricDesignSection fabric={fabric} progress={progress} weave={editor.weave} wovenType={isWovenType(lists.fabricTypes.find((item) => item.id === fabric.fabricTypeId))} onChange={update} onUpload={upload} />
-        {!fabric.woven ? (
+        {!fabric.woven && !fabric.toned ? (
           <FabricVariantsSection fabric={fabric} progress={progress} onChange={update} onAdd={(file) => void editor.addVariant(file)} onPatch={editor.patchVariant} onRemove={editor.removeVariant} />
         ) : null}
         <div><h2 className="font-display text-lg">{t("wizard.data")}</h2></div>
-        <WizardCardStep fabric={fabric} collections={lists.collections} fabricTypes={lists.fabricTypes} productTypes={lists.productTypes} onChange={update} hideCollection onCreateCollection={onCreateCollection} onCreateFabricType={onCreateFabricType} />
+        <WizardCardStep fabric={fabric} collections={lists.collections} fabricTypes={lists.fabricTypes} finishes={lists.finishes} productTypes={lists.productTypes} onChange={update} hideCollection onCreateCollection={onCreateCollection} onCreateFabricType={onCreateFabricType} onCreateFinish={editor.onCreateFinish} />
+        {fabric.toned ? (
+          <FabricToneSection fabric={fabric} progress={progress} onUploadMain={upload} onUploadTone={(tone, file) => void editor.tones.uploadTone(tone, file)} onPatchTone={editor.tones.patchTone} onPatchWeave={editor.weave.patchWeave} />
+        ) : null}
         <WizardMockupCategoryStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} />
         <FabricCatalogPickSection catalogs={catalogs} selected={catalogSlugs} onChange={setCatalogSlugs} />
       </div>
       <div className="mt-6 flex flex-wrap gap-2 border-t border-black/10 pt-4">
         <Button type="button" variant="outline" disabled={busy} onClick={() => void finish(false)}>{t("wizard.saveDraft")}</Button>
         <Button type="button" disabled={busy || !ready} onClick={() => void finish(true)}>{t("designs.saveAll")}</Button>
+        {missing.length ? <p className="w-full text-sm text-amber-700">{t("tone.required", { list: missing.map((tone) => t(`tone.${tone}`)).join(", ") })}</p> : null}
       </div>
     </div>
   );
