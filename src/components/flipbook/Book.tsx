@@ -136,7 +136,7 @@ export const Book = function Book({
               onRequest={onRequest}
             />
           ) : null}
-          {page.kind === "back" ? <PageBack catalog={model.catalog} qr={model.qr} onLead={onLead} /> : null}
+          {page.kind === "back" ? <PageBack catalog={model.catalog} onLead={onLead} /> : null}
         </PaperPage>
       ))}
     </Flip>

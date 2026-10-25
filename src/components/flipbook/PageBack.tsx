@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useI18n } from "@/components/i18n/I18n";
 import type { Catalog } from "@/types";
 
-export function PageBack({ catalog, qr, onLead }: { catalog: Catalog; qr: string; onLead: () => void }) {
+export function PageBack({ catalog, onLead }: { catalog: Catalog; onLead: () => void }) {
   const { t } = useI18n();
   return (
     <div className="flex h-full flex-col justify-between px-[8%] py-[8%]">
@@ -17,13 +17,7 @@ export function PageBack({ catalog, qr, onLead }: { catalog: Catalog; qr: string
           {catalog.contacts.address}
         </p>
       </div>
-      <div className="flex items-end justify-between gap-4">
-        {qr ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={qr} alt={t("catalog.qr")} className="h-[28%] w-auto bg-white p-1" />
-        ) : (
-          <span />
-        )}
+      <div className="flex justify-end">
         <button type="button" className="bg-[#163a66] px-[1em] py-[0.7em] text-[0.85em] text-[#f4efe6]" onClick={onLead}>
           {t("catalog.lead")}
         </button>
