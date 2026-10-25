@@ -1,5 +1,7 @@
 import type { ZipTemplateManifest, ZipTemplateZone, ZipUvGrid } from "@/lib/templateZip/types";
 
+export const ZONE_LAYER_KEYS = ["mask", "shade", "weave", "gloss", "light"] as const;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -15,7 +17,7 @@ function readUvGrid(raw: unknown): ZipUvGrid | null {
   return { x0, y0, step, cols, rows, u, v };
 }
 
-function readZone(raw: unknown, finish: string | undefined, errors: string[]): ZipTemplateZone | null {
+function readZone(raw: unknown, finish: string | undefined, weaveCapable: boolean, errors: string[]): ZipTemplateZone | null {
   if (!isRecord(raw)) {
     errors.push("Некорректная зона в template.json");
     return null;
@@ -33,12 +35,15 @@ function readZone(raw: unknown, finish: string | undefined, errors: string[]): Z
   if (!uvGrid) errors.push(`Зона «${label}»: некорректная uvGrid (u/v должны быть cols×rows)`);
   const weave = typeof raw.weave === "string" ? raw.weave : undefined;
   const gloss = typeof raw.gloss === "string" ? raw.gloss : undefined;
+  const light = typeof raw.light === "string" ? raw.light : undefined;
   if (finish === "sateen") {
     if (!weave) errors.push(`Зона «${label}»: для sateen нужен weave`);
     if (!gloss) errors.push(`Зона «${label}»: для sateen нужен gloss`);
+  } else if (weaveCapable && !weave) {
+    errors.push(`Зона «${label}»: для weaveCapable нужен weave`);
   }
   if (!id || !mask || !shade || !uvGrid || !Number.isFinite(pxPerCm)) return null;
-  return { id, label, mask, shade, weave, gloss, pxPerCm, uvGrid };
+  return { id, label, mask, shade, weave, gloss, light, pxPerCm, uvGrid };
 }
 
 export function validateZipTemplateJson(json: unknown): { ok: true; manifest: ZipTemplateManifest } | { ok: false; errors: string[] } {
@@ -51,12 +56,13 @@ export function validateZipTemplateJson(json: unknown): { ok: true; manifest: Zi
     errors.push("Поле size должно быть [ширина, высота] в пикселях");
   }
   const finish = typeof json.finish === "string" ? json.finish : undefined;
+  const weaveCapable = json.weaveCapable === true;
   const zonesRaw = json.zones;
   if (!Array.isArray(zonesRaw) || !zonesRaw.length) errors.push("Нужен хотя бы один элемент в zones");
   const zones: ZipTemplateZone[] = [];
   if (Array.isArray(zonesRaw)) {
     for (const entry of zonesRaw) {
-      const zone = readZone(entry, finish, errors);
+      const zone = readZone(entry, finish, weaveCapable, errors);
       if (zone) zones.push(zone);
     }
   }
@@ -70,6 +76,11 @@ export function validateZipTemplateJson(json: unknown): { ok: true; manifest: Zi
     units: typeof json.units === "string" ? json.units : undefined,
     tint_bgr: Array.isArray(json.tint_bgr) && json.tint_bgr.length === 3 ? (json.tint_bgr as [number, number, number]) : undefined,
     stripe: isRecord(json.stripe) ? { axis: String(json.stripe.axis), photoPeriodCm: Number(json.stripe.photoPeriodCm) } : undefined,
+    shadeKnee: typeof json.shadeKnee === "number" && json.shadeKnee > 0 ? json.shadeKnee : undefined,
+    highlightRolloff: typeof json.highlightRolloff === "boolean" ? json.highlightRolloff : undefined,
+    weaveCapable: weaveCapable || undefined,
+    softMasks: typeof json.softMasks === "boolean" ? json.softMasks : undefined,
+    referenceColor: typeof json.referenceColor === "string" && /^#[0-9a-f]{6}$/i.test(json.referenceColor) ? json.referenceColor : undefined,
     zones,
   };
   return { ok: true, manifest };
@@ -94,7 +105,7 @@ export function validateZipAssets(manifest: ZipTemplateManifest, fileNames: Set<
   const bg = resolveZipAssetPath(fileNames, "background.jpg");
   if (!bg) errors.push("В ZIP нет background.jpg");
   for (const zone of manifest.zones) {
-    for (const key of ["mask", "shade", "weave", "gloss"] as const) {
+    for (const key of ZONE_LAYER_KEYS) {
       const file = zone[key];
       if (!file) continue;
       if (!resolveZipAssetPath(fileNames, file)) errors.push(`Зона «${zone.label}»: файл ${file} не найден в ZIP`);

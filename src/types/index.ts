@@ -178,6 +178,8 @@ export type Template = {
   productTypes: string[];
   name: string;
   finish?: "sateen" | "matte" | string;
+  /** Шаблон со слоями weave подходит и для тканых тканей, хотя finish = matte. */
+  weaveCapable?: boolean;
   source: {
     psdUrl: string;
     fileName: string;

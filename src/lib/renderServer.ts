@@ -20,7 +20,7 @@ async function readUrl(url: string) {
 }
 
 async function renderUvgridMockup(fabric: Fabric, template: Template, mockup: Mockup) {
-  if (!templateFitsFabric(fabric, template)) throw new Error(`Шаблон «${template.name}» не подходит для тканых тканей: нужен сатиновый шаблон`);
+  if (!templateFitsFabric(fabric, template)) throw new Error(`Шаблон «${template.name}» не подходит для тканых тканей: нужен сатиновый шаблон или шаблон с weaveCapable`);
   const plan = fillPlan(fabric);
   if (!plan) throw new Error("Нет рисунка или цвета ткани для макета");
   const { tpl, background, layers } = await loadTemplateAssets(template.baked.jsonUrl, template.baked.backgroundUrl);

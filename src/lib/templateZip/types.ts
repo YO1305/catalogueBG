@@ -15,6 +15,7 @@ export type ZipTemplateZone = {
   shade: string;
   weave?: string;
   gloss?: string;
+  light?: string;
   pxPerCm: number;
   uvGrid: ZipUvGrid;
 };
@@ -26,6 +27,11 @@ export type ZipTemplateManifest = {
   units?: string;
   tint_bgr?: [number, number, number];
   stripe?: { axis: string; photoPeriodCm: number };
+  shadeKnee?: number;
+  highlightRolloff?: boolean;
+  weaveCapable?: boolean;
+  softMasks?: boolean;
+  referenceColor?: string;
   zones: ZipTemplateZone[];
 };
 

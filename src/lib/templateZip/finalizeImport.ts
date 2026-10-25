@@ -3,6 +3,7 @@ import sharp from "sharp";
 import { saveBuffer } from "@/lib/storage";
 import type { MockupCategory, Template, TemplateArea } from "@/types";
 import type { ZipTemplateManifest } from "@/lib/templateZip/types";
+import { ZONE_LAYER_KEYS } from "@/lib/templateZip/validate";
 
 function manifestForStorage(manifest: ZipTemplateManifest, urlByFile: Map<string, string>): ZipTemplateManifest {
   const zones = manifest.zones.map((zone) => ({
@@ -11,6 +12,7 @@ function manifestForStorage(manifest: ZipTemplateManifest, urlByFile: Map<string
     shade: urlByFile.get(zone.shade) ?? zone.shade,
     weave: zone.weave ? urlByFile.get(zone.weave) ?? zone.weave : undefined,
     gloss: zone.gloss ? urlByFile.get(zone.gloss) ?? zone.gloss : undefined,
+    light: zone.light ? urlByFile.get(zone.light) ?? zone.light : undefined,
   }));
   return { ...manifest, zones };
 }
@@ -31,10 +33,10 @@ export async function finalizeZipTemplateImport(input: {
   if (!backgroundUrl) errors.push("Не загружен background.jpg");
 
   for (const zone of input.manifest.zones) {
-    if (!urlByFile.get(zone.mask)) errors.push(`Не загружен ${zone.mask}`);
-    if (!urlByFile.get(zone.shade)) errors.push(`Не загружен ${zone.shade}`);
-    if (zone.weave && !urlByFile.get(zone.weave)) errors.push(`Не загружен ${zone.weave}`);
-    if (zone.gloss && !urlByFile.get(zone.gloss)) errors.push(`Не загружен ${zone.gloss}`);
+    for (const key of ZONE_LAYER_KEYS) {
+      const file = zone[key];
+      if (file && !urlByFile.get(file)) errors.push(`Не загружен ${file}`);
+    }
   }
   if (errors.length) return { ok: false, errors };
 
@@ -86,6 +88,7 @@ export async function finalizeZipTemplateImport(input: {
     name: displayName,
     finish:
       input.manifest.finish === "sateen" ? "sateen" : input.manifest.finish === "matte" ? "matte" : input.manifest.finish,
+    weaveCapable: input.manifest.weaveCapable,
     source: {
       psdUrl: "",
       fileName: `${displayName}.zip`,

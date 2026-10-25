@@ -26,8 +26,8 @@ export function defaultWeave(color = "#e8e2d6"): FabricWeave {
   return { color, correction: DEFAULT_CORRECTION, pattern: "stripes", stripes: STRIPE_PRESETS[1] };
 }
 
-export function templateFitsFabric(fabric: Pick<Fabric, "woven">, template: Pick<Template, "finish">): boolean {
-  return !fabric.woven || template.finish === "sateen";
+export function templateFitsFabric(fabric: Pick<Fabric, "woven">, template: Pick<Template, "finish" | "weaveCapable">): boolean {
+  return !fabric.woven || template.finish === "sateen" || Boolean(template.weaveCapable);
 }
 
 export function presetLabel(stripes: Array<{ widthCm: number }>): string {

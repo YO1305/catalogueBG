@@ -7,6 +7,7 @@ export function collectManifestAssetPaths(manifest: ZipTemplateManifest): string
     paths.add(zone.shade);
     if (zone.weave) paths.add(zone.weave);
     if (zone.gloss) paths.add(zone.gloss);
+    if (zone.light) paths.add(zone.light);
   }
   return [...paths];
 }

@@ -14,13 +14,25 @@ export type RGBA = { width: number; height: number; data: Uint8ClampedArray | Ui
 export interface UvGrid { x0: number; y0: number; step: number; cols: number; rows: number; u: number[]; v: number[] }
 export interface TemplateZone {
   id: string; label?: string; mask: string; shade: string; weave?: string; gloss?: string;
+  /** RGB-слой цвета освещения (тёплый/холодный свет), value/255*2, 1.0 = 128. Необязательный. */
+  light?: string;
   pxPerCm: number; uvGrid: UvGrid;
 }
 export interface TemplateJson {
   name?: string; finish?: 'sateen' | 'matte'; size: [number, number];
   tint_bgr?: [number, number, number]; zones: TemplateZone[];
+  /** Порог сжатия бликов в shade (по умолчанию 1.0). */
+  shadeKnee?: number;
+  /** Мягкое «скругление» светлых тонов вместо обрезки (белые ткани не выгорают). */
+  highlightRolloff?: boolean;
+  /** Шаблон умеет страйп-сатин/жаккард (есть слои weave), хотя finish = matte. */
+  weaveCapable?: boolean;
+  /** Маски с мягкими краями (0..255 = доля ткани в пикселе). Тогда край не размывается дополнительно. */
+  softMasks?: boolean;
+  /** Цвет ткани на исходном фото (для проверки: рендер этим цветом ≈ исходное фото). */
+  referenceColor?: string;
 }
-export interface ZoneLayers { mask: RGBA; shade: RGBA; weave?: RGBA; gloss?: RGBA }
+export interface ZoneLayers { mask: RGBA; shade: RGBA; weave?: RGBA; gloss?: RGBA; light?: RGBA }
 
 export interface Stripe { widthCm: number; color: string; shiny: boolean }
 export type Fill =
@@ -161,7 +173,7 @@ export function renderUvgrid(
   if (SW !== tpl.size[0] || SH !== tpl.size[1]) throw new Error(`Фон ${SW}×${SH} не совпадает с template.size ${tpl.size.join('×')}`);
   for (const z of tpl.zones) {
     const L = layers[z.id]; if (!L) throw new Error(`Нет слоёв для зоны ${z.id}`);
-    for (const k of ['mask', 'shade', 'weave', 'gloss'] as const) {
+    for (const k of ['mask', 'shade', 'weave', 'gloss', 'light'] as const) {
       const im = L[k]; if (im && (im.width !== SW || im.height !== SH)) throw new Error(`Слой ${k} зоны ${z.id}: ${im.width}×${im.height}, нужно ${SW}×${SH}`);
     }
   }
@@ -177,18 +189,21 @@ export function renderUvgrid(
   const toSrc = (o: number) => f === 1 ? o : (o + 0.5) / f - 0.5;
 
   // 1) какая зона в каждом пикселе (поздняя перекрывает раннюю) + альфа
+  const soft = !!tpl.softMasks;
   const zoneOf = new Int16Array(W * H).fill(-1);
   const A = new Float32Array(W * H);
+  const S = soft ? new Float32Array(W * H) : null;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const sx = toSrc(x), sy = toSrc(y);
+    const sx = toSrc(x), sy = toSrc(y); let best = 0;
     for (let zi = 0; zi < tpl.zones.length; zi++) {
       const m = layers[tpl.zones[zi].id].mask;
       const val = f === 1 ? m.data[(sy * SW + sx) * 4] : sampleR(m, sx, sy);
-      if (val > 127) zoneOf[y * W + x] = zi;
+      if (soft) { if (val > 0 && val >= best) { best = val; zoneOf[y * W + x] = zi; } }
+      else if (val > 127) zoneOf[y * W + x] = zi;
     }
-    if (zoneOf[y * W + x] >= 0) A[y * W + x] = 1;
+    if (zoneOf[y * W + x] >= 0) { A[y * W + x] = 1; if (S) S[y * W + x] = best / 255; }
   }
-  const Ablur = alphaBlur(A, W, H, 1.0 * f);
+  const Ablur = soft ? A : alphaBlur(A, W, H, 1.0 * f);
 
   // 2) подготовка заливки
   let stripeEdges: number[] = [], stripeCols: [number, number, number][] = [], stripeSgn: number[] = [], P = 0;
@@ -219,6 +234,9 @@ export function renderUvgrid(
   });
   const gc0 = 1.0, gc1 = 0.98, gc2 = 0.97;
   const t0 = tint[0], t1 = tint[1], t2 = tint[2];
+  const knee = tpl.shadeKnee ?? 1.0, rolloff = !!tpl.highlightRolloff;
+  const lt = new Float32Array(3);
+  const roll = (v: number) => v <= 0.85 ? v : 0.85 + 0.15 * Math.tanh((v - 0.85) / 0.15);
   const uv = new Float64Array(2);
   const bgd = background.data;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
@@ -226,7 +244,7 @@ export function renderUvgrid(
     let b0: number, b1: number, b2: number, sx: number, sy: number;
     if (f === 1) { sx = x; sy = y; b0 = bgd[p4] / 255; b1 = bgd[p4 + 1] / 255; b2 = bgd[p4 + 2] / 255; }
     else { sx = (x + 0.5) / f - 0.5; sy = (y + 0.5) / f - 0.5; sampleRGB(background, sx, sy, bg); b0 = bg[0]; b1 = bg[1]; b2 = bg[2]; }
-    const zi = zoneOf[p]; const a = A[p] * Ablur[p];
+    const zi = zoneOf[p]; const a = S ? S[p] : A[p] * Ablur[p];
     out[p4 + 3] = 255;
     if (zi < 0 || a <= 0 || !gridUVInto(tpl.zones[zi].uvGrid, sx, sy, uv)) {
       out[p4] = Math.floor(b0 * 255 + 0.5); out[p4 + 1] = Math.floor(b1 * 255 + 0.5); out[p4 + 2] = Math.floor(b2 * 255 + 0.5); continue;
@@ -268,12 +286,16 @@ export function renderUvgrid(
     }
     const q = sy * SW + sx;
     const rs = f === 1 ? L.shade.data[q * 4] : sampleR(L.shade, sx, sy);
-    let s = rs / 255 * 1.5; if (s > 1) s = 1 + (s - 1) * 0.55;
+    let s = rs / 255 * 1.5; if (s > knee) s = knee + (s - knee) * 0.55;
+    let l0 = 1, l1 = 1, l2 = 1;
+    if (L.light) { if (f === 1) { const ld = L.light.data; l0 = ld[q * 4] / 127.5; l1 = ld[q * 4 + 1] / 127.5; l2 = ld[q * 4 + 2] / 127.5; }
+      else { sampleRGB(L.light, sx, sy, lt); l0 = lt[0] * 2; l1 = lt[1] * 2; l2 = lt[2] * 2; } }
     const wv = L.weave ? (f === 1 ? L.weave.data[q * 4] : sampleR(L.weave, sx, sy)) / 255 * 0.5 : 0;
     const gl = L.gloss ? (f === 1 ? L.gloss.data[q * 4] : sampleR(L.gloss, sx, sy)) / 255 : 0;
     const m = s * (1 + weaveK * wv * band) * (grainK > 0 ? 1 + grainK * hashNoise(Math.round(sx), Math.round(sy), seed) / 0.57735 : 1);
     const g = gl * glossK * (0.6 + 0.4 * (band > 0 ? band : 0));
-    let v0 = c0 * m * t0, v1 = c1 * m * t1, v2 = c2 * m * t2;
+    let v0 = c0 * m * t0 * l0, v1 = c1 * m * t1 * l1, v2 = c2 * m * t2 * l2;
+    if (rolloff) { v0 = roll(v0); v1 = roll(v1); v2 = roll(v2); }
     v0 = v0 < 0 ? 0 : v0 > 1 ? 1 : v0; v1 = v1 < 0 ? 0 : v1 > 1 ? 1 : v1; v2 = v2 < 0 ? 0 : v2 > 1 ? 1 : v2;
     if (g > 0) { v0 = 1 - (1 - v0) * (1 - g * gc0); v1 = 1 - (1 - v1) * (1 - g * gc1); v2 = 1 - (1 - v2) * (1 - g * gc2); }
     const r0 = b0 * (1 - a) + v0 * a, r1 = b1 * (1 - a) + v1 * a, r2 = b2 * (1 - a) + v2 * a;

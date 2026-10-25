@@ -27,13 +27,14 @@ export async function loadTemplateAssets(jsonUrl: string, backgroundUrl: string)
     readRgba(backgroundUrl, tpl.size),
     Promise.all(
       tpl.zones.map(async (zone) => {
-        const [mask, shade, weave, gloss] = await Promise.all([
+        const [mask, shade, weave, gloss, light] = await Promise.all([
           readRgba(zone.mask),
           readRgba(zone.shade),
           zone.weave ? readRgba(zone.weave) : undefined,
           zone.gloss ? readRgba(zone.gloss) : undefined,
+          zone.light ? readRgba(zone.light) : undefined,
         ]);
-        return [zone.id, { mask, shade, weave, gloss }] as const;
+        return [zone.id, { mask, shade, weave, gloss, light }] as const;
       }),
     ),
   ]);

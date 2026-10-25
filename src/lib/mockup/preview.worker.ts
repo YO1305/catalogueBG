@@ -42,13 +42,14 @@ async function loadTemplate(jsonUrl: string, backgroundUrl: string): Promise<Ass
     loadRgbaSized(backgroundUrl, tpl.size),
     Promise.all(
       tpl.zones.map(async (zone) => {
-        const [mask, shade, weave, gloss] = await Promise.all([
+        const [mask, shade, weave, gloss, light] = await Promise.all([
           loadRgba(zone.mask),
           loadRgba(zone.shade),
           zone.weave ? loadRgba(zone.weave) : undefined,
           zone.gloss ? loadRgba(zone.gloss) : undefined,
+          zone.light ? loadRgba(zone.light) : undefined,
         ]);
-        return [zone.id, { mask, shade, weave, gloss }] as const;
+        return [zone.id, { mask, shade, weave, gloss, light }] as const;
       }),
     ),
   ]);

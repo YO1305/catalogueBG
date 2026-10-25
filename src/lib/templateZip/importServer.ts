@@ -3,6 +3,7 @@ import sharp from "sharp";
 import { saveBuffer } from "@/lib/storage";
 import type { MockupCategory, Template, TemplateArea } from "@/types";
 import { JSZip, parseTemplateZipBuffer, resolveZipAssetPath } from "@/lib/templateZip/readZip";
+import { ZONE_LAYER_KEYS } from "@/lib/templateZip/validate";
 import type { ZipTemplateManifest } from "@/lib/templateZip/types";
 
 function contentTypeForPath(path: string): string {
@@ -23,7 +24,7 @@ async function assertZonePngSizes(manifest: ZipTemplateManifest, zip: JSZip, fil
   const [w, h] = manifest.size;
   const errors: string[] = [];
   for (const zone of manifest.zones) {
-    for (const key of ["mask", "shade", "weave", "gloss"] as const) {
+    for (const key of ZONE_LAYER_KEYS) {
       const rel = zone[key];
       if (!rel) continue;
       const path = resolveZipAssetPath(fileNames, rel);
@@ -46,6 +47,7 @@ function manifestForStorage(manifest: ZipTemplateManifest, urlByFile: Map<string
     shade: urlByFile.get(zone.shade) ?? zone.shade,
     weave: zone.weave ? urlByFile.get(zone.weave) ?? zone.weave : undefined,
     gloss: zone.gloss ? urlByFile.get(zone.gloss) ?? zone.gloss : undefined,
+    light: zone.light ? urlByFile.get(zone.light) ?? zone.light : undefined,
   }));
   return { ...manifest, zones };
 }
@@ -86,10 +88,10 @@ export async function importTemplateZipFromBuffer(
 
   const manifest = parsed.parsed.manifest;
   for (const zone of manifest.zones) {
-    await uploadZipAsset(zone.mask);
-    await uploadZipAsset(zone.shade);
-    if (zone.weave) await uploadZipAsset(zone.weave);
-    if (zone.gloss) await uploadZipAsset(zone.gloss);
+    for (const key of ZONE_LAYER_KEYS) {
+      const file = zone[key];
+      if (file) await uploadZipAsset(file);
+    }
   }
 
   const storedManifest = manifestForStorage(manifest, urlByBasename);
@@ -123,6 +125,7 @@ export async function importTemplateZipFromBuffer(
     productTypes: input.productTypes,
     name: displayName,
     finish: manifest.finish === "sateen" ? "sateen" : manifest.finish === "matte" ? "matte" : manifest.finish,
+    weaveCapable: manifest.weaveCapable,
     source: {
       psdUrl: "",
       fileName: `${displayName}.zip`,

@@ -52,6 +52,8 @@ def render(tdir,out=None,design=None,tile_w_cm=None,tile_h_cm=None,stripes=None,
     if stripes:
         P=sum(s[0] for s in stripes); edges=np.cumsum([0]+[s[0] for s in stripes])
         cols=[hex2rgb(s[1]) for s in stripes]; sgn=[1.0 if s[2] else -1.0 for s in stripes]
+    LT=np.ones_like(base)
+    SOFTA=np.zeros((h,w),np.float32)
     col=np.zeros_like(base); sh=np.zeros((h,w),np.float32); wv=np.zeros((h,w),np.float32); gl=np.zeros((h,w),np.float32)
     band=np.zeros((h,w),np.float32); A=np.zeros((h,w),np.float32)
     for z in T['zones']:
@@ -60,7 +62,10 @@ def render(tdir,out=None,design=None,tile_w_cm=None,tile_h_cm=None,stripes=None,
         U,V,(xa,ya,xb,yb)=grid_to_px(z,w,h)
         c,s=math.cos(math.radians(p['rot'])),math.sin(math.radians(p['rot']))
         uu=(U+p['du'])*c-(V+p['dv'])*s; vv=(U+p['du'])*s+(V+p['dv'])*c
-        m=rd(z['mask'],0)[ya:yb,xa:xb]>127
+        mraw=rd(z['mask'],0)[ya:yb,xa:xb]
+        if T.get('softMasks'):
+            sub=SOFTA[ya:yb,xa:xb]; m=(mraw>0)&(mraw.astype(np.float32)/255>=sub); sub[m]=mraw[m].astype(np.float32)/255
+        else: m=mraw>127
         if design:
             dens=max(tw/(tile_w_cm*p['scale']),th/(tile_h_cm*p['scale']))/z['pxPerCm']
             src,sw,sh_=prepare_tile(tile,dens*0.4 if dens>1.6 else 0)
@@ -85,8 +90,9 @@ def render(tdir,out=None,design=None,tile_w_cm=None,tile_h_cm=None,stripes=None,
         put(col,smp); put(band,bs); put(A,np.ones(m.shape,np.float32))
         put(sh,rd(z['shade'],0)[ya:yb,xa:xb].astype(np.float32)/255*1.5)
         if z.get('weave'): put(wv,rd(z['weave'],0)[ya:yb,xa:xb].astype(np.float32)/255*0.5)
+        if z.get('light'): put(LT,cv2.cvtColor(rd(z['light']),cv2.COLOR_BGR2RGB)[ya:yb,xa:xb].astype(np.float32)/127.5)
         if z.get('gloss'): put(gl,rd(z['gloss'],0)[ya:yb,xa:xb].astype(np.float32)/255)
-    sh=np.where(sh>1.0,1.0+(sh-1.0)*0.55,sh)
+    knee=T.get('shadeKnee',1.0); sh=np.where(sh>knee,knee+(sh-knee)*0.55,sh)
     weave=1+weave_contrast*wv*band
     if grain>0:
         yy,xx=np.mgrid[0:h,0:w].astype(np.uint32)
@@ -98,10 +104,12 @@ def render(tdir,out=None,design=None,tile_w_cm=None,tile_h_cm=None,stripes=None,
         n=hh.astype(np.float64)/4294967296*2-1
         gr=(1+grain*n/0.57735).astype(np.float32)
     else: gr=1.0
-    fab=np.clip(col*(sh*weave*gr)[...,None]*tint,0,1)
+    fab=col*(sh*weave*gr)[...,None]*tint*LT
+    if T.get('highlightRolloff'): fab=np.where(fab<=0.85,fab,0.85+0.15*np.tanh((fab-0.85)/0.15))
+    fab=np.clip(fab,0,1)
     g=(gl*gloss_strength*(0.6+0.4*np.clip(band,0,1)))[...,None]
     fab=1-(1-fab)*(1-g*np.array([1.0,0.98,0.97],np.float32))
-    a=(A*gauss(A,1.0))[...,None]
+    a=(SOFTA if T.get('softMasks') else A*gauss(A,1.0))[...,None]
     res=np.clip(base*(1-a)+fab*a,0,1)
     if out: cv2.imwrite(out,cv2.cvtColor((res*255+0.5).astype(np.uint8),cv2.COLOR_RGB2BGR),[cv2.IMWRITE_JPEG_QUALITY,92])
     return res
