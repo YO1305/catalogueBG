@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
-import { renderAndSave } from "@/lib/mockup/clientRender";
 import { useMockupPreview } from "@/lib/mockup/useMockupPreview";
 import { SCALE_PRESETS, scaleToSlider, sliderToScale } from "@/lib/mockupMath";
 import type { Fabric, Mockup, Template } from "@/types";
@@ -14,11 +13,14 @@ export function MockupAdjuster({
   template,
   mockup,
   onChange,
+  onSave,
 }: {
   fabric: Fabric;
   template: Template;
   mockup: Mockup;
   onChange: (mockup: Mockup) => void;
+  /** Saves this mockup for the main picture and for every colourway / tone. */
+  onSave: () => Promise<number>;
 }) {
   const { t } = useI18n();
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -113,11 +115,8 @@ export function MockupAdjuster({
           disabled={saving}
           onClick={() => {
             setSaving(true);
-            renderAndSave(fabric, template, mockup)
-              .then((saved) => {
-                setSaveError(null);
-                onChange(saved);
-              })
+            onSave()
+              .then(() => setSaveError(null))
               .catch((error: unknown) => setSaveError(error instanceof Error ? error.message : String(error)))
               .finally(() => setSaving(false));
           }}

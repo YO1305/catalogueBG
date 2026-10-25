@@ -3,9 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createCollectionAction, createFabricTypeAction, createFinishAction, createProductTypeAction, publishFabricAction, saveFabricAction } from "@/lib/actions";
-import { renderAndSave } from "@/lib/mockup/clientRender";
 import { prepareUploadImage } from "@/lib/prepareUploadImage";
-import { placeMockup } from "@/lib/variants";
+import { useMockupJobs } from "@/lib/useMockupJobs";
 import { useToneEditor } from "@/lib/useToneEditor";
 import { useWeaveEditor } from "@/lib/useWeaveEditor";
 import type { Collection, Fabric, FabricType, FabricVariant, Finish, Mockup, ProductType, Template } from "@/types";
@@ -31,7 +30,9 @@ export function useFabricEditor(
     setLists({ collections, fabricTypes, finishes, productTypes });
   }, [collections, fabricTypes, finishes, productTypes]);
 
+  /** A refresh after saving brings back the same fabric as it was at save time; only another fabric resets the form. */
   useEffect(() => {
+    if (initial.id === fabricRef.current.id) return;
     setFabric(initial);
     setProgress(0);
     dirty.current = false;
@@ -65,6 +66,7 @@ export function useFabricEditor(
 
   const weave = useWeaveEditor(fabricRef, update, templates, uploadDesign);
   const tones = useToneEditor(fabricRef, update, uploadDesign);
+  const mockupJobs = useMockupJobs(fabricRef, setFabric, templates);
 
   async function upload(raw: File) {
     const data = await uploadDesign(raw);
@@ -173,27 +175,13 @@ export function useFabricEditor(
     const result = await publishFabricAction(payload);
     if (!result.ok) return { ok: false as const, reason: "art" as const };
     dirty.current = false;
-    void renderMockupsInBackground(payload.id);
+    void mockupJobs
+      .run()
+      .then((count) => {
+        if (count) toast(t("designs.mockupsReady"));
+      })
+      .catch((error: unknown) => toast(`${t("designs.mockupRenderFailed")}: ${error instanceof Error ? error.message : String(error)}`));
     return { ok: true as const, catalogs: result.catalogs };
-  }
-
-  /** Each mockup is rendered in the browser worker and uploaded on its own; the page stays usable meanwhile. */
-  async function renderMockupsInBackground(fabricId: string) {
-    const snapshot = fabricRef.current;
-    const variantIds = (snapshot.variants ?? []).filter((item) => item.design.webUrl).map((item) => item.id);
-    const jobs = [undefined, ...variantIds].flatMap((variantId) => snapshot.mockups.map((mockup) => ({ variantId, mockup })));
-    for (const job of jobs) {
-      const template = templates.find((item) => item.id === job.mockup.templateId);
-      if (!template) continue;
-      try {
-        const saved = await renderAndSave(snapshot, template, job.mockup, job.variantId);
-        if (fabricRef.current.id === fabricId) setFabric((current) => placeMockup(current, saved, job.variantId));
-      } catch (error) {
-        toast(`${t("designs.mockupRenderFailed")}: ${error instanceof Error ? error.message : String(error)}`);
-        return;
-      }
-    }
-    if (jobs.length) toast(t("designs.mockupsReady"));
   }
 
   return {
@@ -212,6 +200,7 @@ export function useFabricEditor(
     tones,
     saveDraft,
     publish,
+    mockupJobs,
     templates,
     onCreateCollection: async (name: string, extra?: { auto?: boolean }) => {
       const result = await createCollectionAction({ nameRu: name, autoCatalog: Boolean(extra?.auto) });

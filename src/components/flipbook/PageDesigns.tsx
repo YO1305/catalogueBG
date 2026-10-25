@@ -58,7 +58,7 @@ function DesignRow({
   onRequest: (id: string) => void;
 }) {
   const { lang, t } = useI18n();
-  const options = colorOptions(fabric);
+  const options = fabric.toned ? [] : colorOptions(fabric);
   const [variantId, setVariantId] = useState(options.length ? BASE_VARIANT : undefined);
   const shown = withVariant(fabric, variantId);
   const mockup = heroMockup(shown, catalog.showProductTypes);

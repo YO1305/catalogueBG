@@ -12,11 +12,13 @@ export function WizardMockupCategoryStep({
   templates,
   onChange,
   onChoose,
+  onSaveMockup,
 }: {
   fabric: Fabric;
   templates: Template[];
   onChange: (partial: Partial<Fabric>) => void;
   onChoose: (productType: string, template: Template, selected: boolean) => void;
+  onSaveMockup: (slot: Pick<Mockup, "templateId" | "productType">) => Promise<number>;
 }) {
   const { t } = useI18n();
   const category = fabric.mockupCategory ?? "bedding";
@@ -62,6 +64,7 @@ export function WizardMockupCategoryStep({
                 template={template}
                 mockup={selected}
                 onChange={(mockup: Mockup) => onChange({ mockups: fabric.mockups.map((item) => (item.templateId === template.id ? mockup : item)) })}
+                onSave={() => onSaveMockup(selected)}
               />
             ) : null}
           </div>

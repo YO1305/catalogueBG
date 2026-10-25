@@ -61,18 +61,23 @@ export function FabricEditor({
 
   async function finish(saveLive: boolean) {
     setBusy(true);
-    const result = saveLive ? await publish() : await saveDraft();
-    if (!result.ok) {
-      toast(t("wizard.artTaken"));
+    try {
+      const result = saveLive ? await publish() : await saveDraft();
+      if (!result.ok) {
+        toast(t("wizard.artTaken"));
+        return;
+      }
+      const id = fabric.id;
+      await Promise.all(catalogSlugs.map((slug) => addFabricsToCatalogAction([id], slug)));
+      toast(saveLive ? t("designs.savedPublished") : t("wizard.saved"));
+      if (isNew) router.push("/admin/fabrics");
+    } catch {
+      toast(t("designs.saveFailed"));
+    } finally {
       setBusy(false);
-      return;
     }
-    const id = fabric.id;
-    await Promise.all(catalogSlugs.map((slug) => addFabricsToCatalogAction([id], slug)));
-    toast(saveLive ? t("designs.savedPublished") : t("wizard.saved"));
-    setBusy(false);
-    if (isNew) router.push("/admin/fabrics");
   }
+  const jobs = editor.mockupJobs.progress;
 
   return (
     <div className="max-w-3xl">
@@ -88,12 +93,15 @@ export function FabricEditor({
         {fabric.toned ? (
           <FabricToneSection fabric={fabric} progress={progress} onUploadMain={upload} onUploadTone={(tone, file) => void editor.tones.uploadTone(tone, file)} onPatchTone={editor.tones.patchTone} onPatchWeave={editor.weave.patchWeave} />
         ) : null}
-        <WizardMockupCategoryStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} />
+        <WizardMockupCategoryStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} onSaveMockup={editor.mockupJobs.run} />
         <FabricCatalogPickSection catalogs={catalogs} selected={catalogSlugs} onChange={setCatalogSlugs} />
       </div>
       <div className="mt-6 flex flex-wrap gap-2 border-t border-black/10 pt-4">
         <Button type="button" variant="outline" disabled={busy} onClick={() => void finish(false)}>{t("wizard.saveDraft")}</Button>
-        <Button type="button" disabled={busy || !ready} onClick={() => void finish(true)}>{t("designs.saveAll")}</Button>
+        <Button type="button" disabled={busy || Boolean(jobs) || !ready} onClick={() => void finish(true)}>
+          {jobs ? t("designs.mockupsProgress", { done: jobs.done, total: jobs.total }) : t("designs.saveAll")}
+        </Button>
+        {jobs ? <p className="w-full text-sm text-ink/60">{t("designs.mockupsStay")}</p> : null}
         {missing.length ? <p className="w-full text-sm text-amber-700">{t("tone.required", { list: missing.map((tone) => t(`tone.${tone}`)).join(", ") })}</p> : null}
       </div>
     </div>
