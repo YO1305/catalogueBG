@@ -115,10 +115,19 @@ export function FabricEditor({
             <FabricVariantsSection fabric={fabric} progress={progress} onChange={update} onAdd={(file) => void editor.addVariant(file)} onPatch={editor.patchVariant} onRemove={editor.removeVariant} />
           </>
         )}
-        <WizardFabricMockupStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} onSaveMockup={saveMockup} />
+        {kind === "woven" ? (
+          <>
+            <WizardMockupCategoryStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} onSaveMockup={saveMockup} />
+            <WizardFabricMockupStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} onSaveMockup={saveMockup} />
+          </>
+        ) : (
+          <>
+            <WizardFabricMockupStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} onSaveMockup={saveMockup} />
+            <WizardMockupCategoryStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} onSaveMockup={saveMockup} />
+          </>
+        )}
         <div><h2 className="font-display text-lg">{t("wizard.data")}</h2></div>
         <WizardCardStep fabric={fabric} collections={lists.collections} fabricTypes={lists.fabricTypes} finishes={lists.finishes} productTypes={lists.productTypes} onChange={update} hideCollection onCreateCollection={onCreateCollection} onCreateFabricType={onCreateFabricType} onCreateFinish={editor.onCreateFinish} />
-        <WizardMockupCategoryStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} onSaveMockup={saveMockup} />
         <FabricCatalogPickSection catalogs={catalogs} selected={catalogSlugs} onChange={setCatalogSlugs} />
       </div>
       <div className="mt-6 flex flex-wrap gap-2 border-t border-black/10 pt-4">

@@ -31,7 +31,15 @@ export function templateFitsFabric(
   template: Pick<Template, "finish" | "weaveCapable" | "texture">,
 ): boolean {
   if (template.texture === "stripe-sateen" && !fabric.woven) return false;
-  return !fabric.woven || template.finish === "sateen" || Boolean(template.weaveCapable);
+  return true;
+}
+
+/** Подсказка, если matte-шаблон без weave-слоёв — тканый цвет всё равно ляжет, но без полос/жаккарда. */
+export function wovenTemplateHint(
+  fabric: Pick<Fabric, "woven">,
+  template: Pick<Template, "finish" | "weaveCapable">,
+): boolean {
+  return Boolean(fabric.woven && template.finish !== "sateen" && !template.weaveCapable);
 }
 
 export function presetLabel(stripes: Array<{ widthCm: number }>): string {

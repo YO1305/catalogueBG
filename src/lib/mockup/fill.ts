@@ -51,6 +51,7 @@ export function mockupOptions(mockup: Mockup): RenderOptions {
     du: area?.offsetX ?? 0,
     dv: area?.offsetY ?? 0,
   });
-  if (mockup.sameForAllAreas) return fit(mockup.areas[0]);
-  return { perZone: Object.fromEntries(mockup.areas.map((area) => [area.areaId, fit(area)])) };
+  const tone: Pick<RenderOptions, "glossStrength" | "weaveContrast"> = { glossStrength: 0.3, weaveContrast: 1.05 };
+  if (mockup.sameForAllAreas) return { ...fit(mockup.areas[0]), ...tone };
+  return { perZone: Object.fromEntries(mockup.areas.map((area) => [area.areaId, fit(area)])), ...tone };
 }

@@ -8,7 +8,7 @@ import type { Fabric, FabricWeave } from "@/types";
 
 type Upload = (file: File) => Promise<{ webUrl: string } | null>;
 
-/** Woven-fabric part of the design form: the photo goes to the catalogue, mockups get one colour plus the weave. */
+/** Woven fabric: reference photo for colour only; catalogue shows saved product mockups. */
 export function useWeaveEditor(
   fabricRef: RefObject<Fabric>,
   update: (partial: Partial<Fabric>) => void,

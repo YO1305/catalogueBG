@@ -52,7 +52,7 @@ export function FabricModal({
   useEffect(() => setVariant(variantId ?? BASE_VARIANT), [base, variantId]);
   const fabric = withVariant(base, variant);
   const kind = fabricKind(fabric);
-  const showFlat = catalog.showFlatDesign || kind !== "printed";
+  const showFlat = catalog.showFlatDesign || kind === "printed";
   const productMockups = visibleMockups(fabric, catalog.showProductTypes).filter((item) => item.productType !== FABRIC_PRODUCT);
   const tabs: MediaTab[] = [
     ...(showFlat && fabric.design.webUrl

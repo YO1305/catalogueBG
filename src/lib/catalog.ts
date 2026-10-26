@@ -1,3 +1,4 @@
+import { fabricKind } from "@/lib/fabricKind";
 import { FABRIC_PRODUCT } from "@/lib/mockup/constants";
 import type { BuiltPage, Catalog, CatalogRules, Fabric, Mockup } from "@/types";
 
@@ -54,9 +55,15 @@ export function primaryFabricMockup(fabric: Fabric): Mockup | undefined {
 
 /** Главная картинка в журнале: мокап ткани, иначе мокап изделия (SPEC 5.8.4). */
 export function catalogCoverMockup(fabric: Fabric, showProductTypes: string[]): Mockup | undefined {
+  const productHero = heroMockup(fabric, showProductTypes);
+  const kind = fabricKind(fabric);
+  if (kind === "woven" || kind === "dyed") {
+    if (productHero?.url || productHero?.webUrl) return productHero;
+    return primaryFabricMockup(fabric) ?? productHero;
+  }
   const fabricHero = primaryFabricMockup(fabric);
-  if (fabricHero?.url) return fabricHero;
-  return heroMockup(fabric, showProductTypes);
+  if (fabricHero?.url || fabricHero?.webUrl) return fabricHero;
+  return productHero;
 }
 
 function chunk<T>(items: T[], size: number) {

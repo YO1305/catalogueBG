@@ -4,7 +4,7 @@ import { MockupAdjuster } from "@/components/admin/MockupAdjuster";
 import { useI18n } from "@/components/i18n/I18n";
 import { Checkbox } from "@/components/ui/field";
 import { FABRIC_PRODUCT } from "@/lib/mockup/constants";
-import { templateFitsFabric } from "@/lib/mockup/weave";
+import { wovenTemplateHint } from "@/lib/mockup/weave";
 import type { Fabric, Mockup, Template } from "@/types";
 
 export function WizardFabricMockupStep({
@@ -38,15 +38,10 @@ export function WizardFabricMockupStep({
       {!list.length ? <p className="text-sm text-ink/55">{t("mockups.fabricEmpty")}</p> : null}
       {list.map((template) => {
         const selected = fabric.mockups.find((item) => item.templateId === template.id && item.productType === FABRIC_PRODUCT);
-        if (!templateFitsFabric(fabric, template)) {
-          return (
-            <div key={template.id} className="rounded border border-black/10 bg-black/[0.03] p-3 text-sm text-ink/40">
-              {template.name} · {t("weave.notForWoven")}
-            </div>
-          );
-        }
+        const matteHint = wovenTemplateHint(fabric, template);
         return (
           <div key={template.id} className="rounded border border-black/10 bg-white p-3">
+            {matteHint ? <p className="mb-2 text-xs text-amber-800">{t("weave.matteWeaveHint")}</p> : null}
             <Checkbox
               checked={Boolean(selected)}
               label={template.name}
