@@ -110,10 +110,19 @@ export function resolveZipAssetPath(fileNames: Set<string>, requested: string): 
   return null;
 }
 
+export const BACKGROUND_BASENAMES = ["background.jpg", "background.png", "background.webp"] as const;
+
+export function resolveBackgroundBasename(fileNames: Set<string>): string | null {
+  for (const name of BACKGROUND_BASENAMES) {
+    if (resolveZipAssetPath(fileNames, name)) return name;
+  }
+  return null;
+}
+
 export function validateZipAssets(manifest: ZipTemplateManifest, fileNames: Set<string>): string[] {
   const errors: string[] = [];
-  const bg = resolveZipAssetPath(fileNames, "background.jpg");
-  if (!bg) errors.push("В ZIP нет background.jpg");
+  const bg = resolveBackgroundBasename(fileNames);
+  if (!bg) errors.push("В ZIP нет background (background.jpg, .png или .webp)");
   for (const zone of manifest.zones) {
     for (const key of ZONE_LAYER_KEYS) {
       const file = zone[key];

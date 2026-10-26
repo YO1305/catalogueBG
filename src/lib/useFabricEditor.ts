@@ -6,6 +6,7 @@ import { createCollectionAction, createFabricTypeAction, createFinishAction, cre
 import { autoFabricColor } from "@/lib/mockup/fabricColor";
 import { FABRIC_PRODUCT } from "@/lib/mockup/constants";
 import { DEFAULT_CORRECTION } from "@/lib/mockup/weave";
+import { uploadPublicBlob } from "@/lib/blob/clientUpload";
 import { prepareUploadImage } from "@/lib/prepareUploadImage";
 import { useMockupJobs } from "@/lib/useMockupJobs";
 import { useToneEditor } from "@/lib/useToneEditor";
@@ -109,33 +110,37 @@ export function useFabricEditor(
       toast(t("error.file"));
       return null;
     }
-    const body = new FormData();
-    body.append("file", file);
-    const data = await new Promise<{ webUrl: string; thumbUrl: string; originalUrl: string; widthPx: number; heightPx: number; colors: string[] } | null>((resolve) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/api/images/process");
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) setProgress(event.loaded / event.total);
-      };
-      xhr.onload = () => {
-        if (xhr.status < 300) {
-          resolve(JSON.parse(xhr.responseText) as { webUrl: string; thumbUrl: string; originalUrl: string; widthPx: number; heightPx: number; colors: string[] });
-          return;
-        }
-        resolve(null);
-        if (xhr.status === 403) toast(t("error.forbidden"));
-        else if (xhr.status === 503) toast(t("error.storage"));
-        else if (xhr.status === 413) toast(t("error.uploadTooLarge"));
-        else toast(t("error.file"));
-      };
-      xhr.onerror = () => {
-        resolve(null);
-        toast(t("error.network"));
-      };
-      xhr.send(body);
+    const designId = crypto.randomUUID();
+    const extMatch = file.name.match(/\.(jpe?g|png|webp|tiff?)$/i);
+    const ext = extMatch ? extMatch[0].toLowerCase() : ".jpg";
+    const pathname = `private/designs/${designId}/source${ext}`;
+    let sourceUrl: string;
+    try {
+      sourceUrl = await uploadPublicBlob(pathname, file, {
+        onUploadProgress: (loaded, total) => {
+          if (total > 0) setProgress(loaded / total);
+        },
+      });
+    } catch {
+      toast(t("error.network"));
+      setProgress(0);
+      return null;
+    }
+    setProgress(0.95);
+    const response = await fetch("/api/images/process", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sourceUrl, fileName: file.name, designId }),
     });
     setProgress(0);
-    return data;
+    if (!response.ok) {
+      if (response.status === 403) toast(t("error.forbidden"));
+      else if (response.status === 503) toast(t("error.storage"));
+      else if (response.status === 413) toast(t("error.uploadTooLarge"));
+      else toast(t("error.file"));
+      return null;
+    }
+    return (await response.json()) as { webUrl: string; thumbUrl: string; originalUrl: string; widthPx: number; heightPx: number; colors: string[] };
   }
 
   function chooseTemplate(productType: string, template: Template, selected: boolean) {

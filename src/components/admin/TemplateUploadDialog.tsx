@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox, Input, Label } from "@/components/ui/field";
 import { MOCKUP_CATEGORIES, mockupCategoryLabelKey } from "@/lib/mockupCategories";
 import { parseTemplateZipFile } from "@/lib/templateZip/readZip";
-import { completeTemplateZipImport, uploadTemplateZipAssets } from "@/lib/templateZip/uploadClient";
+import { completeTemplateZipImport, manifestForWire, uploadTemplateZipAssets } from "@/lib/templateZip/uploadClient";
 import type { ZipTemplateManifest } from "@/lib/templateZip/types";
 import type { MockupCategory, ProductType } from "@/types";
 
@@ -32,6 +32,7 @@ export function TemplateUploadDialog({
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [manifest, setManifest] = useState<ZipTemplateManifest | null>(null);
+  const [templateJsonPath, setTemplateJsonPath] = useState("template.json");
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [productTypes, setProductTypes] = useState<string[]>([]);
   const [isDefault, setIsDefault] = useState(false);
@@ -48,6 +49,7 @@ export function TemplateUploadDialog({
       setName("");
       setErrors([]);
       setManifest(null);
+      setTemplateJsonPath("template.json");
       setZipFile(null);
       setProductTypes([]);
       setIsDefault(false);
@@ -65,6 +67,7 @@ export function TemplateUploadDialog({
         return;
       }
       setManifest(parsed.parsed.manifest);
+      setTemplateJsonPath(parsed.parsed.jsonPath);
       setName(parsed.parsed.manifest.name);
       setZipFile(file);
       setStep("confirm");
@@ -96,7 +99,7 @@ export function TemplateUploadDialog({
     setErrors([]);
     const templateId = crypto.randomUUID();
     try {
-      const uploaded = await uploadTemplateZipAssets(zipFile, manifest, templateId, (done, total, label) => {
+      const uploaded = await uploadTemplateZipAssets(zipFile, manifest, templateJsonPath, templateId, (done, total, label) => {
         setUploadProgress(t("templates.zipProgress", { done: String(done), total: String(total), file: label }));
       });
       if (!uploaded.ok) {
@@ -109,7 +112,7 @@ export function TemplateUploadDialog({
         name: name.trim() || manifest.name,
         productTypes,
         isDefault,
-        manifest,
+        manifest: manifestForWire(manifest),
         assetUrls: uploaded.assetUrls,
         zipSizeMb: Math.round((zipFile.size / (1024 * 1024)) * 10) / 10,
       });

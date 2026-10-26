@@ -1,7 +1,11 @@
 import type { ZipTemplateManifest } from "@/lib/templateZip/types";
+import { resolveBackgroundBasename } from "@/lib/templateZip/validate";
 
-export function collectManifestAssetPaths(manifest: ZipTemplateManifest): string[] {
-  const paths = new Set<string>(["background.jpg"]);
+export function collectManifestAssetPaths(manifest: ZipTemplateManifest, fileNames: Set<string>, templateJsonPath: string): string[] {
+  const paths = new Set<string>();
+  const bg = resolveBackgroundBasename(fileNames);
+  if (bg) paths.add(bg);
+  paths.add(templateJsonPath);
   for (const zone of manifest.zones) {
     paths.add(zone.mask);
     paths.add(zone.shade);

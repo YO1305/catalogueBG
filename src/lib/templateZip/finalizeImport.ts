@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { saveBuffer } from "@/lib/storage";
 import type { MockupCategory, Template, TemplateArea } from "@/types";
 import type { ZipTemplateManifest } from "@/lib/templateZip/types";
-import { ZONE_LAYER_KEYS } from "@/lib/templateZip/validate";
+import { BACKGROUND_BASENAMES, ZONE_LAYER_KEYS } from "@/lib/templateZip/validate";
 
 function manifestForStorage(manifest: ZipTemplateManifest, urlByFile: Map<string, string>): ZipTemplateManifest {
   const zones = manifest.zones.map((zone) => ({
@@ -30,8 +30,8 @@ export async function finalizeZipTemplateImport(input: {
 }): Promise<{ ok: true; template: Template } | { ok: false; errors: string[] }> {
   const errors: string[] = [];
   const urlByFile = new Map<string, string>(Object.entries(input.assetUrls));
-  const backgroundUrl = urlByFile.get("background.jpg");
-  if (!backgroundUrl) errors.push("Не загружен background.jpg");
+  const backgroundUrl = BACKGROUND_BASENAMES.map((name) => urlByFile.get(name)).find(Boolean);
+  if (!backgroundUrl) errors.push("Не загружен background (jpg/png/webp)");
 
   for (const zone of input.manifest.zones) {
     for (const key of ZONE_LAYER_KEYS) {
@@ -55,7 +55,7 @@ export async function finalizeZipTemplateImport(input: {
 
   let thumbnailUrl = backgroundUrl;
   try {
-    const bgPath = urlByFile.get("background.jpg");
+    const bgPath = backgroundUrl;
     if (bgPath?.startsWith("/")) {
       const { readFileSync } = await import("node:fs");
       const { join } = await import("node:path");

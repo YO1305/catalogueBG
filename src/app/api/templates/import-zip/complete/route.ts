@@ -9,6 +9,13 @@ import { revalidatePath } from "next/cache";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+function templateJsonUrlFromAssets(assetUrls: Record<string, string>): string | null {
+  for (const [key, url] of Object.entries(assetUrls)) {
+    if (key.endsWith("template.json") && url.startsWith("http")) return url;
+  }
+  return null;
+}
+
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session || !isAdmin(session.role)) {
@@ -29,7 +36,16 @@ export async function POST(request: Request) {
     if (!templateId) {
       return Response.json({ ok: false, errors: ["Нет идентификатора шаблона"] }, { status: 400 });
     }
-    const validated = validateZipTemplateJson(body.manifest);
+    const assetUrls = body.assetUrls ?? {};
+    const jsonUrl = templateJsonUrlFromAssets(assetUrls);
+    if (!jsonUrl) {
+      return Response.json({ ok: false, errors: ["Не загружен template.json в хранилище"] }, { status: 400 });
+    }
+    const jsonRes = await fetch(jsonUrl);
+    if (!jsonRes.ok) {
+      return Response.json({ ok: false, errors: ["Не удалось прочитать template.json из хранилища"] }, { status: 400 });
+    }
+    const validated = validateZipTemplateJson(await jsonRes.json());
     if (!validated.ok) {
       return Response.json({ ok: false, errors: validated.errors }, { status: 400 });
     }
@@ -47,7 +63,7 @@ export async function POST(request: Request) {
       productTypes,
       isDefault: Boolean(body.isDefault),
       manifest: validated.manifest,
-      assetUrls: body.assetUrls ?? {},
+      assetUrls,
       zipSizeMb: Number(body.zipSizeMb) || 0,
       importWarnings: validated.warnings,
     });
