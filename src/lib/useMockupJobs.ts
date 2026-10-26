@@ -11,6 +11,8 @@ type Slot = Pick<Mockup, "templateId" | "productType">;
 
 const sameSlot = (a: Slot, b: Slot) => a.templateId === b.templateId && a.productType === b.productType;
 
+type RunOptions = { onPersisted?: (fabric: Fabric) => void };
+
 /** Mockups are rendered in this tab, so leaving the page before they finish would leave tones without photos. */
 export function useMockupJobs(fabricRef: MutableRefObject<Fabric>, setFabric: Dispatch<SetStateAction<Fabric>>, templates: Template[]) {
   const [progress, setProgress] = useState<MockupProgress | null>(null);
@@ -23,7 +25,7 @@ export function useMockupJobs(fabricRef: MutableRefObject<Fabric>, setFabric: Di
   }, [progress]);
 
   /** Main picture and every colourway / tone; `only` limits it to one mockup slot. Throws the first error. */
-  async function run(only?: Slot) {
+  async function run(only?: Slot, options?: RunOptions) {
     const snapshot = fabricRef.current;
     const mockups = snapshot.mockups.filter((item) => !only || sameSlot(item, only));
     const variantIds = (snapshot.variants ?? []).filter((item) => item.design.webUrl).map((item) => item.id);
@@ -34,8 +36,11 @@ export function useMockupJobs(fabricRef: MutableRefObject<Fabric>, setFabric: Di
       for (const [index, job] of jobs.entries()) {
         const template = templates.find((item) => item.id === job.mockup.templateId);
         if (template) {
-          const saved = await renderAndSave(snapshot, template, job.mockup, job.variantId);
-          if (fabricRef.current.id === snapshot.id) setFabric((current) => placeMockup(current, saved, job.variantId));
+          const { mockup: saved, fabric: persisted } = await renderAndSave(fabricRef.current, template, job.mockup, job.variantId);
+          options?.onPersisted?.(persisted);
+          if (fabricRef.current.id === snapshot.id) {
+            setFabric((current) => placeMockup(current, saved, job.variantId));
+          }
         }
         setProgress({ done: index + 1, total: jobs.length });
       }

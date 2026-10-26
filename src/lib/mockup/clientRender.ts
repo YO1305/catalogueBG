@@ -20,12 +20,17 @@ async function ensureFabricSaved(fabric: Fabric): Promise<Fabric> {
  * ZIP templates are rendered in the browser worker and only uploaded, so the server never
  * spends seconds of CPU on a mockup (that blocked page navigation after publishing).
  */
-export async function renderAndSave(fabric: Fabric, template: Template, mockup: Mockup, variantId?: string): Promise<Mockup> {
+export async function renderAndSave(
+  fabric: Fabric,
+  template: Template,
+  mockup: Mockup,
+  variantId?: string,
+): Promise<{ mockup: Mockup; fabric: Fabric }> {
   const persisted = await ensureFabricSaved(fabric);
   const variant = variantId ? persisted.variants?.find((item) => item.id === variantId) : undefined;
   if (variantId && !variant) throw new Error("Вариант цвета не найден");
   const source = variant ? variantFabric(persisted, variant) : persisted;
-  if (template.engine !== "uvgrid" || !template.baked.jsonUrl) return renderOnServer(persisted.id, template, mockup, variantId);
+  if (template.engine !== "uvgrid" || !template.baked.jsonUrl) return renderOnServer(persisted, template, mockup, variantId);
   const plan = fillPlan(source);
   if (!plan) throw new Error("Нет рисунка или цвета ткани для макета");
   const blob = await renderFinal({ jsonUrl: template.baked.jsonUrl, backgroundUrl: template.baked.backgroundUrl, plan, opts: mockupOptions(mockup) });
@@ -38,20 +43,20 @@ export async function renderAndSave(fabric: Fabric, template: Template, mockup: 
   });
   const data = (await response.json().catch(() => ({}))) as Saved;
   if (!response.ok || !data.ok || !data.mockup) throw new Error(data.error ?? `Макет не сохранился: ${response.status}`);
-  return data.mockup;
+  return { mockup: data.mockup, fabric: persisted };
 }
 
-async function renderOnServer(fabricId: string, template: Template, mockup: Mockup, variantId?: string): Promise<Mockup> {
+async function renderOnServer(fabric: Fabric, template: Template, mockup: Mockup, variantId?: string): Promise<{ mockup: Mockup; fabric: Fabric }> {
   const response = await fetch("/api/mockups/render", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ fabricId, templateId: template.id, variantId }),
+    body: JSON.stringify({ fabricId: fabric.id, templateId: template.id, variantId }),
   });
   const data = (await response.json().catch(() => ({}))) as Saved;
   if (!response.ok || !data.ok) throw new Error(data.error ?? `Макет не сохранился: ${response.status}`);
-  const row = data.fabrics?.find((item) => item.fabricId === fabricId);
+  const row = data.fabrics?.find((item) => item.fabricId === fabric.id);
   const list = variantId ? row?.variants?.find((item) => item.id === variantId)?.mockups : row?.mockups;
   const saved = list?.find((item) => item.templateId === template.id && item.productType === mockup.productType);
   if (!saved) throw new Error("Макет не сохранился");
-  return saved;
+  return { mockup: saved, fabric };
 }

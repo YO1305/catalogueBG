@@ -15,12 +15,16 @@ import type { Collection, Fabric, FabricType, FabricVariant, Finish, Mockup, Pro
 
 type Lists = { collections: Collection[]; fabricTypes: FabricType[]; finishes: Finish[]; productTypes: ProductType[] };
 
+type EditorOptions = { isNew?: boolean };
+
 export function useFabricEditor(
   initial: Fabric,
   listsIn: Lists,
   templates: Template[],
   t: (key: string) => string,
+  options?: EditorOptions,
 ) {
+  const isNew = Boolean(options?.isNew);
   const [fabric, setFabric] = useState(initial);
   const [lists, setLists] = useState(listsIn);
   const [progress, setProgress] = useState(0);
@@ -36,11 +40,12 @@ export function useFabricEditor(
 
   /** A refresh after saving brings back the same fabric as it was at save time; only another fabric resets the form. */
   useEffect(() => {
+    if (isNew) return;
     if (initial.id === fabricRef.current.id) return;
     setFabric(initial);
     setProgress(0);
     dirty.current = false;
-  }, [initial]);
+  }, [initial, isNew]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {

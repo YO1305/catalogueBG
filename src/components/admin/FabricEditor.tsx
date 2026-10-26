@@ -40,7 +40,7 @@ export function FabricEditor({
 }) {
   const { t } = useI18n();
   const router = useRouter();
-  const editor = useFabricEditor(initial, { collections, fabricTypes, finishes, productTypes }, templates, t);
+  const editor = useFabricEditor(initial, { collections, fabricTypes, finishes, productTypes }, templates, t, { isNew });
   const { fabric, lists, progress, update, upload, chooseTemplate, saveDraft, publish, onCreateCollection, onCreateFabricType } = editor;
   const [catalogSlugs, setCatalogSlugs] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -83,6 +83,18 @@ export function FabricEditor({
   }
   const jobs = editor.mockupJobs.progress;
 
+  async function saveMockup(slot: Parameters<typeof editor.mockupJobs.run>[0]) {
+    let openedEdit = false;
+    const count = await editor.mockupJobs.run(slot, {
+      onPersisted: (persisted) => {
+        if (!isNew || openedEdit) return;
+        openedEdit = true;
+        router.replace(`/admin/fabrics/${persisted.id}`);
+      },
+    });
+    return count;
+  }
+
   return (
     <div className="max-w-3xl">
       <Link href={`/admin/fabrics?kind=${kind}`} className="text-sm underline">{t("common.back")}</Link>
@@ -97,10 +109,10 @@ export function FabricEditor({
             <FabricVariantsSection fabric={fabric} progress={progress} onChange={update} onAdd={(file) => void editor.addVariant(file)} onPatch={editor.patchVariant} onRemove={editor.removeVariant} />
           </>
         )}
-        <WizardFabricMockupStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} onSaveMockup={editor.mockupJobs.run} />
+        <WizardFabricMockupStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} onSaveMockup={saveMockup} />
         <div><h2 className="font-display text-lg">{t("wizard.data")}</h2></div>
         <WizardCardStep fabric={fabric} collections={lists.collections} fabricTypes={lists.fabricTypes} finishes={lists.finishes} productTypes={lists.productTypes} onChange={update} hideCollection onCreateCollection={onCreateCollection} onCreateFabricType={onCreateFabricType} onCreateFinish={editor.onCreateFinish} />
-        <WizardMockupCategoryStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} onSaveMockup={editor.mockupJobs.run} />
+        <WizardMockupCategoryStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} onSaveMockup={saveMockup} />
         <FabricCatalogPickSection catalogs={catalogs} selected={catalogSlugs} onChange={setCatalogSlugs} />
       </div>
       <div className="mt-6 flex flex-wrap gap-2 border-t border-black/10 pt-4">
