@@ -189,12 +189,20 @@ export function useFabricEditor(
   }
 
   async function publish() {
-    const payload = fabricRef.current;
+    const payload: Fabric = { ...fabricRef.current, status: "published" };
+    fabricRef.current = payload;
+    setFabric(payload);
     const result = await publishFabricAction(payload);
     if (!result.ok) return { ok: false as const, reason: "art" as const };
     dirty.current = false;
     void mockupJobs
-      .run()
+      .run(undefined, {
+        onPersisted: (persisted) => {
+          const published: Fabric = { ...persisted, status: "published" };
+          fabricRef.current = published;
+          setFabric((current) => ({ ...current, status: "published" }));
+        },
+      })
       .then((count) => {
         if (count) toast(t("designs.mockupsReady"));
       })

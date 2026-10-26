@@ -73,6 +73,7 @@ export async function publishFabricAction(fabric: Fabric) {
   await Promise.all(names.map((catalog) => saveCatalog({ ...catalog, updatedAt: now })));
   touch("/admin/fabrics");
   touch("/admin/catalogs");
+  for (const catalog of names) touch(`/c/${catalog.slug}`);
   return { ok: true as const, catalogs: names.map((catalog) => catalog.title.ru) };
 }
 
@@ -105,6 +106,7 @@ export async function addFabricsToCatalogAction(ids: string[], slug: string) {
   const fabricIds = [...new Set([...(catalog.fabricIds ?? []), ...ids])];
   await saveCatalog({ ...catalog, mode: "manual", fabricIds, updatedAt: new Date().toISOString() });
   touch(`/admin/catalogs/${slug}`);
+  touch(`/c/${slug}`);
   return { ok: true as const };
 }
 

@@ -8,7 +8,8 @@ import type { Fabric, Mockup, Template } from "@/types";
 type Saved = { ok?: boolean; error?: string; mockup?: Mockup; fabrics?: { fabricId: string; mockups: Mockup[]; variants?: Fabric["variants"] }[] };
 
 async function ensureFabricSaved(fabric: Fabric): Promise<Fabric> {
-  const result = await saveFabricAction({ ...fabric, status: fabric.status ?? "draft" });
+  const status = fabric.status === "published" ? "published" : "draft";
+  const result = await saveFabricAction({ ...fabric, status });
   if (!result.ok) {
     if (result.error === "art_taken") throw new Error("Артикул уже занят — измените артикул и сохраните черновик");
     throw new Error("Сохраните черновик перед сохранением макета");

@@ -42,7 +42,9 @@ export function FabricEditor({
   const router = useRouter();
   const editor = useFabricEditor(initial, { collections, fabricTypes, finishes, productTypes }, templates, t, { isNew });
   const { fabric, lists, progress, update, upload, chooseTemplate, saveDraft, publish, onCreateCollection, onCreateFabricType } = editor;
-  const [catalogSlugs, setCatalogSlugs] = useState<string[]>([]);
+  const [catalogSlugs, setCatalogSlugs] = useState<string[]>(() =>
+    catalogs.filter((catalog) => catalog.fabricIds?.includes(initial.id)).map((catalog) => catalog.slug),
+  );
   const [busy, setBusy] = useState(false);
 
   const kind = fabricKind(fabric);
@@ -72,7 +74,11 @@ export function FabricEditor({
         return;
       }
       const id = fabric.id;
-      await Promise.all(catalogSlugs.map((slug) => addFabricsToCatalogAction([id], slug)));
+      if (catalogSlugs.length) {
+        await Promise.all(catalogSlugs.map((slug) => addFabricsToCatalogAction([id], slug)));
+      } else if (saveLive) {
+        toast(t("designs.pickCatalogToPublish"));
+      }
       toast(saveLive ? t("designs.savedPublished") : t("wizard.saved"));
       if (isNew) router.push(`/admin/fabrics?kind=${kind}`);
     } catch {
