@@ -7,15 +7,18 @@ export const runtime = "nodejs";
 
 const TEMPLATE_PATH = /^templates\/[0-9a-f-]{36}\/[a-zA-Z0-9._-]+$/;
 const DESIGN_PATH = /^private\/designs\/[0-9a-f-]{36}\/[a-zA-Z0-9._-]+$/;
+const MOCKUP_PATH = /^mockups\/[0-9a-f-]{36}\/[a-zA-Z0-9._-]+$/;
 
 function mayUploadPathname(pathname: string, role: Role): boolean {
   if (TEMPLATE_PATH.test(pathname)) return isAdmin(role);
   if (DESIGN_PATH.test(pathname)) return isAdmin(role) || canEditFabrics(role);
+  if (MOCKUP_PATH.test(pathname)) return isAdmin(role) || canEditFabrics(role);
   return false;
 }
 
 function maxBytesForPath(pathname: string): number {
   if (pathname.startsWith("private/designs/")) return 50 * 1024 * 1024;
+  if (pathname.startsWith("mockups/")) return 25 * 1024 * 1024;
   return 60 * 1024 * 1024;
 }
 

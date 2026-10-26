@@ -2,7 +2,8 @@ import type { FillPlan } from "@/lib/mockup/fill";
 import type { PreviewRequest, PreviewResponse } from "@/lib/mockup/preview.worker";
 import type { RenderOptions } from "@/lib/mockup/uvgridRender";
 
-export const PREVIEW_SCALE = 0.5;
+/** Admin preview: closer to full render so folds and shade read clearly (still faster than 1.0). */
+export const PREVIEW_SCALE = 0.75;
 
 type Input = { jsonUrl: string; backgroundUrl: string; plan: FillPlan; opts: RenderOptions };
 type Done = Extract<PreviewResponse, { ok: true }>;

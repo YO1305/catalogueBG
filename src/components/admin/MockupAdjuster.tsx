@@ -29,10 +29,10 @@ export function MockupAdjuster({
   const [saving, setSaving] = useState(false);
   const preview = useMockupPreview(canvas, fabric, template, mockup);
   const { isUvgrid } = preview;
-  const previewError = saveError ?? preview.error;
   const areaId = mockup.sameForAllAreas ? "all" : mockup.areas[0]?.areaId ?? template.areas[0]?.id ?? "all";
   const setting = mockup.areas.find((item) => item.areaId === (mockup.sameForAllAreas ? mockup.areas[0]?.areaId : areaId)) ?? mockup.areas[0];
   const scale = setting?.scale ?? 1;
+  const rotation = setting?.rotation ?? 0;
 
   function patch(partial: Partial<NonNullable<typeof setting>>, all = mockup.sameForAllAreas) {
     const areas = (all ? template.areas : template.areas.filter((area) => area.id === areaId)).map((area) => ({
@@ -53,10 +53,16 @@ export function MockupAdjuster({
   return (
     <div className="border border-ink/10 bg-white p-3">
       <p className="text-sm font-medium">{template.name}</p>
-      {previewError ? (
+      {preview.error ? (
         <p className="mt-2 text-sm text-red-700" role="alert">
           {t("wizard.mockupPreviewError")}
-          <span className="mt-1 block font-mono text-xs">{previewError}</span>
+          <span className="mt-1 block font-mono text-xs">{preview.error}</span>
+        </p>
+      ) : null}
+      {saveError ? (
+        <p className="mt-2 text-sm text-red-700" role="alert">
+          {t("wizard.mockupSaveError")}
+          <span className="mt-1 block font-mono text-xs">{saveError}</span>
         </p>
       ) : null}
       {preview.busy ? <p className="mt-2 text-xs text-ink/50">{t("wizard.previewRendering")}</p> : null}
@@ -102,7 +108,32 @@ export function MockupAdjuster({
         {SCALE_PRESETS.map((preset) => (
           <Button key={preset} type="button" size="sm" variant="outline" onClick={() => patch({ scale: preset })}>{`×${preset}`}</Button>
         ))}
-        {[0, 45, 90].map((degrees) => (
+      </div>
+      <label className="mt-3 block text-xs uppercase text-ink/50">{t("wizard.rotation")}</label>
+      <div className="flex items-center gap-2">
+        <span className="text-xs">0°</span>
+        <input
+          className="flex-1"
+          type="range"
+          min={0}
+          max={360}
+          step={1}
+          value={rotation}
+          onChange={(event) => patch({ rotation: Number(event.target.value) })}
+        />
+        <span className="text-xs">360°</span>
+        <Input
+          className="w-20"
+          type="number"
+          min={0}
+          max={360}
+          step={1}
+          value={rotation}
+          onChange={(event) => patch({ rotation: Number(event.target.value) })}
+        />
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {[0, 45, 90, 180].map((degrees) => (
           <Button key={degrees} type="button" size="sm" variant="outline" onClick={() => patch({ rotation: degrees })}>{`${degrees}°`}</Button>
         ))}
       </div>
