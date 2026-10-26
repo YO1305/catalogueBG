@@ -3,6 +3,7 @@
 import { MockupAdjuster } from "@/components/admin/MockupAdjuster";
 import { useI18n } from "@/components/i18n/I18n";
 import { Checkbox, Label, Select } from "@/components/ui/field";
+import { FABRIC_PRODUCT } from "@/lib/mockup/constants";
 import { MOCKUP_CATEGORIES, mockupCategoryLabelKey, templatesInCategory } from "@/lib/mockupCategories";
 import { templateFitsFabric } from "@/lib/mockup/weave";
 import type { Fabric, Mockup, MockupCategory, Template } from "@/types";
@@ -22,7 +23,7 @@ export function WizardMockupCategoryStep({
 }) {
   const { t } = useI18n();
   const category = fabric.mockupCategory ?? "bedding";
-  const list = templatesInCategory(templates, category);
+  const list = templatesInCategory(templates, category).filter((item) => !item.productTypes.includes(FABRIC_PRODUCT));
 
   function pickCategory(next: MockupCategory) {
     const allowed = new Set(templatesInCategory(templates, next).map((item) => item.id));

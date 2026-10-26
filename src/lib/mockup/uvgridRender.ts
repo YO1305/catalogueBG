@@ -31,6 +31,8 @@ export interface TemplateJson {
   softMasks?: boolean;
   /** Цвет ткани на исходном фото (для проверки: рендер этим цветом ≈ исходное фото). */
   referenceColor?: string;
+  /** Множитель shade: value/255 × shadeScale (мокапы ткани ≈ 1.75, КПБ по умолчанию 1.5). */
+  shadeScale?: number;
 }
 export interface ZoneLayers { mask: RGBA; shade: RGBA; weave?: RGBA; gloss?: RGBA; light?: RGBA }
 
@@ -234,7 +236,7 @@ export function renderUvgrid(
   });
   const gc0 = 1.0, gc1 = 0.98, gc2 = 0.97;
   const t0 = tint[0], t1 = tint[1], t2 = tint[2];
-  const knee = tpl.shadeKnee ?? 1.0, rolloff = !!tpl.highlightRolloff;
+  const knee = tpl.shadeKnee ?? 1.0, rolloff = !!tpl.highlightRolloff, shadeScale = tpl.shadeScale ?? 1.5;
   const lt = new Float32Array(3);
   const roll = (v: number) => v <= 0.85 ? v : 0.85 + 0.15 * Math.tanh((v - 0.85) / 0.15);
   const uv = new Float64Array(2);
@@ -286,7 +288,7 @@ export function renderUvgrid(
     }
     const q = sy * SW + sx;
     const rs = f === 1 ? L.shade.data[q * 4] : sampleR(L.shade, sx, sy);
-    let s = rs / 255 * 1.5; if (s > knee) s = knee + (s - knee) * 0.55;
+    let s = (rs / 255) * shadeScale; if (s > knee) s = knee + (s - knee) * 0.55;
     let l0 = 1, l1 = 1, l2 = 1;
     if (L.light) { if (f === 1) { const ld = L.light.data; l0 = ld[q * 4] / 127.5; l1 = ld[q * 4 + 1] / 127.5; l2 = ld[q * 4 + 2] / 127.5; }
       else { sampleRGB(L.light, sx, sy, lt); l0 = lt[0] * 2; l1 = lt[1] * 2; l2 = lt[2] * 2; } }

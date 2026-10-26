@@ -34,7 +34,7 @@ export function CatalogImage({
   const display = failed && fallbackSrc ? fallbackSrc : src;
   if (!active || !display) return <div className="h-full w-full bg-black/5" />;
   const hasVariants = Boolean(thumbUrl && webUrl && !failed);
-  const srcSet = hasVariants ? `${thumbUrl} 600w, ${webUrl} 1200w, ${src} 2000w` : undefined;
+  const srcSet = hasVariants ? `${thumbUrl} 800w, ${webUrl} 1200w, ${src} 2000w` : undefined;
   return (
     // Catalog images use explicit WebP srcset widths from the spec when mockup variants exist.
     // eslint-disable-next-line @next/next/no-img-element

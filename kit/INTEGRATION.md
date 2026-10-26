@@ -111,3 +111,18 @@ async function loadRGBA(url: string): Promise<RGBA> {
 - Расположение для теста: распаковать `kpb_plain_template.zip` в `samples/templates/kpb-plain/` (файлы лежат в корне архива).
 - parity-test: 14 строк, все должны быть OK.
 - Проверка шаблона на сайте: режим «Тканый рисунок → Без узора», цвет `#9bb1bc` (referenceColor) — макет должен выглядеть как исходное фото.
+
+## 9. Шаблоны мокапов ТКАНИ (изделие `fabric`, SPEC 5.8)
+
+5 ZIP-шаблонов из фото белых тканей (3000 px, фактура плетения сохранена):
+`fabric-stripe-sateen-waves`, `fabric-sateen-soft-wave`, `fabric-poplin-drape`, `fabric-twill-diagonal`, `fabric-sateen-big-wave`.
+
+- В `template.json` есть `product: "fabric"`, `fabricView: "drape"`, `texture` — при импорте подставлять изделие «Ткань»
+  и вид автоматически (админ может поменять).
+- Новое поле **`shadeScale`** (здесь 1.75): shade = png/255 × shadeScale. Уже поддерживается в `uvgridRender.ts`.
+  Импорт должен его сохранить.
+- `texture: "stripe-sateen"` → шаблон только для тканых тканей (полосы «зашиты» в свет). Для набивных рисунков его не предлагать.
+- Для теста распаковать `fabric-poplin-drape.zip` → `samples/templates/fabric-poplin-drape/`,
+  `fabric-stripe-sateen-waves.zip` → `samples/templates/fabric-stripe-sateen-waves/`. parity-test: 16 строк OK.
+- Кадр ≈ 30 см ткани. Для красивого превью стартовый масштаб рисунка = реальный раппорт; если раппорт > 30 см,
+  предлагать «×0.5» как подсказку.

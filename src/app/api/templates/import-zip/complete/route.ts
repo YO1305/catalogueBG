@@ -33,7 +33,10 @@ export async function POST(request: Request) {
     if (!validated.ok) {
       return Response.json({ ok: false, errors: validated.errors }, { status: 400 });
     }
-    const productTypes = body.productTypes ?? [];
+    let productTypes = body.productTypes ?? [];
+    if (validated.manifest.product === "fabric") {
+      productTypes = [...new Set(["fabric", ...productTypes])];
+    }
     if (!productTypes.length) {
       return Response.json({ ok: false, errors: ["Выберите хотя бы одно изделие"] }, { status: 400 });
     }
@@ -46,6 +49,7 @@ export async function POST(request: Request) {
       manifest: validated.manifest,
       assetUrls: body.assetUrls ?? {},
       zipSizeMb: Number(body.zipSizeMb) || 0,
+      importWarnings: validated.warnings,
     });
     if (!result.ok) {
       return Response.json({ ok: false, errors: result.errors }, { status: 400 });

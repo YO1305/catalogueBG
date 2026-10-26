@@ -3,7 +3,7 @@ import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb } from "pdf-lib";
 import sharp from "sharp";
-import { heroMockup } from "@/lib/catalog";
+import { catalogCoverMockup } from "@/lib/catalog";
 import { loadCatalog } from "@/lib/loadCatalog";
 
 export const dynamic = "force-dynamic";
@@ -39,8 +39,8 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
       for (const id of page.fabricIds) {
         const fabric = byId.get(id);
         if (!fabric) continue;
-        const mockup = heroMockup(fabric, catalog.showProductTypes);
-        const image = await embed(pdfDoc, mockup?.url || fabric.design.webUrl);
+        const mockup = catalogCoverMockup(fabric, catalog.showProductTypes);
+        const image = await embed(pdfDoc, mockup?.url || mockup?.webUrl || "");
         if (image) sheet.drawImage(image, { x: 40, y: top - 220, width: 280, height: 200 });
         const typeName = fabricTypes.find((item) => item.id === fabric.fabricTypeId)?.name.ru ?? "";
         sheet.drawText(fabric.name.ru.slice(0, 42), { x: 340, y: top - 40, size: 16, font: serif, color: rgb(0.11, 0.1, 0.08) });

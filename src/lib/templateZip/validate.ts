@@ -46,7 +46,9 @@ function readZone(raw: unknown, finish: string | undefined, weaveCapable: boolea
   return { id, label, mask, shade, weave, gloss, light, pxPerCm, uvGrid };
 }
 
-export function validateZipTemplateJson(json: unknown): { ok: true; manifest: ZipTemplateManifest } | { ok: false; errors: string[] } {
+export function validateZipTemplateJson(json: unknown):
+  | { ok: true; manifest: ZipTemplateManifest; warnings: string[] }
+  | { ok: false; errors: string[] } {
   const errors: string[] = [];
   if (!isRecord(json)) return { ok: false, errors: ["template.json должен быть объектом"] };
   const name = typeof json.name === "string" ? json.name.trim() : "";
@@ -67,8 +69,10 @@ export function validateZipTemplateJson(json: unknown): { ok: true; manifest: Zi
     }
   }
   if (!zones.length) errors.push("Не удалось прочитать ни одной зоны");
-  if (errors.length) return { ok: false, errors };
   const [widthPx, heightPx] = sizeRaw as [number, number];
+  const longSide = Math.max(widthPx, heightPx);
+  if (longSide < 1500) errors.push(`Шаблон слишком мал (${longSide}px): импорт запрещён (минимум 1500 px)`);
+  if (errors.length) return { ok: false, errors };
   const manifest: ZipTemplateManifest = {
     name,
     finish,
@@ -81,9 +85,15 @@ export function validateZipTemplateJson(json: unknown): { ok: true; manifest: Zi
     weaveCapable: weaveCapable || undefined,
     softMasks: typeof json.softMasks === "boolean" ? json.softMasks : undefined,
     referenceColor: typeof json.referenceColor === "string" && /^#[0-9a-f]{6}$/i.test(json.referenceColor) ? json.referenceColor : undefined,
+    shadeScale: typeof json.shadeScale === "number" && json.shadeScale > 0 ? json.shadeScale : undefined,
+    product: typeof json.product === "string" ? json.product : undefined,
+    fabricView: typeof json.fabricView === "string" ? json.fabricView : undefined,
+    texture: typeof json.texture === "string" ? json.texture : undefined,
     zones,
   };
-  return { ok: true, manifest };
+  const warnings: string[] = [];
+  if (longSide < 2500) warnings.push(`Шаблон низкого качества (${longSide}px): макеты будут нечёткими`);
+  return { ok: true, manifest, warnings };
 }
 
 /** Match `mask_duvet.png` to `template/mask_duvet.png` when JSON uses basename only. */

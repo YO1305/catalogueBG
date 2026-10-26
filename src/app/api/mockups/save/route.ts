@@ -1,5 +1,5 @@
-import sharp from "sharp";
 import { getSession } from "@/lib/auth";
+import { mockupWebpVariants } from "@/lib/mockup/exportWebp";
 import { getFabric, saveFabric } from "@/lib/db";
 import { canEditFabrics, isAdmin } from "@/lib/roles";
 import { saveBuffer } from "@/lib/storage";
@@ -22,16 +22,12 @@ export async function POST(request: Request) {
   if (!fabric) return Response.json({ error: "Ткань не найдена — сохраните черновик" }, { status: 404 });
 
   const source = Buffer.from(await file.arrayBuffer());
-  const [full, mid, thumb] = await Promise.all([
-    sharp(source).resize(2000, 2000, { fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
-    sharp(source).resize(1200, 1200, { fit: "inside", withoutEnlargement: true }).webp({ quality: 80 }).toBuffer(),
-    sharp(source).resize(600, 600, { fit: "inside", withoutEnlargement: true }).webp({ quality: 76 }).toBuffer(),
-  ]);
+  const { full, mid, thumb } = await mockupWebpVariants(source);
   const id = [fabricId, variantId, settings.templateId, settings.productType, Date.now().toString(36)].filter(Boolean).join("-");
   const [url, webUrl, thumbUrl] = await Promise.all([
     saveBuffer(`mockups/${id}.webp`, full, "image/webp"),
     saveBuffer(`mockups/${id}-1200.webp`, mid, "image/webp"),
-    saveBuffer(`mockups/${id}-600.webp`, thumb, "image/webp"),
+    saveBuffer(`mockups/${id}-800.webp`, thumb, "image/webp"),
   ]);
   const mockup: Mockup = { ...settings, url, webUrl, thumbUrl, engine: "uvgrid", generatedAt: new Date().toISOString() };
   const fresh = (await getFabric(fabricId)) ?? fabric;

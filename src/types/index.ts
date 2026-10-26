@@ -30,12 +30,16 @@ export type MockupAreaSettings = {
   rotation: number;
 };
 
+export type FabricView = "stack" | "drape" | "roll" | "flat_fold" | "swatch";
+
 export type Mockup = {
   productType: string;
   templateId: string;
   url: string;
   thumbUrl: string;
   webUrl?: string;
+  /** Главный мокап ткани для обложки карточки (изделие fabric). */
+  isPrimary?: boolean;
   sameForAllAreas: boolean;
   areas: MockupAreaSettings[];
   engine: TemplateEngine;
@@ -183,6 +187,8 @@ export type Template = {
   finish?: "sateen" | "matte" | string;
   /** Шаблон со слоями weave подходит и для тканых тканей, хотя finish = matte. */
   weaveCapable?: boolean;
+  fabricView?: FabricView;
+  texture?: string;
   source: {
     psdUrl: string;
     fileName: string;
@@ -229,6 +235,8 @@ export type Catalog = {
   };
   cover: { fabricId?: string; imageUrl?: string };
   showPrices: boolean;
+  /** B2B: показывать вкладку «Рисунок» с плоским файлом (SPEC 5.8.5). */
+  showFlatDesign?: boolean;
   access: "public" | "unlisted" | "pin";
   pinHash?: string;
   /** address is the Russian text; addressI18n holds EN/UZ versions typed in the editor */

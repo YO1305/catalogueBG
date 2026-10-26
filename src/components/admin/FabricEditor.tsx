@@ -8,6 +8,7 @@ import { FabricCatalogPickSection } from "@/components/admin/FabricCatalogPickSe
 import { FabricDesignSection } from "@/components/admin/FabricDesignSection";
 import { FabricVariantsSection } from "@/components/admin/FabricVariantsSection";
 import { WizardCardStep } from "@/components/admin/WizardCardStep";
+import { WizardFabricMockupStep } from "@/components/admin/WizardFabricMockupStep";
 import { WizardMockupCategoryStep } from "@/components/admin/WizardMockupCategoryStep";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
@@ -96,6 +97,7 @@ export function FabricEditor({
             <FabricVariantsSection fabric={fabric} progress={progress} onChange={update} onAdd={(file) => void editor.addVariant(file)} onPatch={editor.patchVariant} onRemove={editor.removeVariant} />
           </>
         )}
+        <WizardFabricMockupStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} onSaveMockup={editor.mockupJobs.run} />
         <div><h2 className="font-display text-lg">{t("wizard.data")}</h2></div>
         <WizardCardStep fabric={fabric} collections={lists.collections} fabricTypes={lists.fabricTypes} finishes={lists.finishes} productTypes={lists.productTypes} onChange={update} hideCollection onCreateCollection={onCreateCollection} onCreateFabricType={onCreateFabricType} onCreateFinish={editor.onCreateFinish} />
         <WizardMockupCategoryStep fabric={fabric} templates={templates} onChange={update} onChoose={chooseTemplate} onSaveMockup={editor.mockupJobs.run} />

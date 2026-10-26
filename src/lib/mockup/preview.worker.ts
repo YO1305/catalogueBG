@@ -16,7 +16,6 @@ const templates = new Map<string, Promise<Assets>>();
 const images = new Map<string, Promise<RGBA>>();
 const KEEP_TEMPLATES = 2;
 const KEEP_IMAGES = 6;
-const FINAL_EDGE = 2000;
 
 function remember<T>(cache: Map<string, Promise<T>>, key: string, keep: number, load: () => Promise<T>): Promise<T> {
   const hit = cache.get(key);
@@ -70,7 +69,7 @@ scope.onmessage = async (event: MessageEvent<PreviewRequest>) => {
   try {
     const assets = await remember(templates, `${jsonUrl}|${backgroundUrl}`, KEEP_TEMPLATES, () => loadTemplate(jsonUrl, backgroundUrl));
     const fill = await resolveFill(plan, (url) => remember(images, url, KEEP_IMAGES, () => loadRgba(url)));
-    const outputScale = final ? Math.min(1, FINAL_EDGE / Math.max(assets.tpl.size[0], assets.tpl.size[1])) : opts.outputScale;
+    const outputScale = final ? 1 : opts.outputScale;
     const image = renderUvgrid(assets.tpl, assets.background, assets.layers, fill, { ...opts, outputScale });
     if (final) {
       const message: PreviewResponse = { id, ok: true, blob: await encode(image) };

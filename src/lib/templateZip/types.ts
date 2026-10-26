@@ -32,6 +32,10 @@ export type ZipTemplateManifest = {
   weaveCapable?: boolean;
   softMasks?: boolean;
   referenceColor?: string;
+  shadeScale?: number;
+  product?: string;
+  fabricView?: string;
+  texture?: string;
   zones: ZipTemplateZone[];
 };
 

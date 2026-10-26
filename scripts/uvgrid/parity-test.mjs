@@ -4,7 +4,7 @@
 // Ожидается: mean < 1, p99 <= 3 для каждого теста.
 import fs from 'node:fs'; import path from 'node:path'; import { PNG } from 'pngjs'; import jpeg from 'jpeg-js';
 import { renderUvgrid } from '../../src/lib/mockup/uvgridRender.ts';
-const KIT = 'scripts/uvgrid', KPB = 'samples/templates/kpb/template', SS = 'samples/templates/sateen/template', PL = 'samples/templates/kpb-plain';
+const KIT = 'scripts/uvgrid', KPB = 'samples/templates/kpb/template', SS = 'samples/templates/sateen/template', PL = 'samples/templates/kpb-plain', F3 = 'samples/templates/fabric-poplin-drape', F1 = 'samples/templates/fabric-stripe-sateen-waves';
 const load = p => { const b = fs.readFileSync(p); if (p.endsWith('.png')) { const i = PNG.sync.read(b); return { width: i.width, height: i.height, data: i.data }; }
   const i = jpeg.decode(b, { useTArray: true, maxMemoryUsageInMB: 2048 }); return { width: i.width, height: i.height, data: i.data }; };
 function tpl(dir) { const T = JSON.parse(fs.readFileSync(path.join(dir, 'template.json'))); const L = {};
@@ -29,6 +29,9 @@ const cases = [
   ['plain_white.png', PL, { kind: 'weave', color: '#f3f1ec' }, {}],
   ['plain_floral_x1.3_r15.png', PL, { kind: 'design', tile: d('floral_lavanda.png'), tileWidthCm: 40 }, { scale: 1.3, rot: 15 }],
   ['plain_stripe_champagne.png', PL, { kind: 'weave', color: '#e6d5bd', stripes: [{ widthCm: 1, shiny: true }, { widthCm: 1, shiny: false }] }, {}],
+  // мокапы ткани (кадр целиком ткань, shadeScale 1.75)
+  ['fabric_poplin_floral.png', F3, { kind: 'design', tile: d('floral_lavanda.png'), tileWidthCm: 16 }, {}],
+  ['fabric_stripesateen_champagne.png', F1, { kind: 'weave', color: '#e6d5bd' }, {}],
   ['weave_on_matte_kpb.png', KPB, { kind: 'weave', color: '#b4a6a2', stripes: [{ widthCm: 1, shiny: true }, { widthCm: 1, shiny: false }] }, {}],
 ];
 let ok = true;

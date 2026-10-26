@@ -221,6 +221,17 @@
   ],
   "productTypes": [
     {
+      "id": "fabric",
+      "name": {
+        "ru": "Ткань",
+        "en": "Fabric",
+        "uz": "Mato"
+      },
+      "suggestedFor": [],
+      "order": 0,
+      "active": true
+    },
+    {
       "id": "kpb",
       "name": {
         "ru": "КПБ",

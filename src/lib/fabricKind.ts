@@ -1,3 +1,4 @@
+import { primaryFabricMockup } from "@/lib/catalog";
 import { defaultWeave } from "@/lib/mockup/weave";
 import { missingTones } from "@/lib/variants";
 import type { Fabric, FabricKind } from "@/types";
@@ -29,5 +30,6 @@ export function kindReady(fabric: Fabric): boolean {
   if (!fabric.design.webUrl) return false;
   if (kind === "woven") return Boolean(fabric.weave?.color);
   if (kind === "dyed") return !missingTones(fabric).length && Boolean(fabric.weave?.color);
-  return fabric.rapport.widthCm > 0 && fabric.rapport.heightCm > 0;
+  const hero = primaryFabricMockup(fabric);
+  return fabric.rapport.widthCm > 0 && fabric.rapport.heightCm > 0 && Boolean(hero?.url || hero?.webUrl);
 }

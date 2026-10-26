@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createCollectionAction, createFabricTypeAction, createFinishAction, createProductTypeAction, publishFabricAction, saveFabricAction } from "@/lib/actions";
 import { autoFabricColor } from "@/lib/mockup/fabricColor";
+import { FABRIC_PRODUCT } from "@/lib/mockup/constants";
 import { DEFAULT_CORRECTION } from "@/lib/mockup/weave";
 import { prepareUploadImage } from "@/lib/prepareUploadImage";
 import { useMockupJobs } from "@/lib/useMockupJobs";
@@ -141,11 +142,13 @@ export function useFabricEditor(
     const current = fabricRef.current;
     const mockups = current.mockups.filter((item) => !(item.templateId === template.id && item.productType === productType));
     if (selected) {
+      const isFabric = productType === FABRIC_PRODUCT;
       const created: Mockup = {
         productType,
         templateId: template.id,
         url: template.thumbnailUrl,
         thumbUrl: template.thumbnailUrl,
+        isPrimary: isFabric && !mockups.some((item) => item.productType === FABRIC_PRODUCT && item.isPrimary),
         sameForAllAreas: true,
         areas: template.areas.map((area) => ({ areaId: area.id, scale: 1, offsetX: 0, offsetY: 0, rotation: 0 })),
         engine: template.engine,

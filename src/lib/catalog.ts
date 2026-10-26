@@ -1,3 +1,4 @@
+import { FABRIC_PRODUCT } from "@/lib/mockup/constants";
 import type { BuiltPage, Catalog, CatalogRules, Fabric, Mockup } from "@/types";
 
 export function fabricMatchesRules(fabric: Fabric, rules: CatalogRules) {
@@ -41,6 +42,21 @@ export function heroMockup(fabric: Fabric, showProductTypes: string[]) {
     if (found) return found;
   }
   return undefined;
+}
+
+export function fabricMockups(fabric: Fabric): Mockup[] {
+  return fabric.mockups.filter((mockup) => mockup.productType === FABRIC_PRODUCT);
+}
+
+export function primaryFabricMockup(fabric: Fabric): Mockup | undefined {
+  return fabricMockups(fabric).find((mockup) => mockup.isPrimary) ?? fabricMockups(fabric)[0];
+}
+
+/** Главная картинка в журнале: мокап ткани, иначе мокап изделия (SPEC 5.8.4). */
+export function catalogCoverMockup(fabric: Fabric, showProductTypes: string[]): Mockup | undefined {
+  const fabricHero = primaryFabricMockup(fabric);
+  if (fabricHero?.url) return fabricHero;
+  return heroMockup(fabric, showProductTypes);
 }
 
 function chunk<T>(items: T[], size: number) {

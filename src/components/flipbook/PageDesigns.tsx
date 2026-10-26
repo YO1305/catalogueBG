@@ -3,7 +3,7 @@
 import { CatalogImage, PageHeader } from "@/components/flipbook/PageHeader";
 import { PageFooter } from "@/components/flipbook/PageFooter";
 import { useI18n } from "@/components/i18n/I18n";
-import { designsPerPage, heroMockup } from "@/lib/catalog";
+import { catalogCoverMockup, designsPerPage } from "@/lib/catalog";
 import type { Catalog, Fabric, FabricType } from "@/types";
 
 type OpenFabric = (id: string, variantId?: string) => void;
@@ -55,7 +55,7 @@ function DesignRow({
   onRequest: (id: string) => void;
 }) {
   const { lang, t } = useI18n();
-  const mockup = heroMockup(fabric, catalog.showProductTypes);
+  const mockup = catalogCoverMockup(fabric, catalog.showProductTypes);
   const typeName = fabricTypes.find((item) => item.id === fabric.fabricTypeId)?.name[lang] ?? "";
   const specs = [typeName, fabric.density && `${fabric.density} ${t("common.gm2")}`, fabric.width && `${fabric.width} ${t("common.cm")}`].filter(Boolean).join(" · ");
   return (
@@ -67,10 +67,10 @@ function DesignRow({
         onClick={() => onOpen(fabric.id)}
       >
         <CatalogImage
-          src={mockup?.url || fabric.design.webUrl}
+          src={mockup?.url || mockup?.webUrl || ""}
           thumbUrl={mockup?.thumbUrl}
           webUrl={mockup?.webUrl}
-          fallbackSrc={fabric.design.webUrl || fabric.design.thumbUrl}
+          fallbackSrc={fabric.design.webUrl || fabric.design.thumbUrl || undefined}
           alt={`${fabric.name[lang]} — ${typeName}`}
           active={active}
         />

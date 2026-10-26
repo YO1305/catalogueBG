@@ -7,7 +7,9 @@ import { SpecsTable } from "@/components/fabric/SpecsTable";
 import { ZoomViewer } from "@/components/fabric/ZoomViewer";
 import { useI18n } from "@/components/i18n/I18n";
 import { VariantDots } from "@/components/flipbook/VariantDots";
-import { visibleMockups } from "@/lib/catalog";
+import { fabricMockups, visibleMockups } from "@/lib/catalog";
+import { fabricKind } from "@/lib/fabricKind";
+import { FABRIC_PRODUCT } from "@/lib/mockup/constants";
 import { ToneSwitch } from "@/components/fabric/ToneSwitch";
 import { BASE_VARIANT, colorOptions, withVariant } from "@/lib/variants";
 import type { Catalog, Collection, Fabric, FabricType, ProductType } from "@/types";
@@ -49,10 +51,20 @@ export function FabricModal({
   const [variant, setVariant] = useState(variantId ?? BASE_VARIANT);
   useEffect(() => setVariant(variantId ?? BASE_VARIANT), [base, variantId]);
   const fabric = withVariant(base, variant);
-  const mockups = visibleMockups(fabric, catalog.showProductTypes);
+  const kind = fabricKind(fabric);
+  const showFlat = catalog.showFlatDesign || kind !== "printed";
+  const productMockups = visibleMockups(fabric, catalog.showProductTypes).filter((item) => item.productType !== FABRIC_PRODUCT);
   const tabs: MediaTab[] = [
-    { id: "design", label: t(fabric.woven || fabric.toned ? "catalog.fabricTab" : "catalog.designTab"), src: fabric.design.webUrl, thumb: fabric.design.thumbUrl },
-    ...mockups.map((mockup) => ({
+    ...(showFlat && fabric.design.webUrl
+      ? [{ id: "design", label: t(fabric.woven || fabric.toned ? "catalog.fabricTab" : "catalog.designTab"), src: fabric.design.webUrl, thumb: fabric.design.thumbUrl }]
+      : []),
+    ...fabricMockups(fabric).map((mockup) => ({
+      id: `fabric-${mockup.templateId}`,
+      label: t("catalog.fabricMockupTab"),
+      src: mockup.url,
+      thumb: mockup.thumbUrl,
+    })),
+    ...productMockups.map((mockup) => ({
       id: mockup.templateId + mockup.productType,
       label: productTypes.find((item) => item.id === mockup.productType)?.name[lang] ?? mockup.productType,
       src: mockup.url,

@@ -26,6 +26,7 @@ export async function finalizeZipTemplateImport(input: {
   manifest: ZipTemplateManifest;
   assetUrls: Record<string, string>;
   zipSizeMb: number;
+  importWarnings?: string[];
 }): Promise<{ ok: true; template: Template } | { ok: false; errors: string[] }> {
   const errors: string[] = [];
   const urlByFile = new Map<string, string>(Object.entries(input.assetUrls));
@@ -42,6 +43,14 @@ export async function finalizeZipTemplateImport(input: {
 
   const prefix = `templates/${input.templateId}`;
   const storedManifest = manifestForStorage(input.manifest, urlByFile);
+  const fabricView =
+    input.manifest.fabricView === "stack" ||
+    input.manifest.fabricView === "drape" ||
+    input.manifest.fabricView === "roll" ||
+    input.manifest.fabricView === "flat_fold" ||
+    input.manifest.fabricView === "swatch"
+      ? input.manifest.fabricView
+      : undefined;
   const jsonUrl = await saveBuffer(`${prefix}/template.json`, Buffer.from(JSON.stringify(storedManifest), "utf8"), "application/json");
 
   let thumbnailUrl = backgroundUrl;
@@ -89,6 +98,8 @@ export async function finalizeZipTemplateImport(input: {
     finish:
       input.manifest.finish === "sateen" ? "sateen" : input.manifest.finish === "matte" ? "matte" : input.manifest.finish,
     weaveCapable: input.manifest.weaveCapable,
+    fabricView,
+    texture: input.manifest.texture,
     source: {
       psdUrl: "",
       fileName: `${displayName}.zip`,
@@ -97,7 +108,7 @@ export async function finalizeZipTemplateImport(input: {
       heightPx: input.manifest.size[1],
     },
     engine: "uvgrid",
-    compatibility: { ok: true, warnings: [] },
+    compatibility: { ok: true, warnings: input.importWarnings ?? [] },
     baked: { backgroundUrl: backgroundUrl!, overlays: [], jsonUrl },
     areas,
     thumbnailUrl: thumbnailUrl!,

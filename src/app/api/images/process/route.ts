@@ -32,19 +32,19 @@ export async function POST(request: Request) {
     return Response.json({ error: "file" }, { status: 400 });
   }
   const id = crypto.randomUUID();
-  const web = await image.clone().resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
+  const web = await image.clone().resize({ width: 4000, height: 4000, fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
   const thumb = await image.clone().resize({ width: 400, height: 400, fit: "cover" }).webp({ quality: 78 }).toBuffer();
   const mid = await image.clone().resize({ width: 1200, height: 1200, fit: "inside", withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
   const small = await image.clone().resize({ width: 600, height: 600, fit: "inside", withoutEnlargement: true }).webp({ quality: 78 }).toBuffer();
   try {
     const skipOriginal = storageProvider() === "vercel-blob";
     const [webUrl, thumbUrl] = await Promise.all([
-      saveBuffer(`fabrics/${id}/web.webp`, web, "image/webp"),
-      saveBuffer(`fabrics/${id}/thumb.webp`, thumb, "image/webp"),
+      saveBuffer(`private/designs/${id}/web.webp`, web, "image/webp"),
+      saveBuffer(`private/designs/${id}/thumb.webp`, thumb, "image/webp"),
     ]);
     await Promise.all([
-      saveBuffer(`fabrics/${id}/web-1200.webp`, mid, "image/webp"),
-      saveBuffer(`fabrics/${id}/web-600.webp`, small, "image/webp"),
+      saveBuffer(`private/designs/${id}/web-1200.webp`, mid, "image/webp"),
+      saveBuffer(`private/designs/${id}/web-600.webp`, small, "image/webp"),
     ]);
     const originalUrl = skipOriginal
       ? webUrl
