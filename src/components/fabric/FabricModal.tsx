@@ -2,14 +2,12 @@
 
 import { ChevronLeft, ChevronRight, Heart, Share2, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { MediaTiles, type MediaTab } from "@/components/fabric/MediaTiles";
 import { SpecsTable } from "@/components/fabric/SpecsTable";
 import { ZoomViewer } from "@/components/fabric/ZoomViewer";
 import { useI18n } from "@/components/i18n/I18n";
 import { VariantDots } from "@/components/flipbook/VariantDots";
-import { fabricMockups, visibleMockups } from "@/lib/catalog";
+import { catalogProductCoverMockup, modalFabricView } from "@/lib/catalog";
 import { fabricKind } from "@/lib/fabricKind";
-import { FABRIC_PRODUCT } from "@/lib/mockup/constants";
 import { ToneSwitch } from "@/components/fabric/ToneSwitch";
 import { BASE_VARIANT, colorOptions, withVariant } from "@/lib/variants";
 import type { Catalog, Collection, Fabric, FabricType, ProductType } from "@/types";
@@ -53,28 +51,15 @@ export function FabricModal({
   const fabric = withVariant(base, variant);
   const kind = fabricKind(fabric);
   const showFlat = catalog.showFlatDesign || kind === "printed";
-  const productMockups = visibleMockups(fabric, catalog.showProductTypes).filter((item) => item.productType !== FABRIC_PRODUCT);
-  const tabs: MediaTab[] = [
-    ...(showFlat && fabric.design.webUrl
-      ? [{ id: "design", label: t(fabric.woven || fabric.toned ? "catalog.fabricTab" : "catalog.designTab"), src: fabric.design.webUrl, thumb: fabric.design.thumbUrl }]
-      : []),
-    ...fabricMockups(fabric).map((mockup) => ({
-      id: `fabric-${mockup.templateId}`,
-      label: t("catalog.fabricMockupTab"),
-      src: mockup.url,
-      thumb: mockup.thumbUrl,
-    })),
-    ...productMockups.map((mockup) => ({
-      id: mockup.templateId + mockup.productType,
-      label: productTypes.find((item) => item.id === mockup.productType)?.name[lang] ?? mockup.productType,
-      src: mockup.url,
-      thumb: mockup.thumbUrl,
-    })),
-    ...fabric.realPhotos.map((photo, index) => ({ id: `photo-${index}`, label: t("catalog.photoTab"), src: photo.url, thumb: photo.thumbUrl })),
-  ];
-  const [tab, setTab] = useState(0);
+  const fabricView = modalFabricView(fabric, showFlat);
+  const productMockup = catalogProductCoverMockup(fabric, catalog.showProductTypes);
+  const mainSrc = fabricView?.src || productMockup?.url || productMockup?.webUrl || "";
+  const productLabel =
+    productMockup &&
+    (productTypes.find((item) => item.id === productMockup.productType)?.name[lang] ?? productMockup.productType);
   const index = fabrics.findIndex((item) => item.id === fabric.id);
-  const current = tabs[tab] ?? tabs[0];
+  const typeName = fabricTypes.find((item) => item.id === fabric.fabricTypeId)?.name[lang] ?? "";
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -84,18 +69,44 @@ export function FabricModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [fabrics, index, onClose, onPick]);
-  useEffect(() => setTab(0), [fabric.id, variant]);
-  const typeName = fabricTypes.find((item) => item.id === fabric.fabricTypeId)?.name[lang] ?? "";
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#1c1915]/70 p-0 md:p-6" role="dialog" aria-modal="true" aria-label={fabric.name[lang]}>
       <div className="flex h-full w-full flex-col bg-paper md:h-[90vh] md:w-[90vw] md:flex-row">
         <div className="flex min-h-[52%] flex-1 flex-col md:min-h-0">
           <div className="relative min-h-0 flex-1">
-            {current ? (
-              <ZoomViewer src={current.src} alt={`${fabric.name[lang]} — ${current.label}`} rapportCm={fabric.rapport.widthCm} seamless={!fabric.woven && !fabric.toned && fabric.design.seamless && tab === 0} onZoomed={onZoomed} />
+            {mainSrc ? (
+              <ZoomViewer
+                src={mainSrc}
+                alt={`${fabric.name[lang]} — ${t("catalog.fabricMockupTab")}`}
+                rapportCm={fabric.rapport.widthCm}
+                seamless={Boolean(fabricView?.seamless)}
+                onZoomed={onZoomed}
+              />
+            ) : null}
+            {fabricView && productMockup && (productMockup.url || productMockup.webUrl) ? (
+              <div className="pointer-events-none absolute bottom-4 right-4 w-[min(32%,9rem)] overflow-hidden rounded-lg border border-white/80 bg-white/90 shadow-lg">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={productMockup.thumbUrl || productMockup.webUrl || productMockup.url}
+                  alt={productLabel ? `${fabric.name[lang]} — ${productLabel}` : fabric.name[lang]}
+                  className="aspect-[4/3] w-full object-cover"
+                />
+                {productLabel ? <p className="truncate px-2 py-1 text-[10px] font-medium text-ink/70">{productLabel}</p> : null}
+              </div>
             ) : null}
           </div>
-          <MediaTiles tabs={tabs} value={tab} onChange={setTab} />
+          {options.length > 1 ? (
+            <div className="shrink-0 border-t border-ink/10 px-3 py-3">
+              <div className="mx-auto flex max-w-md justify-center">
+                {base.toned ? (
+                  <ToneSwitch options={options} value={variant} onChange={setVariant} />
+                ) : (
+                  <VariantDots options={options} value={variant} onChange={setVariant} size="2.25rem" />
+                )}
+              </div>
+            </div>
+          ) : null}
         </div>
         <aside className="flex w-full flex-col gap-4 overflow-auto p-5 md:w-[22rem]">
           <div className="flex items-start justify-between gap-3">
@@ -107,8 +118,6 @@ export function FabricModal({
               <X />
             </button>
           </div>
-          {base.toned && options.length ? <ToneSwitch options={options} value={variant} onChange={setVariant} /> : null}
-          {!base.toned && options.length ? <VariantDots options={options} value={variant} onChange={setVariant} size="2rem" /> : null}
           {base.toned ? <p className="text-xs leading-relaxed text-ink/60">{t("tone.pantone")}</p> : null}
           {typeName && typeName !== fabric.name[lang] ? <p className="text-sm text-ink/70">{typeName}</p> : null}
           <SpecsTable fabric={fabric} catalog={catalog} />

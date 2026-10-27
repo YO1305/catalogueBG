@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildPages, heroMockup, resolveFabrics } from "./catalog";
+import { buildPages, catalogCoverMockup, heroMockup, resolveFabrics } from "./catalog";
+import { FABRIC_PRODUCT } from "./mockup/constants";
 import type { Catalog, Fabric, Mockup } from "../types";
 
 function fabric(partial: Partial<Fabric> & Pick<Fabric, "id" | "art">): Fabric {
@@ -64,6 +65,15 @@ test("rules catalog keeps only matching published fabrics", () => {
     items,
   );
   assert.deepEqual(selected.map((item) => item.id), ["a"]);
+});
+
+test("catalog row cover prefers product mockup over fabric mockup", () => {
+  const mockups: Mockup[] = [
+    { productType: FABRIC_PRODUCT, templateId: "swatch", url: "fabric", webUrl: "fabric", thumbUrl: "fabric", sameForAllAreas: true, areas: [], engine: "uvgrid", generatedAt: "2026-01-01T00:00:00.000Z", isPrimary: true },
+    { productType: "kpb", templateId: "bed", url: "bed", webUrl: "bed", thumbUrl: "bed", sameForAllAreas: true, areas: [], engine: "uvgrid", generatedAt: "2026-01-01T00:00:00.000Z" },
+  ];
+  const item = fabric({ id: "a", art: "KR-1", mockups, productTypes: ["kpb"] });
+  assert.equal(catalogCoverMockup(item, ["kpb"])?.templateId, "bed");
 });
 
 test("kurpacha catalog hero ignores bed mockups", () => {
