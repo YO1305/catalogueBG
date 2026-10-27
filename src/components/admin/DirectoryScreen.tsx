@@ -11,7 +11,23 @@ import type { Collection, FabricType, Finish, GlossaryTerm, ProductType, Role } 
 
 type Row = { id: string; name: string; active: boolean; raw: object; flag?: boolean };
 
-export function DirectoryScreen({ role, collections, fabricTypes, finishes, productTypes, glossary }: { role: Role; collections: Collection[]; fabricTypes: FabricType[]; finishes: Finish[]; productTypes: ProductType[]; glossary: GlossaryTerm[] }) {
+export function DirectoryScreen({
+  role,
+  collections,
+  fabricTypes,
+  finishes,
+  productTypes,
+  glossary,
+  embedded,
+}: {
+  role: Role;
+  collections: Collection[];
+  fabricTypes: FabricType[];
+  finishes: Finish[];
+  productTypes: ProductType[];
+  glossary: GlossaryTerm[];
+  embedded?: boolean;
+}) {
   const { t } = useI18n();
   const [tab, setTab] = useState<"collections" | "types" | "finishes" | "products" | "glossary">("collections");
   const tabs = [
@@ -23,8 +39,8 @@ export function DirectoryScreen({ role, collections, fabricTypes, finishes, prod
   ] as const;
   return (
     <div>
-      <h1 className="font-display text-4xl">{t("nav.settings")}</h1>
-      <div className="mt-4 flex flex-wrap gap-2">
+      {embedded ? null : <h1 className="font-display text-4xl">{t("nav.settings")}</h1>}
+      <div className={`flex flex-wrap gap-2 ${embedded ? "" : "mt-4"}`}>
         {tabs.map(([id, label]) => (
           <button key={id} type="button" className={`px-3 py-1 text-sm ${tab === id ? "bg-majolica text-paper" : "bg-white"}`} onClick={() => setTab(id)}>
             {label}

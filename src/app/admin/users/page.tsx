@@ -1,10 +1,5 @@
-import { UsersScreen } from "@/components/admin/UsersScreen";
-import { requireSession } from "@/lib/auth";
-import { getUsers } from "@/lib/db";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function UsersPage() {
-  const [, users] = await Promise.all([requireSession(["admin"]), getUsers()]);
-  return <UsersScreen users={users.map(({ passwordHash: _hash, ...user }) => user)} />;
+export default function UsersPage() {
+  redirect("/admin/settings?tab=access");
 }

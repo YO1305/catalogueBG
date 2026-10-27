@@ -5,13 +5,17 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { I18nProvider, useI18n } from "@/components/i18n/I18n";
 import { Toaster } from "sonner";
-import type { Lang, Role } from "@/types";
+import { canAccessSection } from "@/lib/adminAccess";
 import type { Session } from "@/lib/session";
+import type { AdminSection, Lang } from "@/types";
 
-const LINKS: Array<{ href: string; key: string; roles: Role[] }> = [
-  { href: "/admin/catalogs", key: "nav.catalogs", roles: ["admin", "designer", "manager"] },
-  { href: "/admin/fabrics", key: "nav.designs", roles: ["admin", "designer", "manager"] },
-  { href: "/admin/templates", key: "nav.mockups", roles: ["admin", "designer"] },
+const LINKS: Array<{ href: string; key: string; section: AdminSection }> = [
+  { href: "/admin/catalogs", key: "nav.catalogs", section: "catalogs" },
+  { href: "/admin/fabrics", key: "nav.designs", section: "fabrics" },
+  { href: "/admin/templates", key: "nav.mockups", section: "templates" },
+  { href: "/admin/leads", key: "nav.leads", section: "leads" },
+  { href: "/admin/stats", key: "nav.stats", section: "stats" },
+  { href: "/admin/settings", key: "nav.settings", section: "settings" },
 ];
 
 export function AdminFrame({ session, children }: { session: Session | null; children: React.ReactNode }) {
@@ -32,7 +36,17 @@ function Shell({ session, lang, setLang, children }: { session: Session | null; 
   const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
-  const role = session?.role ?? "manager";
+  const navLinks = LINKS.filter((link) => {
+    if (!session) return false;
+    if (link.section === "settings") {
+      return (
+        canAccessSection(session, "settings") ||
+        canAccessSection(session, "access") ||
+        canAccessSection(session, "usage")
+      );
+    }
+    return canAccessSection(session, link.section);
+  });
   return (
     <div className="min-h-screen bg-[#f6f3ee] md:grid md:grid-cols-[240px_1fr]">
       <aside className="bg-majolica text-paper md:min-h-screen">
@@ -40,7 +54,7 @@ function Shell({ session, lang, setLang, children }: { session: Session | null; 
           {t("brand")}
         </Link>
         <nav className="flex gap-2 overflow-auto px-3 pb-4 md:block md:space-y-1">
-          {LINKS.filter((link) => link.roles.includes(role)).map((link) => {
+          {navLinks.map((link) => {
             const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
               <Link

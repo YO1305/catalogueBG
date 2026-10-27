@@ -2,8 +2,8 @@
 
 import { ChevronLeft, ChevronRight, Heart, Share2, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { FabricModalGallery } from "@/components/fabric/FabricModalGallery";
 import { SpecsTable } from "@/components/fabric/SpecsTable";
-import { ZoomViewer } from "@/components/fabric/ZoomViewer";
 import { useI18n } from "@/components/i18n/I18n";
 import { VariantDots } from "@/components/flipbook/VariantDots";
 import { catalogProductCoverMockup, modalFabricView } from "@/lib/catalog";
@@ -13,9 +13,9 @@ import { WovenVariantSwitch } from "@/components/fabric/WovenVariantSwitch";
 import { BASE_VARIANT, colorOptions, withVariant } from "@/lib/variants";
 import type { Catalog, Collection, Fabric, FabricType, ProductType } from "@/types";
 
-const ACTION = "flex h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm leading-none transition";
-const STEP = "flex h-12 min-w-0 items-center gap-2 rounded-full border border-ink/15 bg-white/60 text-xs leading-tight transition hover:border-ink/35 disabled:pointer-events-none disabled:opacity-35";
-const STEP_ICON = "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink/5";
+const ACTION = "flex h-10 w-full items-center justify-center gap-2 rounded-xl px-3 text-sm leading-none transition";
+const STEP = "flex h-10 min-w-0 items-center gap-1.5 rounded-full border border-ink/15 bg-white/60 text-[11px] leading-tight transition hover:border-ink/35 disabled:pointer-events-none disabled:opacity-35";
+const STEP_ICON = "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink/5";
 
 export function FabricModal({
   fabric: base,
@@ -54,10 +54,13 @@ export function FabricModal({
   const showFlat = catalog.showFlatDesign || kind === "printed";
   const fabricView = modalFabricView(fabric, showFlat);
   const productMockup = catalogProductCoverMockup(fabric, catalog.showProductTypes);
-  const mainSrc = fabricView?.src || productMockup?.url || productMockup?.webUrl || "";
+  const fabricSrc = fabricView?.src ?? "";
+  const productRaw = productMockup?.webUrl || productMockup?.url || "";
+  const productSrc = productRaw && productRaw !== fabricSrc ? productRaw : "";
   const productLabel =
-    productMockup &&
-    (productTypes.find((item) => item.id === productMockup.productType)?.name[lang] ?? productMockup.productType);
+    productTypes.find((item) => item.id === productMockup?.productType)?.name[lang] ??
+    productMockup?.productType ??
+    t("admin.product");
   const index = fabrics.findIndex((item) => item.id === fabric.id);
   const typeName = fabricTypes.find((item) => item.id === fabric.fabricTypeId)?.name[lang] ?? "";
 
@@ -72,57 +75,51 @@ export function FabricModal({
   }, [fabrics, index, onClose, onPick]);
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#1c1915]/70 p-0 md:p-6" role="dialog" aria-modal="true" aria-label={fabric.name[lang]}>
-      <div className="flex h-full w-full flex-col bg-paper md:h-[90vh] md:w-[90vw] md:flex-row">
-        <div className="flex min-h-[52%] flex-1 flex-col md:min-h-0">
-          <div className="relative min-h-0 flex-1">
-            {mainSrc ? (
-              <ZoomViewer
-                src={mainSrc}
-                alt={`${fabric.name[lang]} — ${t("catalog.fabricMockupTab")}`}
-                rapportCm={fabric.rapport.widthCm}
-                seamless={Boolean(fabricView?.seamless)}
-                onZoomed={onZoomed}
-              />
-            ) : null}
-            {fabricView && productMockup && (productMockup.url || productMockup.webUrl) ? (
-              <div className="pointer-events-none absolute bottom-4 right-4 w-[min(32%,9rem)] overflow-hidden rounded-lg border border-white/80 bg-white/90 shadow-lg">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={productMockup.thumbUrl || productMockup.webUrl || productMockup.url}
-                  alt={productLabel ? `${fabric.name[lang]} — ${productLabel}` : fabric.name[lang]}
-                  className="aspect-[4/3] w-full object-cover"
-                />
-                {productLabel ? <p className="truncate px-2 py-1 text-[10px] font-medium text-ink/70">{productLabel}</p> : null}
-              </div>
-            ) : null}
-          </div>
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-[#1c1915]/75 p-3 sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label={fabric.name[lang]}
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[92vh] w-full max-w-[56rem] flex-col overflow-hidden rounded-2xl bg-paper shadow-2xl md:max-h-[min(90vh,40rem)] md:flex-row"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-4 md:p-5">
+          <FabricModalGallery
+            fabricLabel={t("catalog.fabricMockupTab")}
+            fabricSrc={fabricSrc}
+            fabricSeamless={Boolean(fabricView?.seamless)}
+            rapportCm={fabric.rapport.widthCm}
+            productLabel={productLabel}
+            productSrc={productSrc}
+            onZoomed={onZoomed}
+          />
           {options.length > 1 ? (
-            <div className="shrink-0 border-t border-ink/10 px-3 py-3">
-              <div className="mx-auto w-full max-w-lg">
-                {base.toned ? (
-                  <ToneSwitch options={options} value={variant} onChange={setVariant} />
-                ) : kind === "woven" && options.length >= 2 && options.length <= 5 ? (
-                  <WovenVariantSwitch options={options} value={variant} onChange={setVariant} />
-                ) : (
-                  <VariantDots options={options} value={variant} onChange={setVariant} size="2.25rem" />
-                )}
-              </div>
+            <div className="shrink-0 pt-1">
+              {base.toned ? (
+                <ToneSwitch options={options} value={variant} onChange={setVariant} />
+              ) : kind === "woven" && options.length <= 5 ? (
+                <WovenVariantSwitch options={options} value={variant} onChange={setVariant} />
+              ) : (
+                <VariantDots options={options} value={variant} onChange={setVariant} size="2rem" />
+              )}
             </div>
           ) : null}
         </div>
-        <aside className="flex w-full flex-col gap-4 overflow-auto p-5 md:w-[22rem]">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="font-display text-3xl leading-none">{fabric.name[lang]}</h2>
-              <p className="font-mono mt-2 text-sm text-ink/60">{fabric.art}</p>
+        <aside className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto border-t border-ink/10 p-4 md:w-[17.5rem] md:border-l md:border-t-0 md:p-5 lg:w-[19rem]">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h2 className="font-display text-2xl leading-tight">{fabric.name[lang]}</h2>
+              <p className="font-mono mt-1 text-xs text-ink/60">{fabric.art}</p>
             </div>
-            <button type="button" aria-label={t("common.close")} onClick={onClose}>
-              <X />
+            <button type="button" className="shrink-0 rounded-full p-1 hover:bg-black/5" aria-label={t("common.close")} onClick={onClose}>
+              <X className="h-5 w-5" />
             </button>
           </div>
-          {base.toned ? <p className="text-xs leading-relaxed text-ink/60">{t("tone.pantone")}</p> : null}
-          {typeName && typeName !== fabric.name[lang] ? <p className="text-sm text-ink/70">{typeName}</p> : null}
+          {base.toned ? <p className="text-[11px] leading-relaxed text-ink/60">{t("tone.pantone")}</p> : null}
+          {typeName && typeName !== fabric.name[lang] ? <p className="text-xs text-ink/70">{typeName}</p> : null}
           <SpecsTable fabric={fabric} catalog={catalog} />
           <div className="grid gap-2">
             <button type="button" className={`${ACTION} border border-ink/15 bg-white/60 hover:border-ink/35`} onClick={onToggleSave}>
@@ -134,14 +131,14 @@ export function FabricModal({
               {t("catalog.shareDesign")}
             </button>
           </div>
-          <nav className="mt-auto grid grid-cols-2 gap-2 border-t border-ink/10 pt-4" aria-label={t("catalog.designNav")}>
-            <button type="button" className={`${STEP} justify-start pl-1.5 pr-3`} disabled={!fabrics[index - 1]} onClick={() => fabrics[index - 1] && onPick(fabrics[index - 1].id)}>
-              <span className={STEP_ICON}><ChevronLeft className="h-4 w-4" /></span>
+          <nav className="mt-auto grid grid-cols-2 gap-2 border-t border-ink/10 pt-3" aria-label={t("catalog.designNav")}>
+            <button type="button" className={`${STEP} justify-start pl-1 pr-2`} disabled={!fabrics[index - 1]} onClick={() => fabrics[index - 1] && onPick(fabrics[index - 1].id)}>
+              <span className={STEP_ICON}><ChevronLeft className="h-3.5 w-3.5" /></span>
               <span className="text-left">{t("catalog.prev")}</span>
             </button>
-            <button type="button" className={`${STEP} justify-end pl-3 pr-1.5`} disabled={!fabrics[index + 1]} onClick={() => fabrics[index + 1] && onPick(fabrics[index + 1].id)}>
+            <button type="button" className={`${STEP} justify-end pl-2 pr-1`} disabled={!fabrics[index + 1]} onClick={() => fabrics[index + 1] && onPick(fabrics[index + 1].id)}>
               <span className="text-right">{t("catalog.next")}</span>
-              <span className={STEP_ICON}><ChevronRight className="h-4 w-4" /></span>
+              <span className={STEP_ICON}><ChevronRight className="h-3.5 w-3.5" /></span>
             </button>
           </nav>
         </aside>

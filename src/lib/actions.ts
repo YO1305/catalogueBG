@@ -33,7 +33,7 @@ import { hashPassword, hashPin } from "@/lib/password";
 import { presetCatalog } from "@/lib/presets";
 import { canEditCatalogs, canEditDictionaries, canEditFabrics, canReadLeads, isAdmin } from "@/lib/roles";
 import { translateFields } from "@/lib/translate";
-import type { AppUser, Catalog, Collection, Fabric, FabricType, Finish, GlossaryTerm, Lead, ProductType, Role, Template } from "@/types";
+import type { AdminSection, AppUser, Catalog, Collection, Fabric, FabricType, Finish, GlossaryTerm, Lead, ProductType, Role, Template } from "@/types";
 
 async function actor(check: (role: Role) => boolean) {
   const session = await getSession();
@@ -407,12 +407,35 @@ export async function updateLeadAction(id: string, status: Lead["status"]) {
   return { ok: true as const };
 }
 
-export async function createUserAction(input: { email: string; name: string; role: Role; password: string }) {
+export async function createUserAction(input: { email: string; name: string; role: Role; password: string; sections?: AdminSection[] }) {
   await actor(isAdmin);
   const users = await getUsers();
   if (users.some((user) => user.email.toLowerCase() === input.email.toLowerCase())) return { ok: false as const, error: "exists" };
-  const user: AppUser = { id: crypto.randomUUID(), email: input.email.trim(), name: input.name.trim(), role: input.role, passwordHash: hashPassword(input.password) };
+  const user: AppUser = {
+    id: crypto.randomUUID(),
+    email: input.email.trim(),
+    name: input.name.trim(),
+    role: input.role,
+    passwordHash: hashPassword(input.password),
+    sections: input.role === "admin" || !input.sections?.length ? undefined : input.sections,
+  };
   await saveUser(user);
+  revalidatePath("/admin/settings");
+  return { ok: true as const };
+}
+
+export async function updateUserAccessAction(input: { id: string; role: Role; sections: AdminSection[] | null }) {
+  await actor(isAdmin);
+  const users = await getUsers();
+  const user = users.find((item) => item.id === input.id);
+  if (!user) return { ok: false as const, error: "missing" as const };
+  const next: AppUser = {
+    ...user,
+    role: input.role,
+    sections: input.role === "admin" || !input.sections?.length ? undefined : input.sections,
+  };
+  await saveUser(next);
+  revalidatePath("/admin/settings");
   return { ok: true as const };
 }
 

@@ -1,3 +1,5 @@
+import { defaultSectionsForRole, effectiveSections } from "@/lib/adminAccess";
+import { findStaffUser } from "@/lib/db";
 import { firebaseAdminConfigured, getAdminApp } from "@/lib/firebaseAdmin";
 import { SESSION_COOKIE, cookieHeader, signSession } from "@/lib/session";
 import type { Role } from "@/types";
@@ -22,11 +24,14 @@ export async function POST(request: Request) {
     if (typeof role !== "string" || !ROLES.has(role as Role)) {
       return Response.json({ error: "role" }, { status: 403 });
     }
+    const staff = await findStaffUser(decoded.email ?? "");
+    const sections = staff ? effectiveSections(staff) : defaultSectionsForRole(role as Role);
     const token = await signSession({
       uid: decoded.uid,
       email: decoded.email ?? "",
       name: decoded.name ?? decoded.email ?? "",
       role: role as Role,
+      sections,
     });
     const response = Response.json({ ok: true });
     response.headers.set("set-cookie", cookieHeader(SESSION_COOKIE, token));

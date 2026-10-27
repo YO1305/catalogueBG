@@ -1,4 +1,4 @@
-import type { Role } from "@/types";
+import type { AdminSection, Role } from "@/types";
 
 export const SESSION_COOKIE = "bahmal_session";
 
@@ -12,6 +12,7 @@ export type Session = {
   email: string;
   name: string;
   role: Role;
+  sections?: AdminSection[];
   exp: number;
   kind?: "user" | "pin";
 };

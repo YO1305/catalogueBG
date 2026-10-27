@@ -7,6 +7,17 @@ export type Localized = { ru: string; en: string; uz: string };
 
 export type Role = "admin" | "designer" | "manager";
 
+/** Пункты меню админки; у admin всегда все. */
+export type AdminSection =
+  | "catalogs"
+  | "fabrics"
+  | "templates"
+  | "leads"
+  | "stats"
+  | "settings"
+  | "usage"
+  | "access";
+
 /** Категория мокапа для фильтра в админке */
 export type MockupCategory = "kitchen" | "bedding" | "kurpacha" | "fashion";
 
@@ -284,6 +295,8 @@ export type AppUser = {
   name: string;
   role: Role;
   passwordHash: string;
+  /** Если задано — переопределяет разделы по умолчанию для роли (кроме admin). */
+  sections?: AdminSection[];
 };
 
 export type Database = {
@@ -300,7 +313,7 @@ export type Database = {
   glossary: GlossaryTerm[];
 };
 
-export type PublicUser = Pick<AppUser, "id" | "email" | "name" | "role">;
+export type PublicUser = Pick<AppUser, "id" | "email" | "name" | "role" | "sections">;
 
 export type BuiltPage =
   | { kind: "cover"; index: number }
