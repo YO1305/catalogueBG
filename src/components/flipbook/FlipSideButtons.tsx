@@ -1,34 +1,46 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useI18n } from "@/components/i18n/I18n";
 
-const BTN =
-  "fixed top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-ink/10 bg-paper/95 text-ink shadow-md transition hover:bg-white disabled:pointer-events-none disabled:opacity-30";
+function NavButton({ dir, disabled, onClick, label }: { dir: "prev" | "next"; disabled: boolean; onClick: () => void; label: string }) {
+  const Icon = dir === "prev" ? ChevronLeft : ChevronRight;
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      className="flex h-[3.75rem] w-[3.75rem] shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl border border-ink/10 bg-majolica text-paper shadow-[0_6px_24px_rgba(22,58,102,0.35)] transition hover:brightness-110 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-35 sm:h-[4.5rem] sm:w-[4.5rem]"
+      onClick={onClick}
+    >
+      <Icon className="h-8 w-8 stroke-[2.5] sm:h-9 sm:w-9" aria-hidden />
+    </button>
+  );
+}
 
-export function FlipSideButtons({
+export function FlipSideNav({
   page,
   total,
+  hidden,
   onPrev,
   onNext,
-  hidden,
+  children,
 }: {
   page: number;
   total: number;
+  hidden?: boolean;
   onPrev: () => void;
   onNext: () => void;
-  hidden?: boolean;
+  children: ReactNode;
 }) {
   const { t } = useI18n();
-  if (hidden) return null;
+  if (hidden) return <>{children}</>;
   return (
-    <>
-      <button type="button" className={`${BTN} left-2 sm:left-4`} aria-label={t("catalog.turnPrev")} disabled={page <= 0} onClick={onPrev}>
-        <ChevronLeft className="h-5 w-5" />
-      </button>
-      <button type="button" className={`${BTN} right-2 sm:right-4`} aria-label={t("catalog.turnNext")} disabled={page >= total - 1} onClick={onNext}>
-        <ChevronRight className="h-5 w-5" />
-      </button>
-    </>
+    <div className="flex max-w-[100vw] items-center gap-3 px-1 sm:gap-5 sm:px-2">
+      <NavButton dir="prev" disabled={page <= 0} onClick={onPrev} label={t("catalog.turnPrev")} />
+      <div className="min-w-0 shrink">{children}</div>
+      <NavButton dir="next" disabled={page >= total - 1} onClick={onNext} label={t("catalog.turnNext")} />
+    </div>
   );
 }

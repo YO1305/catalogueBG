@@ -7,7 +7,7 @@ import type { BookModel } from "@/components/flipbook/Book";
 import { CatalogDialogs } from "@/components/flipbook/CatalogDialogs";
 import { StaticPage } from "@/components/flipbook/StaticPage";
 import { ThumbGrid } from "@/components/flipbook/ThumbGrid";
-import { FlipSideButtons } from "@/components/flipbook/FlipSideButtons";
+import { FlipSideNav } from "@/components/flipbook/FlipSideButtons";
 import { Toolbar } from "@/components/flipbook/Toolbar";
 import { useCatalogChrome } from "@/components/flipbook/useCatalogChrome";
 import { I18nProvider, useI18n } from "@/components/i18n/I18n";
@@ -99,9 +99,10 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
         {reduced && currentPage ? (
           <StaticPage model={model} page={currentPage} index={page} width={box.w} height={box.h} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} />
         ) : (
-          <Book model={model} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={box.portrait} onFlip={setPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
+          <FlipSideNav page={page} total={model.pages.length} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)}>
+            <Book model={model} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={box.portrait} onFlip={setPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
+          </FlipSideNav>
         )}
-        <FlipSideButtons page={page} total={model.pages.length} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)} />
       </div>
       <Toolbar
         page={page + 1}

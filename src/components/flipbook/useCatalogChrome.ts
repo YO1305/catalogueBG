@@ -47,8 +47,8 @@ export function useCatalogChrome({
     const measure = () => {
       const portrait = window.innerWidth < 1024;
       const maxH = window.innerHeight - 108;
-      const sidePad = portrait ? 16 : 112;
-      const maxW = portrait ? window.innerWidth - sidePad : (window.innerWidth - sidePad) / 2;
+      const navReserve = portrait ? 96 : 200;
+      const maxW = portrait ? window.innerWidth - 16 - navReserve : (window.innerWidth - 48 - navReserve) / 2;
       let height = maxH;
       let width = height / 1.414;
       if (width > maxW) {
