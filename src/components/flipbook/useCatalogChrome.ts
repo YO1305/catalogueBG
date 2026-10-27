@@ -2,7 +2,7 @@
 
 import { useEffect, type RefObject } from "react";
 
-type FlipApi = { pageFlip: () => { turnToPage: (page: number) => void } };
+type FlipApi = { pageFlip: () => { turnToPage: (page: number) => void; flipNext: () => void; flipPrev: () => void } };
 
 export function useCatalogChrome({
   slug,
@@ -13,6 +13,7 @@ export function useCatalogChrome({
   setPage,
   setReduced,
   setBox,
+  onStepFlip,
 }: {
   slug: string;
   pageCount: number;
@@ -22,6 +23,7 @@ export function useCatalogChrome({
   setPage: (index: number) => void;
   setReduced: (value: boolean) => void;
   setBox: (box: { w: number; h: number; portrait: boolean }) => void;
+  onStepFlip: (delta: number) => void;
 }) {
   useEffect(() => {
     const hash = window.location.hash.match(/^#p(\d+)$/);
@@ -64,11 +66,7 @@ export function useCatalogChrome({
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
       const delta = event.key === "ArrowRight" ? 1 : -1;
-      const next = Math.min(pageCount - 1, Math.max(0, pageRef.current + delta));
-      pageRef.current = next;
-      setPage(next);
-      api.current?.pageFlip().turnToPage(next);
-      history.replaceState(null, "", `${location.pathname}${location.search}#p${next + 1}`);
+      onStepFlip(delta);
     };
     window.addEventListener("keydown", onKey);
     return () => {
@@ -78,5 +76,5 @@ export function useCatalogChrome({
       window.removeEventListener("keydown", onKey);
       if (queue.length) void fetch("/api/event", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ events: queue }) });
     };
-  }, [api, pageCount, pageRef, sessionId, setBox, setPage, setReduced, slug]);
+  }, [api, onStepFlip, pageCount, pageRef, sessionId, setBox, setPage, setReduced, slug]);
 }

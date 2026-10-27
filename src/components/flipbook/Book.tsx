@@ -105,7 +105,7 @@ export const Book = function Book({
       minHeight={340}
       maxHeight={1300}
       drawShadow={!reduced}
-      flippingTime={reduced ? 1 : 700}
+      flippingTime={reduced ? 1 : 1000}
       usePortrait={portrait}
       startZIndex={2}
       autoSize

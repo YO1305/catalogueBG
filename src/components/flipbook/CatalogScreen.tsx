@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { FabricModal } from "@/components/fabric/FabricModal";
 import type { BookModel } from "@/components/flipbook/Book";
 import { CatalogDialogs } from "@/components/flipbook/CatalogDialogs";
@@ -46,6 +46,25 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   const sessionId = useRef("");
   const pageRef = useRef(page);
   pageRef.current = page;
+  function applyPage(index: number) {
+    pageRef.current = index;
+    setPage(index);
+    const url = `${location.pathname}${location.search}#p${index + 1}`;
+    history.replaceState(null, "", url);
+    void fetch("/api/event", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ events: [{ catalogSlug: model.catalog.slug, type: "page", page: index + 1, sessionId: sessionId.current, ts: new Date().toISOString() }] }),
+    });
+  }
+
+  const stepFlip = useCallback((delta: number) => {
+    const flip = api.current?.pageFlip();
+    if (!flip) return;
+    if (delta > 0) flip.flipNext();
+    else if (delta < 0) flip.flipPrev();
+  }, []);
+
   useCatalogChrome({
     slug: model.catalog.slug,
     pageCount: model.pages.length,
@@ -55,23 +74,21 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     setPage,
     setReduced,
     setBox,
+    onStepFlip: stepFlip,
   });
 
   function go(delta: number) {
-    const next = Math.min(model.pages.length - 1, Math.max(0, pageRef.current + delta));
-    turn(next);
+    stepFlip(delta);
   }
   function turn(index: number) {
-    pageRef.current = index;
-    setPage(index);
+    if (index === pageRef.current) return;
+    const diff = index - pageRef.current;
+    if (Math.abs(diff) === 1) {
+      stepFlip(diff);
+      return;
+    }
     api.current?.pageFlip().turnToPage(index);
-    const url = `${location.pathname}${location.search}#p${index + 1}`;
-    history.replaceState(null, "", url);
-    void fetch("/api/event", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ events: [{ catalogSlug: model.catalog.slug, type: "page", page: index + 1, sessionId: sessionId.current, ts: new Date().toISOString() }] }),
-    });
+    applyPage(index);
   }
   function openFabric(id: string, variantId?: string) {
     setOpenId(id);
@@ -100,7 +117,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
           <StaticPage model={model} page={currentPage} index={page} width={box.w} height={box.h} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} />
         ) : (
           <FlipSideNav page={page} total={model.pages.length} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)}>
-            <Book model={model} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={box.portrait} onFlip={setPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
+            <Book model={model} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={box.portrait} onFlip={applyPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
           </FlipSideNav>
         )}
       </div>
