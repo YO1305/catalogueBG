@@ -4,7 +4,7 @@ import { CATALOG_THEMES } from "@/lib/catalogThemes";
 import { useI18n } from "@/components/i18n/I18n";
 import type { Catalog } from "@/types";
 
-export function CatalogThemePicker({ theme, title, subtitle, onPick }: { theme: Catalog["layout"]["theme"]; title: string; subtitle: string; onPick: (theme: Catalog["layout"]["theme"]) => void }) {
+export function CatalogThemePicker({ theme, kicker, title, subtitle, onPick }: { theme: Catalog["layout"]["theme"]; kicker: string; title: string; subtitle: string; onPick: (theme: Catalog["layout"]["theme"]) => void }) {
   const { t } = useI18n();
   return (
     <div>
@@ -20,7 +20,7 @@ export function CatalogThemePicker({ theme, title, subtitle, onPick }: { theme: 
                 onClick={() => onPick(item.id)}
               >
                 <div className="aspect-[4/3] p-3" style={{ background: item.cover, color: item.id === "light" || item.id === "sand" ? "#1c1915" : "#f4efe6" }}>
-                  <p className="text-[0.55rem] uppercase tracking-widest opacity-70">{t("brand")}</p>
+                  <p className="text-[0.55rem] uppercase tracking-widest opacity-70">{kicker || t("brand")}</p>
                   <p className="font-display mt-2 text-sm leading-tight">{title || t("catalogs.createTitle")}</p>
                   <p className="mt-1 line-clamp-2 text-[0.6rem] opacity-75">{subtitle}</p>
                 </div>

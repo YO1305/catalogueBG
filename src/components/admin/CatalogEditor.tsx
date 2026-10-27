@@ -107,6 +107,18 @@ export function CatalogEditor({
             <p className="mt-1.5 text-xs text-ink/50">{t("catalogs.textLangHint")}</p>
           </div>
           <div>
+            <Label>{t("catalogs.coverKicker")}</Label>
+            <Input
+              value={catalog.coverKicker?.[editLang] ?? ""}
+              placeholder={editLang === "ru" ? t("brand") : catalog.coverKicker?.ru || t("brand")}
+              onChange={(event) =>
+                patch({
+                  coverKicker: { ru: "", en: "", uz: "", ...catalog.coverKicker, [editLang]: event.target.value },
+                })
+              }
+            />
+          </div>
+          <div>
             <Label>{t("common.name")}</Label>
             <Input value={catalog.title[editLang] ?? ""} placeholder={editLang === "ru" ? undefined : catalog.title.ru} onChange={(event) => patch({ title: { ...catalog.title, [editLang]: event.target.value } })} />
             <p className="mt-1 text-xs text-ink/50">{t("catalogs.coverTitleHint")}</p>
@@ -123,6 +135,7 @@ export function CatalogEditor({
           ) : null}
           <CatalogThemePicker
             theme={catalog.layout.theme}
+            kicker={catalog.coverKicker?.[editLang] || catalog.coverKicker?.ru || t("brand")}
             title={catalog.title[editLang] || catalog.title.ru}
             subtitle={catalog.subtitle[editLang] || catalog.subtitle.ru}
             onPick={(theme) => patch({ layout: { ...catalog.layout, theme } })}

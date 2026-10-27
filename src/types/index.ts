@@ -233,6 +233,8 @@ export type Catalog = {
   slug: string;
   title: Localized;
   subtitle: Localized;
+  /** Верхняя строка на обложке (например «BAHMAL HOME»). */
+  coverKicker?: Localized;
   defaultLang: Lang;
   langs: Lang[];
   mode: "rules" | "manual";

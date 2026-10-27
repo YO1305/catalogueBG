@@ -6,6 +6,7 @@ export function presetCatalog(preset: string, slug: string, userId: string, prod
     slug,
     title: { ru: "", en: "", uz: "" },
     subtitle: { ru: "", en: "", uz: "" },
+    coverKicker: { ru: "BAHMAL HOME", en: "BAHMAL HOME", uz: "BAHMAL HOME" },
     defaultLang: "ru",
     langs: ["ru", "en", "uz"],
     mode: "rules",
