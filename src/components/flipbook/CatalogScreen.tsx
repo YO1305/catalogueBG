@@ -7,7 +7,7 @@ import type { BookModel } from "@/components/flipbook/Book";
 import { CatalogDialogs } from "@/components/flipbook/CatalogDialogs";
 import { StaticPage } from "@/components/flipbook/StaticPage";
 import { ThumbGrid } from "@/components/flipbook/ThumbGrid";
-import { FlipEdgeZones } from "@/components/flipbook/FlipEdgeZones";
+import { FlipSideButtons } from "@/components/flipbook/FlipSideButtons";
 import { Toolbar } from "@/components/flipbook/Toolbar";
 import { useCatalogChrome } from "@/components/flipbook/useCatalogChrome";
 import { I18nProvider, useI18n } from "@/components/i18n/I18n";
@@ -99,11 +99,9 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
         {reduced && currentPage ? (
           <StaticPage model={model} page={currentPage} index={page} width={box.w} height={box.h} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} />
         ) : (
-          <div className="relative inline-block max-w-full">
-            <Book model={model} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} onFlip={setPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
-            <FlipEdgeZones hidden={Boolean(openId)} onPrev={() => go(-1)} onNext={() => go(1)} />
-          </div>
+          <Book model={model} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={box.portrait} onFlip={setPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
         )}
+        <FlipSideButtons page={page} total={model.pages.length} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)} />
       </div>
       <Toolbar
         page={page + 1}

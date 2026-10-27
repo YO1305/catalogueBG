@@ -65,6 +65,7 @@ export const Book = function Book({
   startPage,
   current,
   reduced,
+  portrait,
   onFlip,
   onOpen,
   onRequest,
@@ -78,6 +79,7 @@ export const Book = function Book({
   startPage: number;
   current: number;
   reduced: boolean;
+  portrait: boolean;
   onFlip: (index: number) => void;
   onOpen: (id: string, variantId?: string) => void;
   onRequest: (id: string) => void;
@@ -104,16 +106,16 @@ export const Book = function Book({
       maxHeight={1300}
       drawShadow={!reduced}
       flippingTime={reduced ? 1 : 700}
-      usePortrait
+      usePortrait={portrait}
       startZIndex={2}
       autoSize
       maxShadowOpacity={0.35}
       showCover
       mobileScrollSupport
       clickEventForward
-      useMouseEvents
+      useMouseEvents={false}
       swipeDistance={24}
-      showPageCorners={!reduced}
+      showPageCorners={false}
       disableFlipByClick
       startPage={startPage}
       onFlip={(event) => onFlip(event.data)}
