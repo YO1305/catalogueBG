@@ -4,6 +4,7 @@ import { CatalogImage, PageHeader } from "@/components/flipbook/PageHeader";
 import { PageFooter } from "@/components/flipbook/PageFooter";
 import { useI18n } from "@/components/i18n/I18n";
 import { catalogCoverMockup, designsPerPage } from "@/lib/catalog";
+import { shieldFlipPointer } from "@/lib/flipbook/shieldFlip";
 import { fabricKind } from "@/lib/fabricKind";
 import type { Catalog, Fabric, FabricType } from "@/types";
 
@@ -30,7 +31,12 @@ export function PageDesigns({
   return (
     <div className="flex h-full flex-col text-[1em]">
       <PageHeader title={catalog.title[lang]} page={pageNumber} />
-      <div className="grid min-h-0 flex-1 gap-[0.9em] px-[6%] py-[4%]" style={{ gridTemplateRows: `repeat(${designsPerPage(catalog)}, minmax(0, 1fr))` }}>
+      <div
+        className="grid min-h-0 flex-1 gap-[0.9em] px-[6%] py-[4%]"
+        style={{ gridTemplateRows: `repeat(${designsPerPage(catalog)}, minmax(0, 1fr))` }}
+        onMouseDown={shieldFlipPointer}
+        onTouchStart={shieldFlipPointer}
+      >
         {fabrics.map((fabric) => (
           <DesignRow key={fabric.id} catalog={catalog} fabric={fabric} fabricTypes={fabricTypes} active={active} onOpen={onOpen} onRequest={onRequest} />
         ))}

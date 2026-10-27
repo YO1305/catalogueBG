@@ -114,7 +114,7 @@ export const Book = function Book({
       useMouseEvents
       swipeDistance={24}
       showPageCorners={!reduced}
-      disableFlipByClick={false}
+      disableFlipByClick
       startPage={startPage}
       onFlip={(event) => onFlip(event.data)}
     >
