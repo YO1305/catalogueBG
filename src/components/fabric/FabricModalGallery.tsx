@@ -30,10 +30,12 @@ export function FabricModalGallery({
 }) {
   const two = Boolean(fabricSrc && productSrc);
   return (
-    <div className={`grid min-h-0 w-full gap-3 ${two ? "grid-cols-2" : "mx-auto max-w-[min(100%,18rem)] grid-cols-1"}`}>
+    <div
+      className={`grid min-h-0 w-full flex-1 content-center gap-4 ${two ? "grid-cols-2" : "mx-auto max-w-[min(100%,26rem)] grid-cols-1"}`}
+    >
       {fabricSrc ? (
         <MediaTile label={fabricLabel}>
-          <ZoomViewer src={fabricSrc} alt={fabricLabel} rapportCm={rapportCm} seamless={fabricSeamless} onZoomed={onZoomed} />
+          <ZoomViewer src={fabricSrc} alt={fabricLabel} rapportCm={rapportCm} seamless={fabricSeamless} onZoomed={onZoomed} chrome="minimal" />
         </MediaTile>
       ) : null}
       {productSrc ? (

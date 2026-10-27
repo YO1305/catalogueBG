@@ -76,17 +76,17 @@ export function FabricModal({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-[#1c1915]/75 p-3 sm:p-6"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-[#1c1915]/75 p-2 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label={fabric.name[lang]}
       onClick={onClose}
     >
       <div
-        className="flex max-h-[92vh] w-full max-w-[56rem] flex-col overflow-hidden rounded-2xl bg-paper shadow-2xl md:max-h-[min(90vh,40rem)] md:flex-row"
+        className="flex max-h-[min(94vh,720px)] w-full max-w-[min(96vw,74rem)] flex-col overflow-hidden rounded-2xl bg-paper shadow-2xl md:min-h-[min(88vh,560px)] md:flex-row"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-4 md:p-5">
+        <div className="flex min-h-0 min-w-0 flex-[1.45] flex-col gap-3 p-4 md:p-6">
           <FabricModalGallery
             fabricLabel={t("catalog.fabricMockupTab")}
             fabricSrc={fabricSrc}
@@ -108,7 +108,7 @@ export function FabricModal({
             </div>
           ) : null}
         </div>
-        <aside className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto border-t border-ink/10 p-4 md:w-[17.5rem] md:border-l md:border-t-0 md:p-5 lg:w-[19rem]">
+        <aside className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto border-t border-ink/10 p-4 md:w-[18rem] md:border-l md:border-t-0 md:p-5 lg:w-[20rem]">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <h2 className="font-display text-2xl leading-tight">{fabric.name[lang]}</h2>

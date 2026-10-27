@@ -3,7 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/components/i18n/I18n";
 
-export function ZoomViewer({ src, alt, rapportCm, seamless, onZoomed }: { src: string; alt: string; rapportCm: number; seamless: boolean; onZoomed?: () => void }) {
+export function ZoomViewer({
+  src,
+  alt,
+  rapportCm,
+  seamless,
+  onZoomed,
+  chrome = "full",
+}: {
+  src: string;
+  alt: string;
+  rapportCm: number;
+  seamless: boolean;
+  onZoomed?: () => void;
+  chrome?: "full" | "minimal";
+}) {
   const { t } = useI18n();
   const [zoom, setZoom] = useState(1);
   const [tile, setTile] = useState(false);
@@ -44,14 +58,18 @@ export function ZoomViewer({ src, alt, rapportCm, seamless, onZoomed }: { src: s
         // eslint-disable-next-line @next/next/no-img-element
         <img ref={imageRef} src={src} alt={alt} className="h-full w-full object-contain" style={{ transform: `scale(${zoom})` }} />
       )}
-      <div className="absolute bottom-3 left-3 flex h-7 items-center gap-2 rounded-full bg-paper/90 px-3 text-xs leading-none shadow-sm">
-        <span className="inline-block h-px bg-ink" style={{ width: ruler }} />
-        <span>{t("catalog.ruler")}</span>
-      </div>
-      <button type="button" className="absolute right-3 top-3 flex h-8 items-center rounded-full bg-paper/90 px-3 text-xs leading-none shadow-sm" onClick={() => setTile((value) => !value)}>
-        {t("catalog.tile")}
-      </button>
-      <p className="absolute bottom-3 right-3 hidden text-[10px] text-ink/70 md:block">{t("catalog.zoomHint")}</p>
+      {chrome === "full" ? (
+        <>
+          <div className="absolute bottom-3 left-3 flex h-7 items-center gap-2 rounded-full bg-paper/90 px-3 text-xs leading-none shadow-sm">
+            <span className="inline-block h-px bg-ink" style={{ width: ruler }} />
+            <span>{t("catalog.ruler")}</span>
+          </div>
+          <button type="button" className="absolute right-3 top-3 flex h-8 items-center rounded-full bg-paper/90 px-3 text-xs leading-none shadow-sm" onClick={() => setTile((value) => !value)}>
+            {t("catalog.tile")}
+          </button>
+          <p className="absolute bottom-3 right-3 hidden text-[10px] text-ink/70 md:block">{t("catalog.zoomHint")}</p>
+        </>
+      ) : null}
     </div>
   );
 }
