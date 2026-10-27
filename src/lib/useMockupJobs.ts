@@ -28,7 +28,10 @@ export function useMockupJobs(fabricRef: MutableRefObject<Fabric>, setFabric: Di
   async function run(only?: Slot, options?: RunOptions) {
     const snapshot = fabricRef.current;
     const mockups = snapshot.mockups.filter((item) => !only || sameSlot(item, only));
-    const variantIds = (snapshot.variants ?? []).filter((item) => item.design.webUrl).map((item) => item.id);
+    const woven = Boolean(snapshot.woven || snapshot.kind === "woven");
+    const variantIds = (snapshot.variants ?? [])
+      .filter((item) => item.design.webUrl || (woven && (item.weaveColor || item.mockups.some((m) => m.webUrl || m.url))))
+      .map((item) => item.id);
     const jobs = [undefined, ...variantIds].flatMap((variantId) => mockups.map((mockup) => ({ variantId, mockup })));
     if (!jobs.length) return 0;
     setProgress({ done: 0, total: jobs.length });

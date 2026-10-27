@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildPages, catalogCoverMockup, heroMockup, resolveFabrics } from "./catalog";
 import { FABRIC_PRODUCT } from "./mockup/constants";
+import { colorOptions } from "./variants";
 import type { Catalog, Fabric, Mockup } from "../types";
 
 function fabric(partial: Partial<Fabric> & Pick<Fabric, "id" | "art">): Fabric {
@@ -65,6 +66,20 @@ test("rules catalog keeps only matching published fabrics", () => {
     items,
   );
   assert.deepEqual(selected.map((item) => item.id), ["a"]);
+});
+
+test("woven colour variants appear without separate design file", () => {
+  const item = fabric({
+    id: "w",
+    art: "C-1",
+    kind: "woven",
+    woven: true,
+    weave: { color: "#333", correction: 1.15, pattern: "stripes", stripes: [{ widthCm: 1, shiny: true }] },
+    variants: [
+      { id: "v1", name: "Светлый тон", mockups: [], design: { originalUrl: "", webUrl: "", thumbUrl: "", widthPx: 0, heightPx: 0, seamless: false }, weaveColor: "#ccc" },
+    ],
+  });
+  assert.equal(colorOptions(item).length, 2);
 });
 
 test("catalog row cover prefers product mockup over fabric mockup", () => {

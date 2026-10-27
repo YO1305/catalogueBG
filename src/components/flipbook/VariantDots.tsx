@@ -6,7 +6,12 @@ import type { ColorOption } from "@/lib/variants";
 export function VariantDots({ options, value, onChange, size = "1.6em" }: { options: ColorOption[]; value?: string; onChange: (id: string) => void; size?: string }) {
   const { t } = useI18n();
   const selected = options.find((item) => item.id === value) ?? options[0];
-  const label = (option: ColorOption) => (option.tone ? t(`tone.${option.tone}`) : option.name);
+  const label = (option: ColorOption) => {
+    if (option.tone) return t(`tone.${option.tone}`);
+    if (option.name.trim()) return option.name.trim();
+    if (option.id === "base") return t("designs.baseColorName");
+    return "";
+  };
   return (
     <div className="flex flex-col gap-[0.3em]">
       <div className="flex flex-wrap gap-[0.4em]" role="radiogroup">
@@ -26,8 +31,16 @@ export function VariantDots({ options, value, onChange, size = "1.6em" }: { opti
             }}
           >
             <span
-              className="block rounded-full bg-cover bg-center"
-              style={{ width: size, height: size, backgroundImage: `url("${option.design.thumbUrl || option.design.webUrl}")` }}
+              className="block rounded-full border border-ink/10 bg-cover bg-center"
+              style={{
+                width: size,
+                height: size,
+                backgroundColor: option.weaveColor && !(option.design.thumbUrl || option.design.webUrl) ? option.weaveColor : undefined,
+                backgroundImage:
+                  option.design.thumbUrl || option.design.webUrl
+                    ? `url("${option.design.thumbUrl || option.design.webUrl}")`
+                    : undefined,
+              }}
             />
           </button>
         ))}

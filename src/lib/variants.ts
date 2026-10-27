@@ -2,7 +2,22 @@ import type { Fabric, FabricDesign, FabricVariant, Mockup, Tone } from "@/types"
 
 export const BASE_VARIANT = "base";
 
-export type ColorOption = { id: string; name: string; design: FabricDesign; mockups: Mockup[]; tone?: Tone };
+export type ColorOption = {
+  id: string;
+  name: string;
+  design: FabricDesign;
+  mockups: Mockup[];
+  tone?: Tone;
+  /** Для тканых вариантов без отдельного фото — цвет переплетения. */
+  weaveColor?: string;
+};
+
+function variantSelectable(variant: FabricVariant, woven: boolean): boolean {
+  if (variant.design.webUrl) return true;
+  if (woven && variant.weaveColor) return true;
+  if (variant.mockups.some((mockup) => mockup.webUrl || mockup.url)) return true;
+  return Boolean(variant.name.trim());
+}
 
 export const TONES: Tone[] = ["light", "medium", "dark"];
 
@@ -19,7 +34,13 @@ export function missingTones(fabric: Fabric): Tone[] {
 
 /** The main design first, then the extra colourways; dyed fabrics go light → medium → dark. */
 export function colorOptions(fabric: Fabric): ColorOption[] {
-  const base: ColorOption = { id: BASE_VARIANT, name: fabric.colorName ?? "", design: fabric.design, mockups: fabric.mockups };
+  const base: ColorOption = {
+    id: BASE_VARIANT,
+    name: fabric.colorName ?? "",
+    design: fabric.design,
+    mockups: fabric.mockups,
+    weaveColor: fabric.weave?.color,
+  };
   if (fabric.toned) {
     const light = toneVariant(fabric, "light");
     const dark = toneVariant(fabric, "dark");
@@ -30,9 +51,18 @@ export function colorOptions(fabric: Fabric): ColorOption[] {
     ];
     return list.length > 1 ? list : [];
   }
-  const extra = (fabric.variants ?? []).filter((variant) => variant.design.webUrl);
+  const woven = Boolean(fabric.woven || fabric.kind === "woven");
+  const extra = (fabric.variants ?? []).filter((variant) => variantSelectable(variant, woven));
   if (!extra.length) return [];
-  return [base, ...extra];
+  const emptyDesign: FabricDesign = { originalUrl: "", webUrl: "", thumbUrl: "", widthPx: 0, heightPx: 0, seamless: false };
+  const mapVariant = (variant: FabricVariant): ColorOption => ({
+    id: variant.id,
+    name: variant.name,
+    design: variant.design.webUrl ? variant.design : emptyDesign,
+    mockups: variant.mockups,
+    weaveColor: variant.weaveColor ?? fabric.weave?.color,
+  });
+  return [base, ...extra.map(mapVariant)];
 }
 
 /** The fabric in one colourway: its picture, its weave colour, its mockups. */
@@ -45,8 +75,13 @@ export function variantFabric(fabric: Fabric, variant: FabricVariant): Fabric {
 export function withVariant(fabric: Fabric, variantId?: string): Fabric {
   if (!variantId || variantId === BASE_VARIANT) return fabric;
   const variant = fabric.variants?.find((item) => item.id === variantId);
-  if (!variant?.design.webUrl) return fabric;
-  return variantFabric(fabric, variant);
+  if (!variant) return fabric;
+  if (variant.design.webUrl) return variantFabric(fabric, variant);
+  const woven = Boolean(fabric.woven || fabric.kind === "woven");
+  if (woven && (variant.weaveColor || variant.mockups.some((m) => m.webUrl || m.url))) {
+    return variantFabric(fabric, { ...variant, design: fabric.design });
+  }
+  return fabric;
 }
 
 function upsertMockup(list: Mockup[], mockup: Mockup): Mockup[] {

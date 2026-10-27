@@ -9,6 +9,7 @@ import { VariantDots } from "@/components/flipbook/VariantDots";
 import { catalogProductCoverMockup, modalFabricView } from "@/lib/catalog";
 import { fabricKind } from "@/lib/fabricKind";
 import { ToneSwitch } from "@/components/fabric/ToneSwitch";
+import { WovenVariantSwitch } from "@/components/fabric/WovenVariantSwitch";
 import { BASE_VARIANT, colorOptions, withVariant } from "@/lib/variants";
 import type { Catalog, Collection, Fabric, FabricType, ProductType } from "@/types";
 
@@ -98,9 +99,11 @@ export function FabricModal({
           </div>
           {options.length > 1 ? (
             <div className="shrink-0 border-t border-ink/10 px-3 py-3">
-              <div className="mx-auto flex max-w-md justify-center">
+              <div className="mx-auto w-full max-w-lg">
                 {base.toned ? (
                   <ToneSwitch options={options} value={variant} onChange={setVariant} />
+                ) : kind === "woven" && options.length >= 2 && options.length <= 5 ? (
+                  <WovenVariantSwitch options={options} value={variant} onChange={setVariant} />
                 ) : (
                   <VariantDots options={options} value={variant} onChange={setVariant} size="2.25rem" />
                 )}
