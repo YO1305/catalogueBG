@@ -7,6 +7,7 @@ import { SpecsTable } from "@/components/fabric/SpecsTable";
 import { useI18n } from "@/components/i18n/I18n";
 import { VariantDots } from "@/components/flipbook/VariantDots";
 import { catalogProductCoverMockup, modalFabricView } from "@/lib/catalog";
+import { fabricModalShellStyle } from "@/lib/fabricModalLayout";
 import { fabricKind } from "@/lib/fabricKind";
 import { ToneSwitch } from "@/components/fabric/ToneSwitch";
 import { WovenVariantSwitch } from "@/components/fabric/WovenVariantSwitch";
@@ -83,7 +84,8 @@ export function FabricModal({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[min(94vh,720px)] w-full max-w-[min(96vw,74rem)] flex-col overflow-hidden rounded-2xl bg-paper shadow-2xl md:min-h-[min(88vh,560px)] md:flex-row"
+        className="flex w-full flex-col overflow-hidden rounded-2xl bg-paper shadow-2xl md:flex-row"
+        style={fabricModalShellStyle(catalog.layout)}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex min-h-0 min-w-0 flex-[1.45] flex-col gap-3 p-4 md:p-6">
@@ -94,6 +96,7 @@ export function FabricModal({
             rapportCm={fabric.rapport.widthCm}
             productLabel={productLabel}
             productSrc={productSrc}
+            modalScale={catalog.layout.fabricModalScale}
             onZoomed={onZoomed}
           />
           {options.length > 1 ? (

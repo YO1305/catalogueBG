@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
+import { CatalogFabricModalSizeControl } from "@/components/admin/CatalogFabricModalSizeControl";
 import { CatalogThemePicker } from "@/components/admin/CatalogThemePicker";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
@@ -139,6 +140,10 @@ export function CatalogEditor({
             title={catalog.title[editLang] || catalog.title.ru}
             subtitle={catalog.subtitle[editLang] || catalog.subtitle.ru}
             onPick={(theme) => patch({ layout: { ...catalog.layout, theme } })}
+          />
+          <CatalogFabricModalSizeControl
+            value={catalog.layout.fabricModalScale ?? 100}
+            onChange={(fabricModalScale) => patch({ layout: { ...catalog.layout, fabricModalScale } })}
           />
           <div>
             <Label>{t("catalogs.accessLabel")}</Label>

@@ -245,6 +245,8 @@ export type Catalog = {
     perPage: 1 | 2 | 3 | 4;
     sectionBy: "none" | "fabricType" | "collection";
     theme: "light" | "dark" | "classic" | "sand";
+    /** Масштаб поп-апа ткани в % (85–135), по умолчанию 100. */
+    fabricModalScale?: number;
   };
   cover: { fabricId?: string; imageUrl?: string };
   showPrices: boolean;

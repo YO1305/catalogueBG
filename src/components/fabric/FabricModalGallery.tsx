@@ -1,6 +1,7 @@
 "use client";
 
 import { ZoomViewer } from "@/components/fabric/ZoomViewer";
+import { fabricModalScaleFactor } from "@/lib/fabricModalLayout";
 
 function MediaTile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -18,6 +19,7 @@ export function FabricModalGallery({
   rapportCm,
   productLabel,
   productSrc,
+  modalScale,
   onZoomed,
 }: {
   fabricLabel: string;
@@ -26,12 +28,16 @@ export function FabricModalGallery({
   rapportCm: number;
   productLabel: string;
   productSrc: string;
+  modalScale?: number;
   onZoomed?: () => void;
 }) {
   const two = Boolean(fabricSrc && productSrc);
+  const factor = fabricModalScaleFactor({ fabricModalScale: modalScale });
+  const singleMax = `${(26 * factor).toFixed(2)}rem`;
   return (
     <div
-      className={`grid min-h-0 w-full flex-1 content-center gap-4 ${two ? "grid-cols-2" : "mx-auto max-w-[min(100%,26rem)] grid-cols-1"}`}
+      className={`grid min-h-0 w-full flex-1 content-center gap-4 ${two ? "grid-cols-2" : "mx-auto grid-cols-1"}`}
+      style={two ? undefined : { maxWidth: `min(100%, ${singleMax})` }}
     >
       {fabricSrc ? (
         <MediaTile label={fabricLabel}>
