@@ -53,6 +53,18 @@ export function primaryFabricMockup(fabric: Fabric): Mockup | undefined {
   return fabricMockups(fabric).find((mockup) => mockup.isPrimary) ?? fabricMockups(fabric)[0];
 }
 
+export function mockupIsSaved(mockup: Mockup | undefined): boolean {
+  return Boolean(mockup?.webUrl || mockup?.url);
+}
+
+/** Достаточно сохранённого мокапа ткани или изделия — для публикации и каталога. */
+export function hasSavedCatalogMockup(fabric: Fabric): boolean {
+  const fabricMock = primaryFabricMockup(fabric) ?? fabricMockups(fabric).find((item) => mockupIsSaved(item));
+  if (mockupIsSaved(fabricMock)) return true;
+  const product = heroMockup(fabric, fabric.productTypes);
+  return mockupIsSaved(product);
+}
+
 /** Мокап изделия (КПБ, курпача…) — для списка страниц журнала, не мокап «ткани». */
 export function catalogProductCoverMockup(fabric: Fabric, showProductTypes: string[]): Mockup | undefined {
   const hero = heroMockup(fabric, showProductTypes);

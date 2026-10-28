@@ -1,4 +1,4 @@
-import { heroMockup, primaryFabricMockup } from "@/lib/catalog";
+import { hasSavedCatalogMockup, primaryFabricMockup } from "@/lib/catalog";
 import { defaultWeave } from "@/lib/mockup/weave";
 import { missingTones } from "@/lib/variants";
 import type { Fabric, FabricKind } from "@/types";
@@ -29,8 +29,7 @@ export function kindReady(fabric: Fabric): boolean {
   const kind = fabricKind(fabric);
   if (!fabric.design.webUrl) return false;
   if (kind === "woven") {
-    const hero = heroMockup(fabric, fabric.productTypes);
-    return Boolean(fabric.weave?.color && (hero?.webUrl || hero?.url));
+    return Boolean(fabric.weave?.color && hasSavedCatalogMockup(fabric));
   }
   if (kind === "dyed") return !missingTones(fabric).length && Boolean(fabric.weave?.color);
   const hero = primaryFabricMockup(fabric);

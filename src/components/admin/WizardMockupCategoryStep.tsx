@@ -34,6 +34,7 @@ export function WizardMockupCategoryStep({
     <section className="space-y-4 rounded-sm border border-black/10 bg-white/80 p-4">
       <h2 className="font-display text-lg">{t("mockups.pickCategory")}</h2>
       {fabric.woven ? <p className="text-sm text-ink/60">{t("weave.mockupsOrderHint")}</p> : null}
+      <p className="text-sm text-ink/55">{t("mockups.productOptional")}</p>
       <div>
         <Label>{t("mockups.categoryLabel")}</Label>
         <Select className="mt-1 w-full max-w-xs" value={category} onChange={(event) => pickCategory(event.target.value as MockupCategory)}>

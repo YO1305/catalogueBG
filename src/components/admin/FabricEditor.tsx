@@ -53,17 +53,7 @@ export function FabricEditor({
   useEffect(() => {
     void fillMissingColors();
   }, [fabric.id]);
-  const ready = useMemo(
-    () =>
-      Boolean(
-        kindReady(fabric) &&
-          fabric.art &&
-          fabric.name.ru &&
-          fabric.mockupCategory &&
-          fabric.mockups.length,
-      ),
-    [fabric],
-  );
+  const ready = useMemo(() => Boolean(kindReady(fabric) && fabric.art && fabric.name.ru), [fabric]);
 
   async function finish(saveLive: boolean) {
     setBusy(true);
