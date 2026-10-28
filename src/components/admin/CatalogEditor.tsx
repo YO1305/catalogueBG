@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
+import { CatalogCoverUpload } from "@/components/admin/CatalogCoverUpload";
 import { CatalogFabricModalSizeControl } from "@/components/admin/CatalogFabricModalSizeControl";
 import { CatalogThemePicker } from "@/components/admin/CatalogThemePicker";
 import { useI18n } from "@/components/i18n/I18n";
@@ -55,7 +56,17 @@ export function CatalogEditor({
   const resolved = useMemo(() => resolvePreviewFabrics(previewCatalog, fabrics), [previewCatalog, fabrics]);
   const pages = useMemo(() => buildPages(previewCatalog, resolved), [previewCatalog, resolved]);
   const previewModel = useMemo(
-    () => localizeCatalogModel({ catalog: { ...previewCatalog, defaultLang: editLang }, fabrics: resolved, pages, fabricTypes, collections, productTypes, qr: "" }),
+    () =>
+      localizeCatalogModel({
+        catalog: { ...previewCatalog, defaultLang: editLang },
+        fabrics: resolved,
+        pages,
+        fabricTypes,
+        collections,
+        productTypes,
+        coverImage: previewCatalog.cover.imageUrl,
+        qr: "",
+      }),
     [previewCatalog, editLang, resolved, pages, fabricTypes, collections, productTypes],
   );
 
@@ -73,7 +84,7 @@ export function CatalogEditor({
       ...catalog,
       status: live ? "live" : isNew ? "draft" : catalog.status,
       expiresAt: undefined,
-      cover: {},
+      cover: { ...catalog.cover },
       layout: { ...catalog.layout, sectionBy: "none" },
     };
     const result = isNew
@@ -140,6 +151,12 @@ export function CatalogEditor({
             title={catalog.title[editLang] || catalog.title.ru}
             subtitle={catalog.subtitle[editLang] || catalog.subtitle.ru}
             onPick={(theme) => patch({ layout: { ...catalog.layout, theme } })}
+          />
+          <CatalogCoverUpload
+            slug={catalog.slug}
+            imageUrl={catalog.cover.imageUrl}
+            disabled={isNew}
+            onChange={(cover) => patch({ cover: { ...catalog.cover, ...cover } })}
           />
           <CatalogFabricModalSizeControl
             value={catalog.layout.fabricModalScale ?? 100}

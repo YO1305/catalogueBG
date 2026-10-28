@@ -88,7 +88,7 @@ export function FabricModal({
         style={fabricModalShellStyle(catalog.layout)}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex min-h-0 min-w-0 flex-[1.45] flex-col gap-3 p-4 md:p-6">
+        <div className="flex min-h-0 min-w-0 flex-[1.45] flex-col gap-3 p-4 md:min-h-[min(78vh,580px)] md:p-6">
           <FabricModalGallery
             fabricLabel={t("catalog.fabricMockupTab")}
             fabricSrc={fabricSrc}

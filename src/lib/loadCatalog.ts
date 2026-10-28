@@ -21,7 +21,9 @@ export async function loadCatalog(slug: string) {
   const safe: Catalog = { ...catalog, pinHash: undefined };
   const coverFabric = fabrics.find((fabric) => fabric.id === catalog.cover.fabricId) ?? fabrics[0];
   const coverMockup = coverFabric ? catalogCoverMockup(coverFabric, catalog.showProductTypes) : undefined;
-  const coverImage = catalog.cover.imageUrl || coverMockup?.url || coverMockup?.webUrl;
+  const coverImage = catalog.cover.imageUrl?.trim()
+    ? catalog.cover.imageUrl
+    : coverMockup?.url || coverMockup?.webUrl;
   return {
     state: "ready" as const,
     model: localizeCatalogModel({

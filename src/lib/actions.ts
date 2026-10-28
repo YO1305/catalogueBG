@@ -131,7 +131,7 @@ export async function createCatalogAction(catalog: Catalog, pin?: string) {
       showProductTypes,
       mode: "manual",
       fabricIds: catalog.fabricIds ?? [],
-      cover: {},
+      cover: { ...catalog.cover },
       createdBy: session.uid,
       updatedAt: new Date().toISOString(),
       ...(pinHash ? { pinHash } : {}),
@@ -169,7 +169,7 @@ export async function saveCatalogAction(catalog: Catalog, pin?: string) {
     const next: Catalog = {
       ...catalog,
       title: { ...catalog.title, ru: titleRu },
-      cover: {},
+      cover: { ...catalog.cover },
       createdBy: previous?.createdBy ?? session.uid,
       updatedAt: new Date().toISOString(),
       ...(pinHash ? { pinHash } : {}),
