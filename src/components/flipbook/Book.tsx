@@ -1,51 +1,20 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import HTMLFlipBook from "react-pageflip";
+import { PageFlip } from "page-flip";
 import { PageBack } from "@/components/flipbook/PageBack";
 import { PageCover } from "@/components/flipbook/PageCover";
 import { PageDesigns } from "@/components/flipbook/PageDesigns";
 import { PageSection } from "@/components/flipbook/PageSection";
-import { PaperPage } from "@/components/flipbook/PaperPage";
 import type { BuiltPage, Catalog, Collection, Fabric, FabricType, ProductType } from "@/types";
 
-type FlipHandle = {
+type FlipApi = {
   pageFlip: () => {
     flipNext: () => void;
     flipPrev: () => void;
     turnToPage: (page: number) => void;
   };
 };
-
-const Flip = HTMLFlipBook as unknown as React.ForwardRefExoticComponent<
-  React.PropsWithChildren<{
-    className: string;
-    style: React.CSSProperties;
-    width: number;
-    height: number;
-    size: "fixed";
-    minWidth: number;
-    maxWidth: number;
-    minHeight: number;
-    maxHeight: number;
-    drawShadow: boolean;
-    flippingTime: number;
-    usePortrait: boolean;
-    startZIndex: number;
-    autoSize: boolean;
-    maxShadowOpacity: number;
-    showCover: boolean;
-    mobileScrollSupport: boolean;
-    clickEventForward: boolean;
-    useMouseEvents: boolean;
-    swipeDistance: number;
-    showPageCorners: boolean;
-    disableFlipByClick: boolean;
-    startPage: number;
-    onFlip: (event: { data: number }) => void;
-  }> &
-    React.RefAttributes<FlipHandle>
->;
 
 export type BookModel = {
   catalog: Catalog;
@@ -70,7 +39,6 @@ export const Book = function Book({
   onOpen,
   onRequest,
   onLead,
-  onJump,
   apiRef,
 }: {
   model: BookModel;
@@ -85,44 +53,87 @@ export const Book = function Book({
   onRequest: (id: string) => void;
   onLead: () => void;
   onJump: (index: number) => void;
-  apiRef: React.RefObject<FlipHandle | null>;
+  apiRef: React.RefObject<FlipApi | null>;
 }) {
-  const ref = useRef<FlipHandle>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const flipRef = useRef<PageFlip | null>(null);
+  const onFlipRef = useRef(onFlip);
+  const startPageRef = useRef(startPage);
+  onFlipRef.current = onFlip;
+  startPageRef.current = startPage;
+
   useEffect(() => {
-    apiRef.current = ref.current;
-  });
+    const root = rootRef.current;
+    if (!root || width < 40 || height < 40) return;
+
+    const nodes = [...root.querySelectorAll<HTMLElement>("[data-flip-page]")];
+    if (nodes.length < 1) return;
+
+    const flip = new PageFlip(root, {
+      width,
+      height,
+      size: "fixed",
+      minWidth: width,
+      maxWidth: width,
+      minHeight: height,
+      maxHeight: height,
+      drawShadow: !reduced,
+      flippingTime: reduced ? 1 : 700,
+      usePortrait: portrait,
+      startZIndex: 2,
+      autoSize: false,
+      maxShadowOpacity: 0.35,
+      showCover: true,
+      mobileScrollSupport: portrait,
+      swipeDistance: 24,
+      clickEventForward: true,
+      useMouseEvents: false,
+      showPageCorners: false,
+      disableFlipByClick: true,
+      startPage: Math.min(Math.max(0, startPageRef.current), nodes.length - 1),
+    });
+
+    flip.loadFromHTML(nodes);
+    flip.on("flip", (event: { data: number }) => {
+      onFlipRef.current(event.data);
+    });
+
+    flipRef.current = flip;
+    apiRef.current = {
+      pageFlip: () => ({
+        flipNext: () => flip.flipNext(),
+        flipPrev: () => flip.flipPrev(),
+        turnToPage: (page: number) => flip.turnToPage(page),
+      }),
+    };
+
+    return () => {
+      try {
+        flip.destroy();
+      } catch {
+        /* ignore */
+      }
+      flipRef.current = null;
+      apiRef.current = null;
+    };
+  }, [apiRef, height, model.pages.length, portrait, reduced, width]);
+
   const byId = new Map(model.fabrics.map((fabric) => [fabric.id, fabric]));
+
   return (
-    <Flip
-      key={`book-${width}x${height}-${portrait ? "p" : "l"}-${model.pages.length}`}
-      ref={ref}
+    <div
+      ref={rootRef}
       className="flipbook"
       style={{ width: portrait ? width : width * 2, height }}
-      width={width}
-      height={height}
-      size="fixed"
-      minWidth={width}
-      maxWidth={width}
-      minHeight={height}
-      maxHeight={height}
-      drawShadow={!reduced}
-      flippingTime={reduced ? 1 : 700}
-      usePortrait={portrait}
-      startZIndex={2}
-      autoSize={false}
-      maxShadowOpacity={0.35}
-      showCover
-      mobileScrollSupport={portrait}
-      clickEventForward
-      useMouseEvents={false}
-      swipeDistance={24}
-      showPageCorners={false}
-      disableFlipByClick
-      startPage={startPage}
-      onFlip={(event) => onFlip(event.data)}
     >
       {model.pages.map((page) => (
-        <PaperPage key={`${page.kind}-${page.index}`} hard={page.kind === "cover" || page.kind === "back"}>
+        <div
+          key={`${page.kind}-${page.index}`}
+          data-flip-page
+          data-density={page.kind === "cover" || page.kind === "back" ? "hard" : "soft"}
+          className="paper-page overflow-hidden"
+          style={{ width, height }}
+        >
           {page.kind === "cover" ? <PageCover catalog={model.catalog} coverImage={model.coverImage} /> : null}
           {page.kind === "section" ? <PageSection page={page} catalog={model.catalog} fabricTypes={model.fabricTypes} collections={model.collections} /> : null}
           {page.kind === "designs" ? (
@@ -140,8 +151,8 @@ export const Book = function Book({
             />
           ) : null}
           {page.kind === "back" ? <PageBack catalog={model.catalog} onLead={onLead} /> : null}
-        </PaperPage>
+        </div>
       ))}
-    </Flip>
+    </div>
   );
 };

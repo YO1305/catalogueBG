@@ -151,7 +151,22 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
           <StaticPage model={bookModel} page={currentPage} index={page} width={box.w} height={box.h} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} />
         ) : (
           <FlipSideNav page={page} total={pages.length} portrait={box.portrait} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)}>
-            <Book model={bookModel} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={box.portrait} onFlip={applyPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
+            <Book
+              key={`book-${box.w}x${box.h}-${box.portrait ? "p" : "l"}-${pages.length}`}
+              model={bookModel}
+              width={box.w}
+              height={box.h}
+              startPage={page}
+              current={page}
+              reduced={reduced}
+              portrait={box.portrait}
+              onFlip={applyPage}
+              onOpen={openFabric}
+              onRequest={requestSample}
+              onLead={() => setLead(true)}
+              onJump={turn}
+              apiRef={api}
+            />
           </FlipSideNav>
         )}
       </div>
