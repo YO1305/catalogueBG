@@ -23,6 +23,7 @@ export function FlipSideNav({
   page,
   total,
   hidden,
+  portrait,
   onPrev,
   onNext,
   children,
@@ -30,14 +31,19 @@ export function FlipSideNav({
   page: number;
   total: number;
   hidden?: boolean;
+  /** Side chevrons only on desktop; mobile uses bottom toolbar. */
+  portrait?: boolean;
   onPrev: () => void;
   onNext: () => void;
   children: ReactNode;
 }) {
   const { t } = useI18n();
   if (hidden) return <>{children}</>;
+  if (portrait) {
+    return <div className="flex w-full max-w-[100vw] justify-center px-2">{children}</div>;
+  }
   return (
-    <div className="flex max-w-[100vw] items-center gap-3 px-1 sm:gap-5 sm:px-2">
+    <div className="flex max-w-[100vw] items-center gap-3 px-1 sm:gap-5 sm:px-2 lg:gap-6">
       <NavButton dir="prev" disabled={page <= 0} onClick={onPrev} label={t("catalog.turnPrev")} />
       <div className="min-w-0 shrink">{children}</div>
       <NavButton dir="next" disabled={page >= total - 1} onClick={onNext} label={t("catalog.turnNext")} />

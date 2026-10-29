@@ -48,16 +48,18 @@ export function useCatalogChrome({
     media.addEventListener("change", apply);
     const measure = () => {
       const portrait = window.innerWidth < 1024;
-      const maxH = window.innerHeight - 108;
-      const navReserve = portrait ? 96 : 200;
-      const maxW = portrait ? window.innerWidth - 16 - navReserve : (window.innerWidth - 48 - navReserve) / 2;
+      const toolbarReserve = portrait ? 128 : 108;
+      const maxH = window.innerHeight - toolbarReserve;
+      const maxW = portrait ? window.innerWidth - 20 : (window.innerWidth - 48 - 200) / 2;
       let height = maxH;
       let width = height / 1.414;
       if (width > maxW) {
         width = maxW;
         height = width * 1.414;
       }
-      setBox({ w: Math.max(240, Math.floor(width)), h: Math.max(340, Math.floor(height)), portrait });
+      const minW = portrait ? 260 : 240;
+      const minH = portrait ? 368 : 340;
+      setBox({ w: Math.max(minW, Math.floor(width)), h: Math.max(minH, Math.floor(height)), portrait });
     };
     measure();
     window.addEventListener("resize", measure);

@@ -3,7 +3,7 @@
 import { CatalogImage, PageHeader } from "@/components/flipbook/PageHeader";
 import { PageFooter } from "@/components/flipbook/PageFooter";
 import { useI18n } from "@/components/i18n/I18n";
-import { catalogCoverMockup, designsPerPage } from "@/lib/catalog";
+import { catalogCoverMockup } from "@/lib/catalog";
 import { shieldFlipPointer } from "@/lib/flipbook/shieldFlip";
 import { fabricKind } from "@/lib/fabricKind";
 import type { Catalog, Fabric, FabricType } from "@/types";
@@ -33,7 +33,7 @@ export function PageDesigns({
       <PageHeader title={catalog.title[lang]} page={pageNumber} />
       <div
         className="grid min-h-0 flex-1 gap-[0.9em] px-[6%] py-[4%]"
-        style={{ gridTemplateRows: `repeat(${designsPerPage(catalog)}, minmax(0, 1fr))` }}
+        style={{ gridTemplateRows: `repeat(${Math.max(1, fabrics.length)}, minmax(0, 1fr))` }}
         onMouseDown={shieldFlipPointer}
         onTouchStart={shieldFlipPointer}
       >

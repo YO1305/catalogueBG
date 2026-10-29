@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FabricModal } from "@/components/fabric/FabricModal";
 import type { BookModel } from "@/components/flipbook/Book";
 import { CatalogDialogs } from "@/components/flipbook/CatalogDialogs";
@@ -11,6 +11,7 @@ import { FlipSideNav } from "@/components/flipbook/FlipSideButtons";
 import { Toolbar } from "@/components/flipbook/Toolbar";
 import { useCatalogChrome } from "@/components/flipbook/useCatalogChrome";
 import { I18nProvider, useI18n } from "@/components/i18n/I18n";
+import { remobileDesignPages } from "@/lib/catalogMobilePages";
 import { searchFabrics } from "@/lib/catalogSearch";
 import type { Lang } from "@/types";
 
@@ -65,9 +66,24 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     else if (delta < 0) flip.flipPrev();
   }, []);
 
+  const pages = useMemo(
+    () => (box.portrait ? remobileDesignPages(model.pages) : model.pages),
+    [model.pages, box.portrait],
+  );
+  const bookModel = useMemo(() => ({ ...model, pages }), [model, pages]);
+
+  useEffect(() => {
+    const max = Math.max(pages.length - 1, 0);
+    if (pageRef.current > max) {
+      pageRef.current = max;
+      setPage(max);
+      api.current?.pageFlip().turnToPage(max);
+    }
+  }, [pages.length, box.portrait]);
+
   useCatalogChrome({
     slug: model.catalog.slug,
-    pageCount: model.pages.length,
+    pageCount: pages.length,
     api,
     pageRef,
     sessionId,
@@ -108,22 +124,22 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   }
   const results = useMemo(() => searchFabrics(model.fabrics, query), [model.fabrics, query]);
   const opened = model.fabrics.find((fabric) => fabric.id === openId);
-  const currentPage = model.pages[page];
+  const currentPage = pages[page];
 
   return (
     <div ref={root} className="catalog-root relative min-h-screen" data-theme={model.catalog.layout.theme} style={{ fontSize: box.w / 28 }}>
-      <div className="flex min-h-screen items-center justify-center pb-24">
+      <div className={`flex min-h-screen items-center justify-center ${box.portrait ? "pb-[7.5rem]" : "pb-24"}`}>
         {reduced && currentPage ? (
-          <StaticPage model={model} page={currentPage} index={page} width={box.w} height={box.h} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} />
+          <StaticPage model={bookModel} page={currentPage} index={page} width={box.w} height={box.h} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} />
         ) : (
-          <FlipSideNav page={page} total={model.pages.length} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)}>
-            <Book model={model} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={box.portrait} onFlip={applyPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
+          <FlipSideNav page={page} total={pages.length} portrait={box.portrait} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)}>
+            <Book model={bookModel} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={box.portrait} onFlip={applyPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
           </FlipSideNav>
         )}
       </div>
       <Toolbar
         page={page + 1}
-        total={model.pages.length}
+        total={pages.length}
         langs={model.catalog.langs}
         portrait={box.portrait}
         cart={cart.length}
@@ -144,7 +160,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
       />
       {thumbs ? (
         <ThumbGrid
-          pages={model.pages}
+          pages={pages}
           current={page}
           onPick={(index) => {
             setThumbs(false);
