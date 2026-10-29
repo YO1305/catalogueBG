@@ -1,4 +1,4 @@
-declare module "page-flip" {
+declare module "page-flip/dist/js/page-flip.module.js" {
   export type PageFlipEvent = { data: number };
 
   export class PageFlip {

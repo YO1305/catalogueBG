@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { PageFlip } from "page-flip";
+import { PageFlip } from "page-flip/dist/js/page-flip.module.js";
 import { PageBack } from "@/components/flipbook/PageBack";
 import { PageCover } from "@/components/flipbook/PageCover";
 import { PageDesigns } from "@/components/flipbook/PageDesigns";
