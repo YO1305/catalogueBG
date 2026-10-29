@@ -62,8 +62,6 @@ export async function POST(request: Request) {
     saveBuffer(`mockups/${id}-800.webp`, thumb, "image/webp"),
   ]);
   const mockup: Mockup = { ...settings, url, webUrl, thumbUrl, engine: "uvgrid", generatedAt: new Date().toISOString() };
-  // Re-read once after uploads in case another tab saved; skip a third round-trip.
-  const fresh = (await getFabric(fabricId)) ?? fabric;
-  await saveFabric({ ...placeMockup(fresh, mockup, variantId), updatedAt: new Date().toISOString() });
+  await saveFabric({ ...placeMockup(fabric, mockup, variantId), updatedAt: new Date().toISOString() });
   return Response.json({ ok: true, mockup });
 }

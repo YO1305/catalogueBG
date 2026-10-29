@@ -25,8 +25,8 @@ const templates = new Map<string, Promise<Assets>>();
 const images = new Map<string, Promise<RGBA>>();
 const KEEP_TEMPLATES = 2;
 const KEEP_IMAGES = 6;
-/** Cap final long edge so save stays near the old ~30s budget on large templates. */
-const FINAL_MAX_EDGE = 1600;
+/** SPEC: final mockup up to 2000 px on the long edge. */
+const FINAL_MAX_EDGE = 2000;
 
 let latestPreviewId = 0;
 let chain: Promise<void> = Promise.resolve();

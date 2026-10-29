@@ -19,7 +19,7 @@ export function MockupAdjuster({
   template: Template;
   mockup: Mockup;
   onChange: (mockup: Mockup) => void;
-  /** Saves this mockup for the main picture and for every colourway / tone. */
+  /** Saves this mockup for the main picture (colourways rebuild on publish if needed). */
   onSave: () => Promise<number>;
 }) {
   const { t } = useI18n();
