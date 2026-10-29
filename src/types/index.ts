@@ -220,6 +220,19 @@ export type Template = {
   order: number;
 };
 
+/** Позиция и начертание текста на обложке (проценты — от верха страницы). */
+export type CatalogCoverTypography = {
+  kickerWeight?: number;
+  titleWeight?: number;
+  subtitleWeight?: number;
+  kickerOffsetPct?: number;
+  titleOffsetPct?: number;
+  subtitleOffsetPct?: number;
+  /** Затемнение фото обложки 0–50 (0 = как загружено). */
+  imageDimPct?: number;
+  textOnImage?: "light" | "dark";
+};
+
 export type CatalogRules = {
   collections?: string[];
   fabricTypes?: string[];
@@ -235,6 +248,7 @@ export type Catalog = {
   subtitle: Localized;
   /** Верхняя строка на обложке (например «BAHMAL HOME»). */
   coverKicker?: Localized;
+  coverTypography?: CatalogCoverTypography;
   defaultLang: Lang;
   langs: Lang[];
   mode: "rules" | "manual";

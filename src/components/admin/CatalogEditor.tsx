@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
+import { CatalogCoverTypographyControl } from "@/components/admin/CatalogCoverTypographyControl";
 import { CatalogCoverUpload } from "@/components/admin/CatalogCoverUpload";
 import { CatalogFabricModalSizeControl } from "@/components/admin/CatalogFabricModalSizeControl";
 import { CatalogThemePicker } from "@/components/admin/CatalogThemePicker";
@@ -157,6 +158,11 @@ export function CatalogEditor({
             imageUrl={catalog.cover.imageUrl}
             disabled={isNew}
             onChange={(cover) => patch({ cover: { ...catalog.cover, ...cover } })}
+          />
+          <CatalogCoverTypographyControl
+            value={catalog.coverTypography}
+            hasCoverImage={Boolean(catalog.cover.imageUrl)}
+            onChange={(coverTypography) => patch({ coverTypography })}
           />
           <CatalogFabricModalSizeControl
             value={catalog.layout.fabricModalScale ?? 100}
