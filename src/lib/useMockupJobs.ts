@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { saveFabricAction } from "@/lib/actions";
 import { renderAndSave } from "@/lib/mockup/clientRender";
 import { placeMockup } from "@/lib/variants";
 import type { Fabric, Mockup, Template } from "@/types";
@@ -36,10 +37,17 @@ export function useMockupJobs(fabricRef: MutableRefObject<Fabric>, setFabric: Di
     if (!jobs.length) return 0;
     setProgress({ done: 0, total: jobs.length });
     try {
+      const status = snapshot.status === "published" ? "published" : "draft";
+      const savedOnce = await saveFabricAction({ ...fabricRef.current, status });
+      if (!savedOnce.ok) throw new Error("Сохраните черновик перед сохранением макетов");
+      const persistedBase = savedOnce.fabric;
+      fabricRef.current = persistedBase;
       for (const [index, job] of jobs.entries()) {
         const template = templates.find((item) => item.id === job.mockup.templateId);
         if (template) {
-          const { mockup: saved, fabric: persisted } = await renderAndSave(fabricRef.current, template, job.mockup, job.variantId);
+          const { mockup: saved, fabric: persisted } = await renderAndSave(fabricRef.current, template, job.mockup, job.variantId, {
+            persisted: fabricRef.current,
+          });
           options?.onPersisted?.(persisted);
           if (fabricRef.current.id === snapshot.id) {
             setFabric((current) => placeMockup(current, saved, job.variantId));

@@ -67,8 +67,8 @@ export function useFabricEditor(
     return () => window.clearInterval(timer);
   }, []);
 
-  function update(partial: Partial<Fabric>) {
-    dirty.current = true;
+  function update(partial: Partial<Fabric>, opts?: { silent?: boolean }) {
+    if (!opts?.silent) dirty.current = true;
     fabricRef.current = { ...fabricRef.current, ...partial };
     setFabric((current) => ({ ...current, ...partial }));
   }

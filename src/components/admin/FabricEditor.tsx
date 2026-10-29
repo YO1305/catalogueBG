@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FabricCatalogPickSection } from "@/components/admin/FabricCatalogPickSection";
@@ -50,9 +50,12 @@ export function FabricEditor({
   const kind = fabricKind(fabric);
   const missing = missingTones(fabric);
   const { fillMissingColors } = editor.tones;
+  const filledColors = useRef<string | null>(null);
   useEffect(() => {
+    if (filledColors.current === fabric.id) return;
+    filledColors.current = fabric.id;
     void fillMissingColors();
-  }, [fabric.id]);
+  }, [fabric.id, fillMissingColors]);
   const ready = useMemo(() => Boolean(kindReady(fabric) && fabric.art && fabric.name.ru), [fabric]);
 
   async function finish(saveLive: boolean) {

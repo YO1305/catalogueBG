@@ -4,6 +4,7 @@ import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import type { Database } from "../src/types/index.ts";
 
+/** Manual one-off upload (`npm run seed`). Does not run on deploy; overwrites docs by id. */
 const seed = JSON.parse(readFileSync(path.join(process.cwd(), "data/seed.json"), "utf8")) as Database;
 
 async function main() {

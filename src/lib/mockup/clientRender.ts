@@ -26,8 +26,9 @@ export async function renderAndSave(
   template: Template,
   mockup: Mockup,
   variantId?: string,
+  opts?: { persisted?: Fabric },
 ): Promise<{ mockup: Mockup; fabric: Fabric }> {
-  const persisted = await ensureFabricSaved(fabric);
+  const persisted = opts?.persisted ?? (await ensureFabricSaved(fabric));
   const variant = variantId ? persisted.variants?.find((item) => item.id === variantId) : undefined;
   if (variantId && !variant) throw new Error("Вариант цвета не найден");
   const source = variant ? variantFabric(persisted, variant) : persisted;

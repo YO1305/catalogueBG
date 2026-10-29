@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { getFirestore, type DocumentData, type Firestore, Timestamp } from "firebase-admin/firestore";
 import { firebaseAdminConfigured, getAdminApp } from "@/lib/firebaseAdmin";
+import { trackFirestoreRead, trackFirestoreWrite } from "@/lib/firestoreMetrics";
 import { withDefaultFinishes } from "@/lib/finishes";
 import type { AnalyticsEvent, AppUser, Catalog, Collection, Database, Fabric, FabricType, Finish, GlossaryTerm, Lead, ProductType, Template } from "@/types";
 
@@ -116,6 +117,7 @@ async function readCollection<T>(name: string, idField?: keyof T): Promise<T[]> 
   if (!db) return readLocalCollection<T>(name, idField);
   try {
     const snap = await db.collection(name).get();
+    trackFirestoreRead(snap.size);
     return snap.docs.map((doc) => {
       const data = fromRemote(doc.data()) as T;
       if (idField && !(data as Record<string, unknown>)[idField as string]) {
@@ -129,6 +131,79 @@ async function readCollection<T>(name: string, idField?: keyof T): Promise<T[]> 
   }
 }
 
+const ADMIN_PAGE_SIZE = 50;
+
+async function readCollectionPage<T>(
+  name: string,
+  idField: keyof T | undefined,
+  options: { limit: number; offset: number; orderBy: string },
+): Promise<T[]> {
+  const limit = Math.min(Math.max(options.limit, 1), ADMIN_PAGE_SIZE);
+  const offset = Math.max(options.offset, 0);
+  if (!firebaseAdminConfigured()) {
+    const all = readLocalCollection<T>(name, idField);
+    return all.slice(offset, offset + limit);
+  }
+  const db = firestoreDb();
+  if (!db) {
+    const all = readLocalCollection<T>(name, idField);
+    return all.slice(offset, offset + limit);
+  }
+  try {
+    const snap = await db.collection(name).orderBy(options.orderBy).offset(offset).limit(limit).get();
+    trackFirestoreRead(snap.size);
+    return snap.docs.map((doc) => {
+      const data = fromRemote(doc.data()) as T;
+      if (idField && !(data as Record<string, unknown>)[idField as string]) {
+        (data as Record<string, unknown>)[idField as string] = doc.id;
+      }
+      return data;
+    });
+  } catch (error) {
+    console.error(`readCollectionPage:${name}`, error);
+    const all = readLocalCollection<T>(name, idField);
+    return all.slice(offset, offset + limit);
+  }
+}
+
+export async function getFabricsByIds(ids: string[]): Promise<Fabric[]> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (!unique.length) return [];
+  if (!firebaseAdminConfigured()) {
+    const byId = new Map(readLocal().fabrics.map((item) => [item.id, item]));
+    return unique.flatMap((id) => {
+      const fabric = byId.get(id);
+      return fabric ? [fabric] : [];
+    });
+  }
+  const db = firestoreDb();
+  if (!db) {
+    const byId = new Map(readLocal().fabrics.map((item) => [item.id, item]));
+    return unique.flatMap((id) => {
+      const fabric = byId.get(id);
+      return fabric ? [fabric] : [];
+    });
+  }
+  try {
+    const refs = unique.map((id) => db.collection("fabrics").doc(id));
+    const snaps = await db.getAll(...refs);
+    trackFirestoreRead(snaps.length);
+    return snaps.flatMap((snap) => {
+      if (!snap.exists) return [];
+      const data = fromRemote(snap.data()) as Fabric;
+      if (!data.id) data.id = snap.id;
+      return [data];
+    });
+  } catch (error) {
+    console.error("getFabricsByIds", error);
+    const byId = new Map(readLocal().fabrics.map((item) => [item.id, item]));
+    return unique.flatMap((id) => {
+      const fabric = byId.get(id);
+      return fabric ? [fabric] : [];
+    });
+  }
+}
+
 function staffFromLocalSeed(email: string) {
   return readLocal().users.find((item) => item.email.toLowerCase() === email) ?? null;
 }
@@ -139,6 +214,7 @@ export async function findStaffUser(email: string) {
   if (firebaseAdminConfigured()) {
     try {
       const snap = await firestore().collection("users").get();
+      trackFirestoreRead(snap.size);
       for (const doc of snap.docs) {
         const user = fromRemote(doc.data()) as AppUser;
         if (!user.id) user.id = doc.id;
@@ -151,16 +227,28 @@ export async function findStaffUser(email: string) {
   return staffFromLocalSeed(normalized);
 }
 
-export async function getCatalogListData() {
+export async function getCatalogListData(options?: { page?: number; pageSize?: number }) {
+  const page = Math.max(0, options?.page ?? 0);
+  const pageSize = Math.min(Math.max(options?.pageSize ?? ADMIN_PAGE_SIZE, 1), ADMIN_PAGE_SIZE);
   if (!firebaseAdminConfigured()) {
     const db = readLocal();
-    return { catalogs: db.catalogs, fabrics: db.fabrics };
+    const catalogs = db.catalogs.slice(page * pageSize, page * pageSize + pageSize);
+    const ids = [...new Set(catalogs.flatMap((item) => item.fabricIds ?? []).filter(Boolean))];
+    const byId = new Map(db.fabrics.map((item) => [item.id, item]));
+    const fabrics = ids.flatMap((id) => {
+      const fabric = byId.get(id);
+      return fabric ? [fabric] : [];
+    });
+    return { catalogs, fabrics, page, pageSize, hasMore: catalogs.length === pageSize };
   }
-  const [catalogs, fabrics] = await Promise.all([
-    readCollection<Catalog>("catalogs", "slug"),
-    readCollection<Fabric>("fabrics", "id"),
-  ]);
-  return { catalogs, fabrics };
+  const catalogs = await readCollectionPage<Catalog>("catalogs", "slug", {
+    limit: pageSize,
+    offset: page * pageSize,
+    orderBy: "slug",
+  });
+  const fabricIds = [...new Set(catalogs.flatMap((item) => item.fabricIds ?? []).filter(Boolean))];
+  const fabrics = await getFabricsByIds(fabricIds);
+  return { catalogs, fabrics, page, pageSize, hasMore: catalogs.length === pageSize };
 }
 
 async function readDoc<T>(name: string, id: string, idField: keyof T): Promise<T | null> {
@@ -173,6 +261,7 @@ async function readDoc<T>(name: string, id: string, idField: keyof T): Promise<T
   }
   try {
     const snap = await db.collection(name).doc(id).get();
+    trackFirestoreRead(snap.exists ? 1 : 0);
     if (!snap.exists) return null;
     const data = fromRemote(snap.data()) as T;
     if (!(data as Record<string, unknown>)[idField as string]) (data as Record<string, unknown>)[idField as string] = snap.id;
@@ -189,6 +278,7 @@ async function readGlossary(): Promise<GlossaryTerm[]> {
   if (!db) return readLocal().glossary;
   try {
     const snap = await db.doc("settings/glossary").get();
+    trackFirestoreRead(1);
     const data = snap.exists ? (fromRemote(snap.data()) as { terms?: GlossaryTerm[] }) : undefined;
     return data?.terms ?? readLocal().glossary;
   } catch (error) {
@@ -249,27 +339,47 @@ export async function isFabricArtTaken(art: string, exceptId: string): Promise<b
     return readLocal().fabrics.some((item) => item.id !== exceptId && item.art.toLowerCase() === wanted);
   }
   try {
-    const snap = await db.collection("fabrics").select("art").get();
-    return snap.docs.some((doc) => doc.id !== exceptId && String(doc.get("art") ?? "").toLowerCase() === wanted);
+    const snap = await db.collection("fabrics").where("artKey", "==", wanted).limit(4).get();
+    trackFirestoreRead(snap.size);
+    if (snap.size) return snap.docs.some((doc) => doc.id !== exceptId);
+    const legacy = await db.collection("fabrics").where("art", "==", art.trim()).limit(4).get();
+    trackFirestoreRead(legacy.size);
+    return legacy.docs.some((doc) => doc.id !== exceptId);
   } catch (error) {
     console.error("isFabricArtTaken", error);
     return readLocal().fabrics.some((item) => item.id !== exceptId && item.art.toLowerCase() === wanted);
   }
 }
 
-export async function getFabricsBoardData() {
+export async function getFabricsBoardData(options?: { page?: number; pageSize?: number }) {
+  const page = Math.max(0, options?.page ?? 0);
+  const pageSize = Math.min(Math.max(options?.pageSize ?? ADMIN_PAGE_SIZE, 1), ADMIN_PAGE_SIZE);
   if (!firebaseAdminConfigured()) {
     const db = readLocal();
-    return { fabrics: db.fabrics, collections: db.collections, fabricTypes: db.fabricTypes, productTypes: db.productTypes, catalogs: db.catalogs };
+    return {
+      fabrics: db.fabrics.slice(page * pageSize, page * pageSize + pageSize),
+      collections: db.collections,
+      fabricTypes: db.fabricTypes,
+      productTypes: db.productTypes,
+      catalogs: db.catalogs,
+      page,
+      pageSize,
+      hasMore: db.fabrics.length > (page + 1) * pageSize,
+    };
   }
   const [fabrics, collections, fabricTypes, productTypes, catalogs] = await Promise.all([
-    readCollection<Fabric>("fabrics", "id"),
+    readCollectionPage<Fabric>("fabrics", "id", { limit: pageSize, offset: page * pageSize, orderBy: "updatedAt" }),
     readCollection<Collection>("collections", "id"),
     readCollection<FabricType>("fabricTypes", "id"),
     readCollection<ProductType>("productTypes", "id"),
-    readCollection<Catalog>("catalogs", "slug"),
+    readCollectionPage<Catalog>("catalogs", "slug", { limit: pageSize, offset: 0, orderBy: "slug" }),
   ]);
-  return { fabrics, collections, fabricTypes, productTypes, catalogs };
+  return { fabrics, collections, fabricTypes, productTypes, catalogs, page, pageSize, hasMore: fabrics.length === pageSize };
+}
+
+export async function getLead(id: string): Promise<Lead | null> {
+  if (!firebaseAdminConfigured()) return readLocal().leads.find((item) => item.id === id) ?? null;
+  return readDoc<Lead>("leads", id, "id");
 }
 
 export async function getLeadsData() {
@@ -368,6 +478,7 @@ function omitUndefined(value: unknown): unknown {
 
 async function upsert(collection: string, id: string, value: object) {
   await firestore().collection(collection).doc(id).set(toRemote(omitUndefined(value)) as DocumentData);
+  trackFirestoreWrite(1);
 }
 
 export async function saveFabric(fabric: Fabric) {
@@ -556,6 +667,7 @@ export async function saveEvents(items: AnalyticsEvent[]) {
     const batch = firestore().batch();
     for (const item of items) batch.set(firestore().collection("events").doc(item.id), toRemote(item) as DocumentData);
     await batch.commit();
+    trackFirestoreWrite(items.length);
     return;
   }
   await mutate((db) => {

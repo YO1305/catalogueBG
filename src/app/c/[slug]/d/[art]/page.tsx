@@ -4,7 +4,7 @@ import { PinGate } from "@/components/flipbook/PinGate";
 import { translate } from "@/lib/i18n";
 import { loadCatalog } from "@/lib/loadCatalog";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; art: string }> }): Promise<Metadata> {
   const { slug, art } = await params;

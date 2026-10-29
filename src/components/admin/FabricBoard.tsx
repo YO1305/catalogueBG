@@ -22,6 +22,10 @@ export function FabricBoard({
   fabrics,
   collections,
   fabricTypes,
+  productTypes: _productTypes,
+  catalogs: _catalogs,
+  page = 1,
+  hasMore = false,
 }: {
   kind: FabricKind;
   role: Role;
@@ -30,6 +34,8 @@ export function FabricBoard({
   fabricTypes: FabricType[];
   productTypes: ProductType[];
   catalogs: Catalog[];
+  page?: number;
+  hasMore?: boolean;
 }) {
   const { lang, t } = useI18n();
   const router = useRouter();
@@ -65,6 +71,19 @@ export function FabricBoard({
         }
       />
       <FabricKindTabs value={kind} counts={counts} />
+      <div className="mb-4 flex items-center justify-end gap-2 text-sm">
+        <span className="font-mono text-ink/60">{t("catalog.of", { current: page, total: hasMore ? page + 1 : page })}</span>
+        {page > 1 ? (
+          <Link href={`/admin/fabrics?kind=${kind}&page=${page - 1}`} className="underline">
+            {t("common.back")}
+          </Link>
+        ) : null}
+        {hasMore ? (
+          <Link href={`/admin/fabrics?kind=${kind}&page=${page + 1}`} className="underline">
+            {t("common.next")}
+          </Link>
+        ) : null}
+      </div>
       <p className="mb-4 max-w-2xl text-sm text-ink/60">{t(`designs.kindHint.${kind}`)}</p>
       <AdminFilterBar>
         <SearchInput className="min-w-0 sm:min-w-[14rem] sm:flex-1" placeholder={t("designs.searchPlaceholder")} value={search} onChange={(event) => setSearch(event.target.value)} />

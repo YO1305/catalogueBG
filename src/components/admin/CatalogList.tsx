@@ -12,7 +12,19 @@ import { deleteCatalogAction } from "@/lib/actions";
 import { canEditCatalogs } from "@/lib/roles";
 import type { Catalog, Fabric, Role } from "@/types";
 
-export function CatalogList({ catalogs, fabrics, role }: { catalogs: Catalog[]; fabrics: Fabric[]; role: Role }) {
+export function CatalogList({
+  catalogs,
+  fabrics,
+  role,
+  page = 1,
+  hasMore = false,
+}: {
+  catalogs: Catalog[];
+  fabrics: Fabric[];
+  role: Role;
+  page?: number;
+  hasMore?: boolean;
+}) {
   const { t } = useI18n();
   const router = useRouter();
 
@@ -46,6 +58,19 @@ export function CatalogList({ catalogs, fabrics, role }: { catalogs: Catalog[]; 
         }
       />
       {!catalogs.length ? <p className="mt-6 text-sm text-ink/60">{t("catalogs.emptyList")}</p> : null}
+      <div className="mb-4 flex items-center justify-end gap-2 text-sm">
+        <span className="font-mono text-ink/60">{t("catalog.of", { current: page, total: hasMore ? page + 1 : page })}</span>
+        {page > 1 ? (
+          <Link href={`/admin/catalogs?page=${page - 1}`} className="underline">
+            {t("common.back")}
+          </Link>
+        ) : null}
+        {hasMore ? (
+          <Link href={`/admin/catalogs?page=${page + 1}`} className="underline">
+            {t("common.next")}
+          </Link>
+        ) : null}
+      </div>
       <ul className={ADMIN_GRID_CLASS}>
         {catalogs.map((catalog) => {
           const count = catalog.fabricIds?.length ?? 0;

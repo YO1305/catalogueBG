@@ -98,6 +98,8 @@ export type Fabric = {
   /** Нет у старых записей — тогда раздел выводится из woven / toned. */
   kind?: FabricKind;
   art: string;
+  /** Lowercase art for uniqueness queries in Firestore */
+  artKey?: string;
   collectionId: string;
   fabricTypeId: string;
   name: Localized;

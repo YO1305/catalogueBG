@@ -454,8 +454,8 @@ export async function deleteTemplateAction(id: string) {
 
 export async function updateLeadAction(id: string, status: Lead["status"]) {
   await actor(canReadLeads);
-  const db = await getDb();
-  const lead = db.leads.find((item) => item.id === id);
+  const { getLead } = await import("@/lib/db");
+  const lead = await getLead(id);
   if (!lead) return { ok: false as const };
   await saveLead({ ...lead, status });
   return { ok: true as const };

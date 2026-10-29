@@ -12,6 +12,7 @@ export async function persistFabric(session: Session, fabric: Fabric) {
   const next: Fabric = {
     ...fabric,
     art,
+    artKey: art.toLowerCase(),
     densityRange: parseDensity(fabric.density),
     widthList: parseWidths(fabric.width),
     mockups: mergeRenderedMockups(fabric.mockups, previous?.mockups ?? []),

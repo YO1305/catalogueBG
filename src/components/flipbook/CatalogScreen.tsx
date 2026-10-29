@@ -51,11 +51,15 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   const sessionId = useRef("");
   const pageRef = useRef(page);
   pageRef.current = page;
+  const lastPageEvent = useRef({ index: -1, at: 0 });
   function applyPage(index: number) {
     pageRef.current = index;
     setPage(index);
     const url = `${location.pathname}${location.search}#p${index + 1}`;
     history.replaceState(null, "", url);
+    const now = Date.now();
+    if (lastPageEvent.current.index === index && now - lastPageEvent.current.at < 4000) return;
+    lastPageEvent.current = { index, at: now };
     void fetch("/api/event", {
       method: "POST",
       headers: { "content-type": "application/json" },
