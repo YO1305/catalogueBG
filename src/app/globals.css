@@ -35,7 +35,14 @@ body {
   font-family: var(--font-mono);
 }
 
+html.catalog-mobile-feed,
+html.catalog-mobile-feed body {
+  overflow: hidden;
+  height: 100%;
+}
+
 .catalog-root {
+  --catalog-slide-h: calc(100dvh - 5.75rem);
   --paper: #f4efe6;
   --ink: #1c1915;
   --muted: #6f675c;

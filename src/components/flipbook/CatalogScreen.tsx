@@ -12,6 +12,7 @@ import { Toolbar } from "@/components/flipbook/Toolbar";
 import { useCatalogChrome } from "@/components/flipbook/useCatalogChrome";
 import { I18nProvider, useI18n } from "@/components/i18n/I18n";
 import { CatalogSectionJumpBar } from "@/components/flipbook/CatalogSectionJumpBar";
+import { MobileCatalogFeed, type MobileCatalogFeedHandle } from "@/components/flipbook/MobileCatalogFeed";
 import { catalogSectionLinks } from "@/lib/catalogSections";
 import { remobileDesignPages } from "@/lib/catalogMobilePages";
 import { searchFabrics } from "@/lib/catalogSearch";
@@ -32,6 +33,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   const { lang, t } = useI18n();
   const root = useRef<HTMLDivElement>(null);
   const api = useRef<{ pageFlip: () => { flipNext: () => void; flipPrev: () => void; turnToPage: (page: number) => void } } | null>(null);
+  const mobileFeed = useRef<MobileCatalogFeedHandle>(null);
   const [box, setBox] = useState({ w: 420, h: 594, portrait: false });
   const [page, setPage] = useState(Math.min(initialPage, Math.max(model.pages.length - 1, 0)));
   const [openId, setOpenId] = useState<string | undefined>(initialArt);
@@ -72,17 +74,43 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     if (pageRef.current > max) {
       pageRef.current = max;
       setPage(max);
-      api.current?.pageFlip().turnToPage(max);
+      if (box.portrait) mobileFeed.current?.scrollToPage(max);
+      else api.current?.pageFlip()?.turnToPage(max);
     }
   }, [pages.length, box.portrait]);
+
+  useEffect(() => {
+    if (!box.portrait) return;
+    const id = window.requestAnimationFrame(() => mobileFeed.current?.scrollToPage(pageRef.current));
+    return () => window.cancelAnimationFrame(id);
+  }, [box.portrait, pages.length]);
+
+  const jumpToPage = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= pages.length) return;
+      if (box.portrait) {
+        applyPage(index);
+        mobileFeed.current?.scrollToPage(index);
+        return;
+      }
+      api.current?.pageFlip()?.turnToPage(index);
+      applyPage(index);
+    },
+    [box.portrait, pages.length],
+  );
 
   const flipTo = useCallback(
     (index: number, preferAnimate: boolean) => {
       if (index < 0 || index >= pages.length) return;
       if (index === pageRef.current) return;
+      if (box.portrait) {
+        applyPage(index);
+        mobileFeed.current?.scrollToPage(index);
+        return;
+      }
       const flip = api.current?.pageFlip();
       const diff = index - pageRef.current;
-      const animate = preferAnimate && !reduced && !box.portrait && flip && Math.abs(diff) === 1;
+      const animate = preferAnimate && !reduced && flip && Math.abs(diff) === 1;
       if (animate) {
         if (diff > 0) flip.flipNext();
         else flip.flipPrev();
@@ -94,6 +122,14 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     [box.portrait, pages.length, reduced],
   );
 
+  const onPageVisible = useCallback(
+    (index: number) => {
+      if (index === pageRef.current) return;
+      applyPage(index);
+    },
+    [],
+  );
+
   useCatalogChrome({
     slug: model.catalog.slug,
     pageCount: pages.length,
@@ -103,6 +139,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     setPage,
     setReduced,
     setBox,
+    onJumpToPage: jumpToPage,
     onStepFlip: (delta) => flipTo(pageRef.current + delta, true),
   });
 
@@ -134,16 +171,34 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   const sectionLinks = useMemo(() => catalogSectionLinks(model.catalog, pages, lang), [model.catalog, pages, lang]);
 
   return (
-    <div ref={root} className="catalog-root relative min-h-screen" data-theme={model.catalog.layout.theme} style={{ fontSize: box.w / 28 }}>
-      <CatalogSectionJumpBar links={sectionLinks} currentPage={page} onJump={turn} />
-      <div className={`flex min-h-screen items-center justify-center ${box.portrait ? "pb-[7.5rem]" : "pb-24"}`}>
-        {reduced && currentPage ? (
+    <div
+      ref={root}
+      className={`catalog-root relative ${box.portrait ? "flex h-dvh flex-col overflow-hidden" : "min-h-screen"}`}
+      data-theme={model.catalog.layout.theme}
+      style={{ fontSize: box.w / 28 }}
+    >
+      {sectionLinks.length ? <CatalogSectionJumpBar links={sectionLinks} currentPage={page} onJump={turn} /> : null}
+      <div className={box.portrait ? "min-h-0 flex-1" : "flex min-h-screen items-center justify-center pb-24"}>
+        {box.portrait && !openId ? (
+          <MobileCatalogFeed
+            ref={mobileFeed}
+            model={bookModel}
+            pages={pages}
+            pageWidth={box.w}
+            pageHeight={box.h}
+            onPageVisible={onPageVisible}
+            onOpen={openFabric}
+            onRequest={requestSample}
+            onLead={() => setLead(true)}
+            onJump={turn}
+          />
+        ) : reduced && currentPage ? (
           <StaticPage model={bookModel} page={currentPage} index={page} width={box.w} height={box.h} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} />
-        ) : (
-          <FlipSideNav page={page} total={pages.length} portrait={box.portrait} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)}>
-            <Book model={bookModel} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={box.portrait} onFlip={applyPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
+        ) : !box.portrait ? (
+          <FlipSideNav page={page} total={pages.length} portrait={false} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)}>
+            <Book model={bookModel} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={false} onFlip={applyPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
           </FlipSideNav>
-        )}
+        ) : null}
       </div>
       <Toolbar
         page={page + 1}

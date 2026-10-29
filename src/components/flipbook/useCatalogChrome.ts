@@ -14,6 +14,7 @@ export function useCatalogChrome({
   setReduced,
   setBox,
   onStepFlip,
+  onJumpToPage,
 }: {
   slug: string;
   pageCount: number;
@@ -24,6 +25,7 @@ export function useCatalogChrome({
   setReduced: (value: boolean) => void;
   setBox: (box: { w: number; h: number; portrait: boolean }) => void;
   onStepFlip: (delta: number) => void;
+  onJumpToPage?: (index: number) => void;
 }) {
   useEffect(() => {
     const hash = window.location.hash.match(/^#p(\d+)$/);
@@ -31,7 +33,8 @@ export function useCatalogChrome({
       const index = Math.min(pageCount - 1, Math.max(0, Number(hash[1]) - 1));
       pageRef.current = index;
       setPage(index);
-      api.current?.pageFlip().turnToPage(index);
+      if (onJumpToPage) onJumpToPage(index);
+      else api.current?.pageFlip()?.turnToPage(index);
     }
     sessionId.current = sessionStorage.getItem("bahmal-session") || crypto.randomUUID();
     sessionStorage.setItem("bahmal-session", sessionId.current);
@@ -48,18 +51,25 @@ export function useCatalogChrome({
     media.addEventListener("change", apply);
     const measure = () => {
       const portrait = window.innerWidth < 1024;
-      const toolbarReserve = portrait ? 128 : 108;
+      const toolbarReserve = portrait ? 92 : 108;
+      if (portrait) {
+        document.documentElement.classList.add("catalog-mobile-feed");
+        const slideH = window.innerHeight - toolbarReserve;
+        const width = Math.min(window.innerWidth - 12, slideH / 1.414);
+        const height = width * 1.414;
+        setBox({ w: Math.max(280, Math.floor(width)), h: Math.max(396, Math.floor(height)), portrait: true });
+        return;
+      }
+      document.documentElement.classList.remove("catalog-mobile-feed");
       const maxH = window.innerHeight - toolbarReserve;
-      const maxW = portrait ? window.innerWidth - 20 : (window.innerWidth - 48 - 200) / 2;
+      const maxW = (window.innerWidth - 48 - 200) / 2;
       let height = maxH;
       let width = height / 1.414;
       if (width > maxW) {
         width = maxW;
         height = width * 1.414;
       }
-      const minW = portrait ? 260 : 240;
-      const minH = portrait ? 368 : 340;
-      setBox({ w: Math.max(minW, Math.floor(width)), h: Math.max(minH, Math.floor(height)), portrait });
+      setBox({ w: Math.max(240, Math.floor(width)), h: Math.max(340, Math.floor(height)), portrait: false });
     };
     measure();
     window.addEventListener("resize", measure);
@@ -76,7 +86,8 @@ export function useCatalogChrome({
       media.removeEventListener("change", apply);
       window.removeEventListener("resize", measure);
       window.removeEventListener("keydown", onKey);
+      document.documentElement.classList.remove("catalog-mobile-feed");
       if (queue.length) void fetch("/api/event", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ events: queue }) });
     };
-  }, [api, onStepFlip, pageCount, pageRef, sessionId, setBox, setPage, setReduced, slug]);
+  }, [api, onJumpToPage, onStepFlip, pageCount, pageRef, sessionId, setBox, setPage, setReduced, slug]);
 }
