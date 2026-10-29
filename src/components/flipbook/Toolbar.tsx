@@ -10,7 +10,6 @@ export function Toolbar({
   total,
   langs,
   portrait,
-  mobileFeed = false,
   cart,
   onPrev,
   onNext,
@@ -26,7 +25,6 @@ export function Toolbar({
   total: number;
   langs: Lang[];
   portrait: boolean;
-  mobileFeed?: boolean;
   cart: number;
   onPrev: () => void;
   onNext: () => void;
@@ -61,17 +59,6 @@ export function Toolbar({
       </button>
     </div>
   );
-
-  if (mobileFeed) {
-    return (
-      <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-50 isolate px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto flex max-w-3xl items-center justify-center rounded-full border border-white/40 bg-[#f7f3ec]/95 px-3 py-2 text-ink shadow-lg">
-          {langsRow}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-50 isolate px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <div className="mx-auto flex max-w-3xl flex-col gap-2 rounded-2xl border border-white/40 bg-[#f7f3ec]/95 px-3 py-2 text-ink shadow-lg">

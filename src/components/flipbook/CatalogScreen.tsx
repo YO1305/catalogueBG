@@ -12,7 +12,6 @@ import { Toolbar } from "@/components/flipbook/Toolbar";
 import { useCatalogChrome } from "@/components/flipbook/useCatalogChrome";
 import { I18nProvider, useI18n } from "@/components/i18n/I18n";
 import { CatalogSectionJumpBar } from "@/components/flipbook/CatalogSectionJumpBar";
-import { MobileCatalogFeed, type MobileCatalogFeedHandle } from "@/components/flipbook/MobileCatalogFeed";
 import { catalogSectionLinks } from "@/lib/catalogSections";
 import { remobileDesignPages } from "@/lib/catalogMobilePages";
 import { searchFabrics } from "@/lib/catalogSearch";
@@ -33,8 +32,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   const { lang, t } = useI18n();
   const root = useRef<HTMLDivElement>(null);
   const api = useRef<{ pageFlip: () => { flipNext: () => void; flipPrev: () => void; turnToPage: (page: number) => void } } | null>(null);
-  const mobileFeedRef = useRef<MobileCatalogFeedHandle>(null);
-  const [box, setBox] = useState({ w: 420, h: 594, portrait: false, mobileFeed: false });
+  const [box, setBox] = useState({ w: 420, h: 594, portrait: false });
   const [page, setPage] = useState(Math.min(initialPage, Math.max(model.pages.length - 1, 0)));
   const [openId, setOpenId] = useState<string | undefined>(initialArt);
   const [openVariant, setOpenVariant] = useState<string | undefined>();
@@ -51,16 +49,11 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   const sessionId = useRef("");
   const pageRef = useRef(page);
   pageRef.current = page;
-  const lastPageEvent = useRef({ index: -1, at: 0 });
-
   function applyPage(index: number) {
     pageRef.current = index;
     setPage(index);
     const url = `${location.pathname}${location.search}#p${index + 1}`;
     history.replaceState(null, "", url);
-    const now = Date.now();
-    if (lastPageEvent.current.index === index && now - lastPageEvent.current.at < 4000) return;
-    lastPageEvent.current = { index, at: now };
     void fetch("/api/event", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -68,9 +61,10 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     });
   }
 
+  // Classic catalog pages on computer; remobile only on phone (<768).
   const pages = useMemo(
-    () => (box.mobileFeed ? remobileDesignPages(model.pages) : model.pages),
-    [model.pages, box.mobileFeed],
+    () => (box.portrait ? remobileDesignPages(model.pages) : model.pages),
+    [model.pages, box.portrait],
   );
   const bookModel = useMemo(() => ({ ...model, pages }), [model, pages]);
 
@@ -79,40 +73,14 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     if (pageRef.current > max) {
       pageRef.current = max;
       setPage(max);
-      if (box.mobileFeed) mobileFeedRef.current?.scrollToPage(max);
-      else api.current?.pageFlip()?.turnToPage(max);
+      api.current?.pageFlip().turnToPage(max);
     }
-  }, [pages.length, box.mobileFeed]);
-
-  useEffect(() => {
-    if (!box.mobileFeed) return;
-    const id = window.requestAnimationFrame(() => mobileFeedRef.current?.scrollToPage(pageRef.current));
-    return () => window.cancelAnimationFrame(id);
-  }, [box.mobileFeed, pages.length]);
-
-  const jumpToPage = useCallback(
-    (index: number) => {
-      if (index < 0 || index >= pages.length) return;
-      if (box.mobileFeed) {
-        applyPage(index);
-        mobileFeedRef.current?.scrollToPage(index);
-        return;
-      }
-      api.current?.pageFlip()?.turnToPage(index);
-      applyPage(index);
-    },
-    [box.mobileFeed, pages.length],
-  );
+  }, [pages.length, box.portrait]);
 
   const flipTo = useCallback(
     (index: number, preferAnimate: boolean) => {
       if (index < 0 || index >= pages.length) return;
       if (index === pageRef.current) return;
-      if (box.mobileFeed) {
-        applyPage(index);
-        mobileFeedRef.current?.scrollToPage(index);
-        return;
-      }
       const flip = api.current?.pageFlip();
       const diff = index - pageRef.current;
       const animate = preferAnimate && !reduced && !box.portrait && flip && Math.abs(diff) === 1;
@@ -124,13 +92,8 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
       flip?.turnToPage(index);
       applyPage(index);
     },
-    [box.mobileFeed, box.portrait, pages.length, reduced],
+    [box.portrait, pages.length, reduced],
   );
-
-  const onPageCommit = useCallback((index: number) => {
-    if (index === pageRef.current) return;
-    applyPage(index);
-  }, []);
 
   useCatalogChrome({
     slug: model.catalog.slug,
@@ -141,7 +104,6 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     setPage,
     setReduced,
     setBox,
-    onJumpToPage: jumpToPage,
     onStepFlip: (delta) => flipTo(pageRef.current + delta, true),
   });
 
@@ -173,28 +135,10 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   const sectionLinks = useMemo(() => catalogSectionLinks(model.catalog, pages, lang), [model.catalog, pages, lang]);
 
   return (
-    <div
-      ref={root}
-      className={`catalog-root relative ${box.mobileFeed ? "flex h-dvh flex-col overflow-hidden" : "min-h-screen"}`}
-      data-theme={model.catalog.layout.theme}
-      style={{ fontSize: box.w / 28 }}
-    >
-      {sectionLinks.length ? <CatalogSectionJumpBar links={sectionLinks} currentPage={page} onJump={turn} /> : null}
-      <div className={box.mobileFeed ? "min-h-0 flex-1" : "flex min-h-screen items-center justify-center pb-24"}>
-        {box.mobileFeed && !openId ? (
-          <MobileCatalogFeed
-            ref={mobileFeedRef}
-            model={bookModel}
-            pages={pages}
-            pageWidth={box.w}
-            pageHeight={box.h}
-            onPageCommit={onPageCommit}
-            onOpen={openFabric}
-            onRequest={requestSample}
-            onLead={() => setLead(true)}
-            onJump={turn}
-          />
-        ) : reduced && currentPage ? (
+    <div ref={root} className="catalog-root relative min-h-screen" data-theme={model.catalog.layout.theme} style={{ fontSize: box.w / 28 }}>
+      <CatalogSectionJumpBar links={sectionLinks} currentPage={page} onJump={turn} />
+      <div className={`flex min-h-screen items-center justify-center ${box.portrait ? "pb-[7.5rem]" : "pb-24"}`}>
+        {reduced && currentPage ? (
           <StaticPage model={bookModel} page={currentPage} index={page} width={box.w} height={box.h} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} />
         ) : (
           <FlipSideNav page={page} total={pages.length} portrait={box.portrait} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)}>
@@ -207,7 +151,6 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
         total={pages.length}
         langs={model.catalog.langs}
         portrait={box.portrait}
-        mobileFeed={box.mobileFeed}
         cart={cart.length}
         onPrev={() => go(-1)}
         onNext={() => go(1)}
@@ -280,12 +223,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
         }}
         fabricIds={requestId ? [requestId] : cart.length ? cart : openId ? [openId] : []}
         onOpen={openFabric}
-        onDone={(text) => {
-          setNotice(text);
-          setLead(false);
-          setRequestId(undefined);
-          if (!requestId) setCart([]);
-        }}
+        onDone={(text) => { setNotice(text); setLead(false); setRequestId(undefined); if (!requestId) setCart([]); }}
       />
       {notice ? <p className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 bg-ink px-3 py-2 text-sm text-paper">{notice}</p> : null}
     </div>
