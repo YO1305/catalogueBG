@@ -35,17 +35,41 @@ export async function renderAndSave(
   if (template.engine !== "uvgrid" || !template.baked.jsonUrl) return renderOnServer(persisted, template, mockup, variantId);
   const plan = fillPlan(source);
   if (!plan) throw new Error("Нет рисунка или цвета ткани для макета");
-  const blob = await renderFinal({ jsonUrl: template.baked.jsonUrl, backgroundUrl: template.baked.backgroundUrl, plan, opts: mockupOptions(mockup) });
+  const blob = await withTimeout(
+    renderFinal({ jsonUrl: template.baked.jsonUrl, backgroundUrl: template.baked.backgroundUrl, plan, opts: mockupOptions(mockup) }),
+    90_000,
+    "Рендер макета занял больше 90 секунд — обновите страницу и сохраните ещё раз",
+  );
   const uploadName = `${crypto.randomUUID()}.jpg`;
   const sourceUrl = await uploadPublicBlob(`mockups/${persisted.id}/${uploadName}`, blob);
-  const response = await fetch("/api/mockups/save", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sourceUrl, fabricId: persisted.id, variantId, mockup }),
-  });
+  const response = await withTimeout(
+    fetch("/api/mockups/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sourceUrl, fabricId: persisted.id, variantId, mockup }),
+    }),
+    90_000,
+    "Сервер слишком долго сохраняет WebP — попробуйте ещё раз",
+  );
   const data = (await response.json().catch(() => ({}))) as Saved;
   if (!response.ok || !data.ok || !data.mockup) throw new Error(data.error ?? `Макет не сохранился: ${response.status}`);
   return { mockup: data.mockup, fabric: persisted };
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
 
 async function renderOnServer(fabric: Fabric, template: Template, mockup: Mockup, variantId?: string): Promise<{ mockup: Mockup; fabric: Fabric }> {

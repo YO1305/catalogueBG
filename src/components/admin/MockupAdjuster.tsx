@@ -146,15 +146,17 @@ export function MockupAdjuster({
           disabled={saving}
           onClick={() => {
             setSaving(true);
+            setSaveError(null);
             onSave()
               .then(() => setSaveError(null))
               .catch((error: unknown) => setSaveError(error instanceof Error ? error.message : String(error)))
               .finally(() => setSaving(false));
           }}
         >
-          {t("templates.rebuildOne")}
+          {saving ? t("common.loading") : t("templates.rebuildOne")}
         </Button>
       </div>
+      {saving ? <p className="mt-2 text-xs text-ink/60">{t("designs.mockupsStay")}</p> : null}
     </div>
   );
 }

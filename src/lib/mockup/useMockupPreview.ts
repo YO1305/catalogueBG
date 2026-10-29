@@ -30,7 +30,9 @@ export function useMockupPreview(canvas: RefObject<HTMLCanvasElement | null>, fa
           if (latest.current === ticket) setError(null);
         })
         .catch((reason: unknown) => {
-          if (latest.current === ticket) setError(reason instanceof Error ? reason.message : String(reason));
+          if (latest.current !== ticket) return;
+          if (reason instanceof Error && reason.name === "AbortError") return;
+          setError(reason instanceof Error ? reason.message : String(reason));
         })
         .finally(() => {
           if (latest.current === ticket) setBusy(false);

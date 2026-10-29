@@ -3,11 +3,20 @@ import { resolveFill, type FillPlan } from "@/lib/mockup/fill";
 import { loadRgba, loadRgbaSized } from "@/lib/mockup/loadRgba";
 import { renderUvgrid, type RenderOptions, type RGBA, type TemplateJson, type ZoneLayers } from "@/lib/mockup/uvgridRender";
 
-export type PreviewRequest = { id: number; jsonUrl: string; backgroundUrl: string; plan: FillPlan; opts: RenderOptions; final?: boolean };
+export type PreviewRequest = {
+  id: number;
+  jsonUrl: string;
+  backgroundUrl: string;
+  plan: FillPlan;
+  opts: RenderOptions;
+  final?: boolean;
+  /** When true, skip this job if a newer preview arrived while we were loading. */
+  dropIfStalePreview?: boolean;
+};
 export type PreviewResponse =
   | { id: number; ok: true; width: number; height: number; buffer: ArrayBuffer }
   | { id: number; ok: true; blob: Blob }
-  | { id: number; ok: false; error: string };
+  | { id: number; ok: false; error: string; stale?: true };
 
 type Assets = { tpl: TemplateJson; background: RGBA; layers: Record<string, ZoneLayers> };
 
@@ -16,6 +25,11 @@ const templates = new Map<string, Promise<Assets>>();
 const images = new Map<string, Promise<RGBA>>();
 const KEEP_TEMPLATES = 2;
 const KEEP_IMAGES = 6;
+/** Cap final long edge so save stays near the old ~30s budget on large templates. */
+const FINAL_MAX_EDGE = 1600;
+
+let latestPreviewId = 0;
+let chain: Promise<void> = Promise.resolve();
 
 function remember<T>(cache: Map<string, Promise<T>>, key: string, keep: number, load: () => Promise<T>): Promise<T> {
   const hit = cache.get(key);
@@ -61,26 +75,44 @@ async function encode(image: RGBA): Promise<Blob> {
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Браузер не дал canvas для сохранения макета");
   context.putImageData(new ImageData(new Uint8ClampedArray(image.data), image.width, image.height), 0, 0);
-  return canvas.convertToBlob({ type: "image/jpeg", quality: 0.92 });
+  return canvas.convertToBlob({ type: "image/jpeg", quality: 0.9 });
 }
 
-scope.onmessage = async (event: MessageEvent<PreviewRequest>) => {
-  const { id, jsonUrl, backgroundUrl, plan, opts, final } = event.data;
-  try {
-    const assets = await remember(templates, `${jsonUrl}|${backgroundUrl}`, KEEP_TEMPLATES, () => loadTemplate(jsonUrl, backgroundUrl));
-    const fill = await resolveFill(plan, (url) => remember(images, url, KEEP_IMAGES, () => loadRgba(url)));
-    const outputScale = final ? 1 : opts.outputScale;
-    const image = renderUvgrid(assets.tpl, assets.background, assets.layers, fill, { ...opts, outputScale });
-    if (final) {
-      const message: PreviewResponse = { id, ok: true, blob: await encode(image) };
-      scope.postMessage(message);
-      return;
-    }
-    const buffer = image.data.buffer as ArrayBuffer;
-    const message: PreviewResponse = { id, ok: true, width: image.width, height: image.height, buffer };
-    scope.postMessage(message, [buffer]);
-  } catch (error) {
-    const message: PreviewResponse = { id, ok: false, error: error instanceof Error ? error.message : String(error) };
-    scope.postMessage(message);
+function finalScale(tpl: TemplateJson): number {
+  const long = Math.max(tpl.size[0], tpl.size[1], 1);
+  return Math.min(1, FINAL_MAX_EDGE / long);
+}
+
+async function handle(request: PreviewRequest): Promise<PreviewResponse> {
+  const { id, jsonUrl, backgroundUrl, plan, opts, final, dropIfStalePreview } = request;
+  if (dropIfStalePreview) {
+    if (id < latestPreviewId) return { id, ok: false, error: "stale", stale: true };
+    latestPreviewId = id;
   }
+  const assets = await remember(templates, `${jsonUrl}|${backgroundUrl}`, KEEP_TEMPLATES, () => loadTemplate(jsonUrl, backgroundUrl));
+  if (dropIfStalePreview && id < latestPreviewId) return { id, ok: false, error: "stale", stale: true };
+  const fill = await resolveFill(plan, (url) => remember(images, url, KEEP_IMAGES, () => loadRgba(url)));
+  if (dropIfStalePreview && id < latestPreviewId) return { id, ok: false, error: "stale", stale: true };
+  const outputScale = final ? finalScale(assets.tpl) : (opts.outputScale ?? 0.4);
+  const image = renderUvgrid(assets.tpl, assets.background, assets.layers, fill, { ...opts, outputScale });
+  if (final) return { id, ok: true, blob: await encode(image) };
+  const buffer = image.data.buffer as ArrayBuffer;
+  return { id, ok: true, width: image.width, height: image.height, buffer };
+}
+
+scope.onmessage = (event: MessageEvent<PreviewRequest>) => {
+  const request = event.data;
+  chain = chain.then(async () => {
+    try {
+      const message = await handle(request);
+      if ("buffer" in message && message.ok) {
+        scope.postMessage(message, [message.buffer]);
+        return;
+      }
+      scope.postMessage(message);
+    } catch (error) {
+      const message: PreviewResponse = { id: request.id, ok: false, error: error instanceof Error ? error.message : String(error) };
+      scope.postMessage(message);
+    }
+  });
 };
