@@ -122,13 +122,10 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     [box.portrait, pages.length, reduced],
   );
 
-  const onPageVisible = useCallback(
-    (index: number) => {
-      if (index === pageRef.current) return;
-      applyPage(index);
-    },
-    [],
-  );
+  const onPageCommit = useCallback((index: number) => {
+    if (index === pageRef.current) return;
+    applyPage(index);
+  }, []);
 
   useCatalogChrome({
     slug: model.catalog.slug,
@@ -186,7 +183,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
             pages={pages}
             pageWidth={box.w}
             pageHeight={box.h}
-            onPageVisible={onPageVisible}
+            onPageCommit={onPageCommit}
             onOpen={openFabric}
             onRequest={requestSample}
             onLead={() => setLead(true)}

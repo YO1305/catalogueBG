@@ -51,7 +51,7 @@ export function useCatalogChrome({
     media.addEventListener("change", apply);
     const measure = () => {
       const portrait = window.innerWidth < 1024;
-      const toolbarReserve = portrait ? 92 : 108;
+      const toolbarReserve = portrait ? 52 : 108;
       if (portrait) {
         document.documentElement.classList.add("catalog-mobile-feed");
         const slideH = window.innerHeight - toolbarReserve;

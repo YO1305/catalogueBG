@@ -42,7 +42,7 @@ html.catalog-mobile-feed body {
 }
 
 .catalog-root {
-  --catalog-slide-h: calc(100dvh - 5.75rem);
+  --catalog-slide-h: calc(100dvh - 3.5rem);
   --paper: #f4efe6;
   --ink: #1c1915;
   --muted: #6f675c;
