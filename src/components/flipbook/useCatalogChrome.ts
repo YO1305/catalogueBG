@@ -4,6 +4,8 @@ import { useEffect, type RefObject } from "react";
 
 type FlipApi = { pageFlip: () => { turnToPage: (page: number) => void; flipNext: () => void; flipPrev: () => void } };
 
+export type CatalogViewport = { w: number; h: number; portrait: boolean; mobileFeed: boolean };
+
 export function useCatalogChrome({
   slug,
   pageCount,
@@ -23,7 +25,7 @@ export function useCatalogChrome({
   sessionId: { current: string };
   setPage: (index: number) => void;
   setReduced: (value: boolean) => void;
-  setBox: (box: { w: number; h: number; portrait: boolean }) => void;
+  setBox: (box: CatalogViewport) => void;
   onStepFlip: (delta: number) => void;
   onJumpToPage?: (index: number) => void;
 }) {
@@ -51,25 +53,39 @@ export function useCatalogChrome({
     media.addEventListener("change", apply);
     const measure = () => {
       const portrait = window.innerWidth < 1024;
-      const toolbarReserve = portrait ? 52 : 108;
-      if (portrait) {
+      const mobileFeed = window.innerWidth < 768;
+      if (mobileFeed) {
         document.documentElement.classList.add("catalog-mobile-feed");
+        const toolbarReserve = 52;
         const slideH = window.innerHeight - toolbarReserve;
         const width = Math.min(window.innerWidth - 12, slideH / 1.414);
         const height = width * 1.414;
-        setBox({ w: Math.max(280, Math.floor(width)), h: Math.max(396, Math.floor(height)), portrait: true });
+        setBox({
+          w: Math.max(280, Math.floor(width)),
+          h: Math.max(396, Math.floor(height)),
+          portrait: true,
+          mobileFeed: true,
+        });
         return;
       }
       document.documentElement.classList.remove("catalog-mobile-feed");
+      const toolbarReserve = portrait ? 128 : 108;
       const maxH = window.innerHeight - toolbarReserve;
-      const maxW = (window.innerWidth - 48 - 200) / 2;
+      const maxW = portrait ? window.innerWidth - 20 : (window.innerWidth - 48 - 200) / 2;
       let height = maxH;
       let width = height / 1.414;
       if (width > maxW) {
         width = maxW;
         height = width * 1.414;
       }
-      setBox({ w: Math.max(240, Math.floor(width)), h: Math.max(340, Math.floor(height)), portrait: false });
+      const minW = portrait ? 260 : 240;
+      const minH = portrait ? 368 : 340;
+      setBox({
+        w: Math.max(minW, Math.floor(width)),
+        h: Math.max(minH, Math.floor(height)),
+        portrait,
+        mobileFeed: false,
+      });
     };
     measure();
     window.addEventListener("resize", measure);

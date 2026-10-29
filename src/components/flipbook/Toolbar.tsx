@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Download, LayoutGrid, Mail, Maximize2, Search, Share2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Languages, LayoutGrid, Mail, Maximize2, MoreHorizontal, Search, Share2 } from "lucide-react";
+import { useState } from "react";
 import { useI18n } from "@/components/i18n/I18n";
 import type { Lang } from "@/types";
 
@@ -9,6 +10,7 @@ export function Toolbar({
   total,
   langs,
   portrait,
+  mobileFeed,
   cart,
   onPrev,
   onNext,
@@ -24,6 +26,7 @@ export function Toolbar({
   total: number;
   langs: Lang[];
   portrait: boolean;
+  mobileFeed: boolean;
   cart: number;
   onPrev: () => void;
   onNext: () => void;
@@ -36,6 +39,8 @@ export function Toolbar({
   onFull: () => void;
 }) {
   const { lang, setLang, t } = useI18n();
+  const [more, setMore] = useState(false);
+  const [pages, setPages] = useState(false);
   const langsRow = (
     <div className="flex gap-1">
       {langs.map((item) => (
@@ -56,7 +61,8 @@ export function Toolbar({
       </button>
     </div>
   );
-  if (portrait) {
+
+  if (mobileFeed) {
     return (
       <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-50 isolate px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto flex max-w-3xl items-center justify-center rounded-full border border-white/40 bg-[#f7f3ec]/95 px-3 py-2 text-ink shadow-lg">
@@ -80,7 +86,23 @@ export function Toolbar({
             onChange={(event) => onSeek(Number(event.target.value) - 1)}
           />
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        {portrait ? (
+          <div className="flex items-center justify-between">
+            <IconButton label={t("catalog.thumbs")} onClick={onThumbs}>
+              <LayoutGrid className="h-5 w-5" />
+            </IconButton>
+            <IconButton label={t("catalog.pages")} onClick={() => setPages((value) => !value)}>
+              <span className="font-mono text-xs">{page}</span>
+            </IconButton>
+            <IconButton label={t("common.language")} onClick={() => setMore(false)}>
+              <Languages className="h-5 w-5" />
+            </IconButton>
+            <IconButton label={t("catalog.more")} onClick={() => setMore((value) => !value)}>
+              <MoreHorizontal className="h-5 w-5" />
+            </IconButton>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <IconButton label={t("catalog.thumbs")} onClick={onThumbs}>
               <LayoutGrid className="h-4 w-4" />
             </IconButton>
@@ -102,7 +124,29 @@ export function Toolbar({
               <Mail className="h-4 w-4" />
               {cart ? <span className="font-mono text-[10px]">{cart}</span> : null}
             </IconButton>
-        </div>
+          </div>
+        )}
+        {portrait && pages ? pager : null}
+        {portrait ? langsRow : null}
+        {portrait && more ? (
+          <div className="flex justify-between">
+            <IconButton label={t("common.search")} onClick={onSearch}>
+              <Search className="h-4 w-4" />
+            </IconButton>
+            <IconButton label={t("catalog.share")} onClick={onShare}>
+              <Share2 className="h-4 w-4" />
+            </IconButton>
+            <IconButton label={t("catalog.pdf")} onClick={onPdf}>
+              <Download className="h-4 w-4" />
+            </IconButton>
+            <IconButton label={t("catalog.fullscreen")} onClick={onFull}>
+              <Maximize2 className="h-4 w-4" />
+            </IconButton>
+            <IconButton label={t("catalog.lead")} onClick={onLead}>
+              <Mail className="h-4 w-4" />
+            </IconButton>
+          </div>
+        ) : null}
       </div>
     </div>
   );

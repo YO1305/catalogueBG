@@ -34,7 +34,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   const root = useRef<HTMLDivElement>(null);
   const api = useRef<{ pageFlip: () => { flipNext: () => void; flipPrev: () => void; turnToPage: (page: number) => void } } | null>(null);
   const mobileFeed = useRef<MobileCatalogFeedHandle>(null);
-  const [box, setBox] = useState({ w: 420, h: 594, portrait: false });
+  const [box, setBox] = useState({ w: 420, h: 594, portrait: false, mobileFeed: false });
   const [page, setPage] = useState(Math.min(initialPage, Math.max(model.pages.length - 1, 0)));
   const [openId, setOpenId] = useState<string | undefined>(initialArt);
   const [openVariant, setOpenVariant] = useState<string | undefined>();
@@ -74,21 +74,21 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     if (pageRef.current > max) {
       pageRef.current = max;
       setPage(max);
-      if (box.portrait) mobileFeed.current?.scrollToPage(max);
+      if (box.mobileFeed) mobileFeed.current?.scrollToPage(max);
       else api.current?.pageFlip()?.turnToPage(max);
     }
-  }, [pages.length, box.portrait]);
+  }, [pages.length, box.mobileFeed]);
 
   useEffect(() => {
-    if (!box.portrait) return;
+    if (!box.mobileFeed) return;
     const id = window.requestAnimationFrame(() => mobileFeed.current?.scrollToPage(pageRef.current));
     return () => window.cancelAnimationFrame(id);
-  }, [box.portrait, pages.length]);
+  }, [box.mobileFeed, pages.length]);
 
   const jumpToPage = useCallback(
     (index: number) => {
       if (index < 0 || index >= pages.length) return;
-      if (box.portrait) {
+      if (box.mobileFeed) {
         applyPage(index);
         mobileFeed.current?.scrollToPage(index);
         return;
@@ -96,21 +96,21 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
       api.current?.pageFlip()?.turnToPage(index);
       applyPage(index);
     },
-    [box.portrait, pages.length],
+    [box.mobileFeed, pages.length],
   );
 
   const flipTo = useCallback(
     (index: number, preferAnimate: boolean) => {
       if (index < 0 || index >= pages.length) return;
       if (index === pageRef.current) return;
-      if (box.portrait) {
+      if (box.mobileFeed) {
         applyPage(index);
         mobileFeed.current?.scrollToPage(index);
         return;
       }
       const flip = api.current?.pageFlip();
       const diff = index - pageRef.current;
-      const animate = preferAnimate && !reduced && flip && Math.abs(diff) === 1;
+      const animate = preferAnimate && !reduced && !box.portrait && flip && Math.abs(diff) === 1;
       if (animate) {
         if (diff > 0) flip.flipNext();
         else flip.flipPrev();
@@ -170,13 +170,19 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   return (
     <div
       ref={root}
-      className={`catalog-root relative ${box.portrait ? "flex h-dvh flex-col overflow-hidden" : "min-h-screen"}`}
+      className={`catalog-root relative ${box.mobileFeed ? "flex h-dvh flex-col overflow-hidden" : "min-h-screen"}`}
       data-theme={model.catalog.layout.theme}
       style={{ fontSize: box.w / 28 }}
     >
       {sectionLinks.length ? <CatalogSectionJumpBar links={sectionLinks} currentPage={page} onJump={turn} /> : null}
-      <div className={box.portrait ? "min-h-0 flex-1" : "flex min-h-screen items-center justify-center pb-24"}>
-        {box.portrait && !openId ? (
+      <div
+        className={
+          box.mobileFeed
+            ? "min-h-0 flex-1"
+            : `flex min-h-screen items-center justify-center ${box.portrait ? "pb-[7.5rem]" : "pb-24"}`
+        }
+      >
+        {box.mobileFeed && !openId ? (
           <MobileCatalogFeed
             ref={mobileFeed}
             model={bookModel}
@@ -191,17 +197,18 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
           />
         ) : reduced && currentPage ? (
           <StaticPage model={bookModel} page={currentPage} index={page} width={box.w} height={box.h} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} />
-        ) : !box.portrait ? (
-          <FlipSideNav page={page} total={pages.length} portrait={false} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)}>
-            <Book model={bookModel} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={false} onFlip={applyPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
+        ) : (
+          <FlipSideNav page={page} total={pages.length} portrait={box.portrait} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)}>
+            <Book model={bookModel} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={box.portrait} onFlip={applyPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
           </FlipSideNav>
-        ) : null}
+        )}
       </div>
       <Toolbar
         page={page + 1}
         total={pages.length}
         langs={model.catalog.langs}
         portrait={box.portrait}
+        mobileFeed={box.mobileFeed}
         cart={cart.length}
         onPrev={() => go(-1)}
         onNext={() => go(1)}
