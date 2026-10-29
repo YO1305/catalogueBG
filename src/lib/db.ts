@@ -56,10 +56,38 @@ function toRemote(value: unknown): unknown {
   return value;
 }
 
-function firestore(): Firestore {
+const LOCAL_COLLECTION: Partial<Record<string, keyof Database>> = {
+  catalogs: "catalogs",
+  fabrics: "fabrics",
+  collections: "collections",
+  fabricTypes: "fabricTypes",
+  finishes: "finishes",
+  productTypes: "productTypes",
+  templates: "templates",
+  leads: "leads",
+  events: "events",
+  users: "users",
+};
+
+function firestoreDb(): Firestore | null {
   const app = getAdminApp();
-  if (!app) throw new Error("Firebase Admin is not configured");
+  if (!app) return null;
   return getFirestore(app);
+}
+
+function firestore(): Firestore {
+  const db = firestoreDb();
+  if (!db) throw new Error("Firebase Admin is not configured");
+  return db;
+}
+
+function readLocalCollection<T>(name: string, idField?: keyof T): T[] {
+  const key = LOCAL_COLLECTION[name];
+  if (!key) return [];
+  const db = readLocal();
+  const rows = db[key];
+  if (!Array.isArray(rows)) return [];
+  return rows as T[];
 }
 
 function readLocal(): Database {
@@ -83,14 +111,22 @@ async function mutate(fn: (db: Database) => void) {
 }
 
 async function readCollection<T>(name: string, idField?: keyof T): Promise<T[]> {
-  const snap = await firestore().collection(name).get();
-  return snap.docs.map((doc) => {
-    const data = fromRemote(doc.data()) as T;
-    if (idField && !(data as Record<string, unknown>)[idField as string]) {
-      (data as Record<string, unknown>)[idField as string] = doc.id;
-    }
-    return data;
-  });
+  if (!firebaseAdminConfigured()) return readLocalCollection<T>(name, idField);
+  const db = firestoreDb();
+  if (!db) return readLocalCollection<T>(name, idField);
+  try {
+    const snap = await db.collection(name).get();
+    return snap.docs.map((doc) => {
+      const data = fromRemote(doc.data()) as T;
+      if (idField && !(data as Record<string, unknown>)[idField as string]) {
+        (data as Record<string, unknown>)[idField as string] = doc.id;
+      }
+      return data;
+    });
+  } catch (error) {
+    console.error(`readCollection:${name}`, error);
+    return readLocalCollection<T>(name, idField);
+  }
 }
 
 function staffFromLocalSeed(email: string) {
@@ -128,17 +164,37 @@ export async function getCatalogListData() {
 }
 
 async function readDoc<T>(name: string, id: string, idField: keyof T): Promise<T | null> {
-  const snap = await firestore().collection(name).doc(id).get();
-  if (!snap.exists) return null;
-  const data = fromRemote(snap.data()) as T;
-  if (!(data as Record<string, unknown>)[idField as string]) (data as Record<string, unknown>)[idField as string] = snap.id;
-  return data;
+  if (!firebaseAdminConfigured()) {
+    return readLocalCollection<T>(name, idField).find((item) => String((item as Record<string, unknown>)[idField as string]) === id) ?? null;
+  }
+  const db = firestoreDb();
+  if (!db) {
+    return readLocalCollection<T>(name, idField).find((item) => String((item as Record<string, unknown>)[idField as string]) === id) ?? null;
+  }
+  try {
+    const snap = await db.collection(name).doc(id).get();
+    if (!snap.exists) return null;
+    const data = fromRemote(snap.data()) as T;
+    if (!(data as Record<string, unknown>)[idField as string]) (data as Record<string, unknown>)[idField as string] = snap.id;
+    return data;
+  } catch (error) {
+    console.error(`readDoc:${name}/${id}`, error);
+    return readLocalCollection<T>(name, idField).find((item) => String((item as Record<string, unknown>)[idField as string]) === id) ?? null;
+  }
 }
 
 async function readGlossary(): Promise<GlossaryTerm[]> {
-  const snap = await firestore().doc("settings/glossary").get();
-  const data = snap.exists ? (fromRemote(snap.data()) as { terms?: GlossaryTerm[] }) : undefined;
-  return data?.terms ?? [];
+  if (!firebaseAdminConfigured()) return readLocal().glossary;
+  const db = firestoreDb();
+  if (!db) return readLocal().glossary;
+  try {
+    const snap = await db.doc("settings/glossary").get();
+    const data = snap.exists ? (fromRemote(snap.data()) as { terms?: GlossaryTerm[] }) : undefined;
+    return data?.terms ?? readLocal().glossary;
+  } catch (error) {
+    console.error("readGlossary", error);
+    return readLocal().glossary;
+  }
 }
 
 export async function getFabric(id: string): Promise<Fabric | null> {
@@ -188,8 +244,17 @@ export async function isFabricArtTaken(art: string, exceptId: string): Promise<b
   if (!firebaseAdminConfigured()) {
     return readLocal().fabrics.some((item) => item.id !== exceptId && item.art.toLowerCase() === wanted);
   }
-  const snap = await firestore().collection("fabrics").select("art").get();
-  return snap.docs.some((doc) => doc.id !== exceptId && String(doc.get("art") ?? "").toLowerCase() === wanted);
+  const db = firestoreDb();
+  if (!db) {
+    return readLocal().fabrics.some((item) => item.id !== exceptId && item.art.toLowerCase() === wanted);
+  }
+  try {
+    const snap = await db.collection("fabrics").select("art").get();
+    return snap.docs.some((doc) => doc.id !== exceptId && String(doc.get("art") ?? "").toLowerCase() === wanted);
+  } catch (error) {
+    console.error("isFabricArtTaken", error);
+    return readLocal().fabrics.some((item) => item.id !== exceptId && item.art.toLowerCase() === wanted);
+  }
 }
 
 export async function getFabricsBoardData() {
