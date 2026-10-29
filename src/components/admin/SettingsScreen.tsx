@@ -3,11 +3,12 @@
 import { useMemo, useState } from "react";
 import { AccessScreen } from "@/components/admin/AccessScreen";
 import { DirectoryScreen } from "@/components/admin/DirectoryScreen";
+import { FirestoreUsageScreen } from "@/components/admin/FirestoreUsageScreen";
 import { UsageScreen } from "@/components/admin/UsageScreen";
 import { useI18n } from "@/components/i18n/I18n";
 import type { AdminSection, Collection, FabricType, Finish, GlossaryTerm, ProductType, PublicUser, Role } from "@/types";
 
-type Tab = "directories" | "access" | "usage";
+type Tab = "directories" | "access" | "usage" | "firestore";
 
 export function SettingsScreen({
   role,
@@ -42,6 +43,7 @@ export function SettingsScreen({
       ["directories", t("settings.tabDirectories"), can("settings")],
       ["access", t("settings.tabAccess"), can("access")],
       ["usage", t("settings.tabUsage"), can("usage")],
+      ["firestore", t("settings.tabFirestore"), can("usage")],
     ];
     return rows.filter((row) => row[2]);
   }, [role, sessionSections, t]);
@@ -65,6 +67,7 @@ export function SettingsScreen({
         ) : null}
         {tab === "access" ? <AccessScreen users={users} selfId={selfId} /> : null}
         {tab === "usage" ? <UsageScreen /> : null}
+        {tab === "firestore" ? <FirestoreUsageScreen /> : null}
       </div>
     </div>
   );

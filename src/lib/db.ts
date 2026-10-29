@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { getFirestore, type DocumentData, type Firestore, Timestamp } from "firebase-admin/firestore";
 import { firebaseAdminConfigured, getAdminApp } from "@/lib/firebaseAdmin";
-import { trackFirestoreRead, trackFirestoreWrite } from "@/lib/firestoreMetrics";
+import { trackFirestoreDelete, trackFirestoreRead, trackFirestoreWrite } from "@/lib/firestoreMetrics";
 import { withDefaultFinishes } from "@/lib/finishes";
 import type { AnalyticsEvent, AppUser, Catalog, Collection, Database, Fabric, FabricType, Finish, GlossaryTerm, Lead, ProductType, Template } from "@/types";
 
@@ -117,7 +117,7 @@ async function readCollection<T>(name: string, idField?: keyof T): Promise<T[]> 
   if (!db) return readLocalCollection<T>(name, idField);
   try {
     const snap = await db.collection(name).get();
-    trackFirestoreRead(snap.size);
+    trackFirestoreRead(snap.size, `collection:${name}`);
     return snap.docs.map((doc) => {
       const data = fromRemote(doc.data()) as T;
       if (idField && !(data as Record<string, unknown>)[idField as string]) {
@@ -151,7 +151,7 @@ async function readCollectionPage<T>(
   }
   try {
     const snap = await db.collection(name).orderBy(options.orderBy).offset(offset).limit(limit).get();
-    trackFirestoreRead(snap.size);
+    trackFirestoreRead(snap.size, `collectionPage:${name}`);
     return snap.docs.map((doc) => {
       const data = fromRemote(doc.data()) as T;
       if (idField && !(data as Record<string, unknown>)[idField as string]) {
@@ -187,7 +187,7 @@ export async function getFabricsByIds(ids: string[]): Promise<Fabric[]> {
   try {
     const refs = unique.map((id) => db.collection("fabrics").doc(id));
     const snaps = await db.getAll(...refs);
-    trackFirestoreRead(snaps.length);
+    trackFirestoreRead(snaps.length, "fabrics:getAll");
     return snaps.flatMap((snap) => {
       if (!snap.exists) return [];
       const data = fromRemote(snap.data()) as Fabric;
@@ -214,7 +214,7 @@ export async function findStaffUser(email: string) {
   if (firebaseAdminConfigured()) {
     try {
       const snap = await firestore().collection("users").get();
-      trackFirestoreRead(snap.size);
+      trackFirestoreRead(snap.size, "users:scan");
       for (const doc of snap.docs) {
         const user = fromRemote(doc.data()) as AppUser;
         if (!user.id) user.id = doc.id;
@@ -261,7 +261,7 @@ async function readDoc<T>(name: string, id: string, idField: keyof T): Promise<T
   }
   try {
     const snap = await db.collection(name).doc(id).get();
-    trackFirestoreRead(snap.exists ? 1 : 0);
+    trackFirestoreRead(snap.exists ? 1 : 0, `doc:${name}`);
     if (!snap.exists) return null;
     const data = fromRemote(snap.data()) as T;
     if (!(data as Record<string, unknown>)[idField as string]) (data as Record<string, unknown>)[idField as string] = snap.id;
@@ -278,7 +278,7 @@ async function readGlossary(): Promise<GlossaryTerm[]> {
   if (!db) return readLocal().glossary;
   try {
     const snap = await db.doc("settings/glossary").get();
-    trackFirestoreRead(1);
+    trackFirestoreRead(1, "doc:settings/glossary");
     const data = snap.exists ? (fromRemote(snap.data()) as { terms?: GlossaryTerm[] }) : undefined;
     return data?.terms ?? readLocal().glossary;
   } catch (error) {
@@ -340,10 +340,10 @@ export async function isFabricArtTaken(art: string, exceptId: string): Promise<b
   }
   try {
     const snap = await db.collection("fabrics").where("artKey", "==", wanted).limit(4).get();
-    trackFirestoreRead(snap.size);
+    trackFirestoreRead(snap.size, "fabrics:artKeyQuery");
     if (snap.size) return snap.docs.some((doc) => doc.id !== exceptId);
     const legacy = await db.collection("fabrics").where("art", "==", art.trim()).limit(4).get();
-    trackFirestoreRead(legacy.size);
+    trackFirestoreRead(legacy.size, "fabrics:artLegacyQuery");
     return legacy.docs.some((doc) => doc.id !== exceptId);
   } catch (error) {
     console.error("isFabricArtTaken", error);
@@ -446,6 +446,7 @@ export async function getDb(): Promise<Database> {
     readCollection<AppUser>("users", "id"),
     fs.doc("settings/glossary").get(),
   ]);
+  trackFirestoreRead(glossarySnap.exists ? 1 : 0, "doc:settings/glossary");
   const glossaryData = glossarySnap.exists ? (fromRemote(glossarySnap.data()) as { terms?: GlossaryTerm[] }) : undefined;
   return {
     collections,
@@ -478,7 +479,7 @@ function omitUndefined(value: unknown): unknown {
 
 async function upsert(collection: string, id: string, value: object) {
   await firestore().collection(collection).doc(id).set(toRemote(omitUndefined(value)) as DocumentData);
-  trackFirestoreWrite(1);
+  trackFirestoreWrite(1, `upsert:${collection}`);
 }
 
 export async function saveFabric(fabric: Fabric) {
@@ -493,6 +494,7 @@ export async function saveFabric(fabric: Fabric) {
 export async function deleteFabric(id: string) {
   if (firebaseAdminConfigured()) {
     await firestore().collection("fabrics").doc(id).delete();
+    trackFirestoreDelete(1, "delete:fabrics");
     return;
   }
   await mutate((db) => {
@@ -512,6 +514,7 @@ export async function saveCatalog(catalog: Catalog) {
 export async function deleteCatalog(slug: string) {
   if (firebaseAdminConfigured()) {
     await firestore().collection("catalogs").doc(slug).delete();
+    trackFirestoreDelete(1, "delete:catalogs");
     return;
   }
   await mutate((db) => {
@@ -531,6 +534,7 @@ export async function saveCollection(item: Collection) {
 export async function deleteCollection(id: string) {
   if (firebaseAdminConfigured()) {
     await firestore().collection("collections").doc(id).delete();
+    trackFirestoreDelete(1, "delete:collections");
     return;
   }
   await mutate((db) => {
@@ -565,6 +569,7 @@ export async function deleteFinish(id: string) {
   if (firebaseAdminConfigured()) {
     await Promise.all(rows.map((row) => upsert("finishes", row.id, row)));
     await firestore().collection("finishes").doc(id).delete();
+    trackFirestoreDelete(1, "delete:finishes");
     return;
   }
   await mutate((db) => {
@@ -575,6 +580,7 @@ export async function deleteFinish(id: string) {
 export async function deleteFabricType(id: string) {
   if (firebaseAdminConfigured()) {
     await firestore().collection("fabricTypes").doc(id).delete();
+    trackFirestoreDelete(1, "delete:fabricTypes");
     return;
   }
   await mutate((db) => {
@@ -594,6 +600,7 @@ export async function saveProductType(item: ProductType) {
 export async function deleteProductType(id: string) {
   if (firebaseAdminConfigured()) {
     await firestore().collection("productTypes").doc(id).delete();
+    trackFirestoreDelete(1, "delete:productTypes");
     return;
   }
   await mutate((db) => {
@@ -613,6 +620,7 @@ export async function saveTemplate(item: Template) {
 export async function deleteTemplate(id: string) {
   if (firebaseAdminConfigured()) {
     await firestore().collection("templates").doc(id).delete();
+    trackFirestoreDelete(1, "delete:templates");
     return;
   }
   await mutate((db) => {
@@ -667,7 +675,7 @@ export async function saveEvents(items: AnalyticsEvent[]) {
     const batch = firestore().batch();
     for (const item of items) batch.set(firestore().collection("events").doc(item.id), toRemote(item) as DocumentData);
     await batch.commit();
-    trackFirestoreWrite(items.length);
+    trackFirestoreWrite(items.length, "batch:events");
     return;
   }
   await mutate((db) => {
@@ -679,6 +687,7 @@ export async function saveEvents(items: AnalyticsEvent[]) {
 export async function saveGlossary(terms: GlossaryTerm[]) {
   if (firebaseAdminConfigured()) {
     await firestore().doc("settings/glossary").set({ terms: toRemote(terms) as DocumentData[] });
+    trackFirestoreWrite(1, "doc:settings/glossary");
     return;
   }
   await mutate((db) => {
@@ -698,6 +707,7 @@ export async function saveUser(user: AppUser) {
 export async function deleteUser(id: string) {
   if (firebaseAdminConfigured()) {
     await firestore().collection("users").doc(id).delete();
+    trackFirestoreDelete(1, "delete:users");
     return;
   }
   await mutate((db) => {
