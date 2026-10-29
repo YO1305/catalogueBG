@@ -33,7 +33,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   const { lang, t } = useI18n();
   const root = useRef<HTMLDivElement>(null);
   const api = useRef<{ pageFlip: () => { flipNext: () => void; flipPrev: () => void; turnToPage: (page: number) => void } } | null>(null);
-  const mobileFeed = useRef<MobileCatalogFeedHandle>(null);
+  const mobileFeedRef = useRef<MobileCatalogFeedHandle>(null);
   const [box, setBox] = useState({ w: 420, h: 594, portrait: false, mobileFeed: false });
   const [page, setPage] = useState(Math.min(initialPage, Math.max(model.pages.length - 1, 0)));
   const [openId, setOpenId] = useState<string | undefined>(initialArt);
@@ -52,6 +52,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   const pageRef = useRef(page);
   pageRef.current = page;
   const lastPageEvent = useRef({ index: -1, at: 0 });
+
   function applyPage(index: number) {
     pageRef.current = index;
     setPage(index);
@@ -78,14 +79,14 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     if (pageRef.current > max) {
       pageRef.current = max;
       setPage(max);
-      if (box.mobileFeed) mobileFeed.current?.scrollToPage(max);
+      if (box.mobileFeed) mobileFeedRef.current?.scrollToPage(max);
       else api.current?.pageFlip()?.turnToPage(max);
     }
   }, [pages.length, box.mobileFeed]);
 
   useEffect(() => {
     if (!box.mobileFeed) return;
-    const id = window.requestAnimationFrame(() => mobileFeed.current?.scrollToPage(pageRef.current));
+    const id = window.requestAnimationFrame(() => mobileFeedRef.current?.scrollToPage(pageRef.current));
     return () => window.cancelAnimationFrame(id);
   }, [box.mobileFeed, pages.length]);
 
@@ -94,7 +95,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
       if (index < 0 || index >= pages.length) return;
       if (box.mobileFeed) {
         applyPage(index);
-        mobileFeed.current?.scrollToPage(index);
+        mobileFeedRef.current?.scrollToPage(index);
         return;
       }
       api.current?.pageFlip()?.turnToPage(index);
@@ -109,12 +110,12 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
       if (index === pageRef.current) return;
       if (box.mobileFeed) {
         applyPage(index);
-        mobileFeed.current?.scrollToPage(index);
+        mobileFeedRef.current?.scrollToPage(index);
         return;
       }
       const flip = api.current?.pageFlip();
       const diff = index - pageRef.current;
-      const animate = preferAnimate && !reduced && !box.mobileFeed && flip && Math.abs(diff) === 1;
+      const animate = preferAnimate && !reduced && !box.portrait && flip && Math.abs(diff) === 1;
       if (animate) {
         if (diff > 0) flip.flipNext();
         else flip.flipPrev();
@@ -123,7 +124,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
       flip?.turnToPage(index);
       applyPage(index);
     },
-    [box.mobileFeed, pages.length, reduced],
+    [box.mobileFeed, box.portrait, pages.length, reduced],
   );
 
   const onPageCommit = useCallback((index: number) => {
@@ -145,7 +146,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   });
 
   function go(delta: number) {
-    flipTo(pageRef.current + delta, !box.mobileFeed);
+    flipTo(pageRef.current + delta, !box.portrait);
   }
   function turn(index: number) {
     flipTo(index, Math.abs(index - pageRef.current) === 1);
@@ -179,16 +180,10 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
       style={{ fontSize: box.w / 28 }}
     >
       {sectionLinks.length ? <CatalogSectionJumpBar links={sectionLinks} currentPage={page} onJump={turn} /> : null}
-      <div
-        className={
-          box.mobileFeed
-            ? "min-h-0 flex-1"
-            : "flex min-h-screen items-center justify-center pb-24"
-        }
-      >
+      <div className={box.mobileFeed ? "min-h-0 flex-1" : "flex min-h-screen items-center justify-center pb-24"}>
         {box.mobileFeed && !openId ? (
           <MobileCatalogFeed
-            ref={mobileFeed}
+            ref={mobileFeedRef}
             model={bookModel}
             pages={pages}
             pageWidth={box.w}
@@ -202,8 +197,8 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
         ) : reduced && currentPage ? (
           <StaticPage model={bookModel} page={currentPage} index={page} width={box.w} height={box.h} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} />
         ) : (
-          <FlipSideNav page={page} total={pages.length} portrait={false} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)}>
-            <Book model={bookModel} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={false} onFlip={applyPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
+          <FlipSideNav page={page} total={pages.length} portrait={box.portrait} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)}>
+            <Book model={bookModel} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={box.portrait} onFlip={applyPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
           </FlipSideNav>
         )}
       </div>
@@ -211,7 +206,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
         page={page + 1}
         total={pages.length}
         langs={model.catalog.langs}
-        portrait={false}
+        portrait={box.portrait}
         mobileFeed={box.mobileFeed}
         cart={cart.length}
         onPrev={() => go(-1)}
@@ -285,7 +280,12 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
         }}
         fabricIds={requestId ? [requestId] : cart.length ? cart : openId ? [openId] : []}
         onOpen={openFabric}
-        onDone={(text) => { setNotice(text); setLead(false); setRequestId(undefined); if (!requestId) setCart([]); }}
+        onDone={(text) => {
+          setNotice(text);
+          setLead(false);
+          setRequestId(undefined);
+          if (!requestId) setCart([]);
+        }}
       />
       {notice ? <p className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 bg-ink px-3 py-2 text-sm text-paper">{notice}</p> : null}
     </div>
