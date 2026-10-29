@@ -60,7 +60,7 @@ export function Toolbar({
     </div>
   );
   return (
-    <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 px-3 pb-3">
+    <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-50 isolate px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <div className="mx-auto flex max-w-3xl flex-col gap-2 rounded-2xl border border-white/40 bg-[#f7f3ec]/95 px-3 py-2 text-ink shadow-lg">
         <div className="flex items-center gap-2">
           {portrait ? (
@@ -68,8 +68,11 @@ export function Toolbar({
               type="button"
               aria-label={t("catalog.turnPrev")}
               disabled={page <= 1}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-majolica text-paper shadow-md disabled:opacity-35"
-              onClick={onPrev}
+              className="flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl bg-majolica text-paper shadow-md disabled:opacity-35"
+              onClick={(event) => {
+                event.preventDefault();
+                onPrev();
+              }}
             >
               <ChevronLeft className="h-6 w-6 stroke-[2.5]" />
             </button>
@@ -88,8 +91,11 @@ export function Toolbar({
               type="button"
               aria-label={t("catalog.turnNext")}
               disabled={page >= total}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-majolica text-paper shadow-md disabled:opacity-35"
-              onClick={onNext}
+              className="flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl bg-majolica text-paper shadow-md disabled:opacity-35"
+              onClick={(event) => {
+                event.preventDefault();
+                onNext();
+              }}
             >
               <ChevronRight className="h-6 w-6 stroke-[2.5]" />
             </button>

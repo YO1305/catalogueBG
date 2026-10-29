@@ -61,13 +61,6 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     });
   }
 
-  const stepFlip = useCallback((delta: number) => {
-    const flip = api.current?.pageFlip();
-    if (!flip) return;
-    if (delta > 0) flip.flipNext();
-    else if (delta < 0) flip.flipPrev();
-  }, []);
-
   const pages = useMemo(
     () => (box.portrait ? remobileDesignPages(model.pages) : model.pages),
     [model.pages, box.portrait],
@@ -83,6 +76,24 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     }
   }, [pages.length, box.portrait]);
 
+  const flipTo = useCallback(
+    (index: number, preferAnimate: boolean) => {
+      if (index < 0 || index >= pages.length) return;
+      if (index === pageRef.current) return;
+      const flip = api.current?.pageFlip();
+      const diff = index - pageRef.current;
+      const animate = preferAnimate && !reduced && !box.portrait && flip && Math.abs(diff) === 1;
+      if (animate) {
+        if (diff > 0) flip.flipNext();
+        else flip.flipPrev();
+        return;
+      }
+      flip?.turnToPage(index);
+      applyPage(index);
+    },
+    [box.portrait, pages.length, reduced],
+  );
+
   useCatalogChrome({
     slug: model.catalog.slug,
     pageCount: pages.length,
@@ -92,21 +103,14 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     setPage,
     setReduced,
     setBox,
-    onStepFlip: stepFlip,
+    onStepFlip: (delta) => flipTo(pageRef.current + delta, true),
   });
 
   function go(delta: number) {
-    stepFlip(delta);
+    flipTo(pageRef.current + delta, !box.portrait);
   }
   function turn(index: number) {
-    if (index === pageRef.current) return;
-    const diff = index - pageRef.current;
-    if (Math.abs(diff) === 1) {
-      stepFlip(diff);
-      return;
-    }
-    api.current?.pageFlip().turnToPage(index);
-    applyPage(index);
+    flipTo(index, Math.abs(index - pageRef.current) === 1);
   }
   function openFabric(id: string, variantId?: string) {
     setOpenId(id);
