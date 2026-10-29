@@ -10,8 +10,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "firebase" }, { status: 400 });
   }
   const body = (await request.json()) as { email?: string; password?: string };
-  const user = await findStaffUser(body.email ?? "");
-  if (!user || !verifyPassword(body.password ?? "", user.passwordHash)) return Response.json({ error: "auth" }, { status: 401 });
+  const user = await findStaffUser((body.email ?? "").trim());
+  if (!user?.passwordHash || !verifyPassword(body.password ?? "", user.passwordHash)) {
+    return Response.json({ error: "auth" }, { status: 401 });
+  }
   const token = await signSession({
     uid: user.id,
     email: user.email,

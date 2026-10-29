@@ -93,19 +93,26 @@ async function readCollection<T>(name: string, idField?: keyof T): Promise<T[]> 
   });
 }
 
+function staffFromLocalSeed(email: string) {
+  return readLocal().users.find((item) => item.email.toLowerCase() === email) ?? null;
+}
+
 export async function findStaffUser(email: string) {
   const normalized = email.trim().toLowerCase();
   if (!normalized) return null;
-  if (!firebaseAdminConfigured()) {
-    return readLocal().users.find((item) => item.email.toLowerCase() === normalized) ?? null;
+  if (firebaseAdminConfigured()) {
+    try {
+      const snap = await firestore().collection("users").get();
+      for (const doc of snap.docs) {
+        const user = fromRemote(doc.data()) as AppUser;
+        if (!user.id) user.id = doc.id;
+        if (user.email.toLowerCase() === normalized) return user;
+      }
+    } catch (error) {
+      console.error("findStaffUser", error);
+    }
   }
-  const snap = await firestore().collection("users").get();
-  for (const doc of snap.docs) {
-    const user = fromRemote(doc.data()) as AppUser;
-    if (!user.id) user.id = doc.id;
-    if (user.email.toLowerCase() === normalized) return user;
-  }
-  return null;
+  return staffFromLocalSeed(normalized);
 }
 
 export async function getCatalogListData() {

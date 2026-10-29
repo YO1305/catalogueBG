@@ -17,7 +17,7 @@ function LoginForm() {
   const params = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<"" | "auth" | "role" | "server">("");
   const [busy, setBusy] = useState(false);
   const next = params.get("next") || "/admin/catalogs";
   const firebaseLogin = useFirebaseLogin();
@@ -25,34 +25,35 @@ function LoginForm() {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (busy) return;
-    setError(false);
+    setError("");
     setBusy(true);
     try {
       if (firebaseLogin) {
         const { getAuth, signInWithEmailAndPassword } = await import("firebase/auth");
         const app = getFirebaseApp();
         if (!app) {
-          setError(true);
+          setError("server");
           return;
         }
-        const cred = await signInWithEmailAndPassword(getAuth(app), email, password);
+        const cred = await signInWithEmailAndPassword(getAuth(app), email.trim(), password);
         const idToken = await cred.user.getIdToken(true);
         const response = await fetch("/api/auth/session", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ idToken }) });
         if (!response.ok) {
-          setError(true);
+          const body = (await response.json().catch(() => null)) as { error?: string } | null;
+          setError(body?.error === "role" ? "role" : response.status >= 500 ? "server" : "auth");
           return;
         }
       } else {
-        const response = await fetch("/api/auth/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password }) });
+        const response = await fetch("/api/auth/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: email.trim(), password }) });
         if (!response.ok) {
-          setError(true);
+          setError("auth");
           return;
         }
       }
       router.push(next);
       router.refresh();
     } catch {
-      setError(true);
+      setError("auth");
     } finally {
       setBusy(false);
     }
@@ -67,7 +68,9 @@ function LoginForm() {
         <Input type="email" value={email} disabled={busy} onChange={(event) => setEmail(event.target.value)} required autoComplete="username" />
         <Label>{t("auth.password")}</Label>
         <Input type="password" value={password} disabled={busy} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" />
-        {error ? <p className="text-sm text-red-800">{t("auth.error")}</p> : null}
+        {error === "role" ? <p className="text-sm text-red-800">{t("auth.errorRole")}</p> : null}
+        {error === "server" ? <p className="text-sm text-red-800">{t("auth.errorServer")}</p> : null}
+        {error === "auth" ? <p className="text-sm text-red-800">{t("auth.error")}</p> : null}
         {busy ? <p className="text-sm text-ink/60">{t("auth.signingIn")}</p> : null}
         <Button type="submit" className="w-full" disabled={busy}>
           {busy ? t("auth.signingIn") : t("auth.submit")}

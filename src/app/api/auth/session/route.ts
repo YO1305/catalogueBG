@@ -20,17 +20,19 @@ export async function POST(request: Request) {
     }
     const { getAuth } = await import("firebase-admin/auth");
     const decoded = await getAuth(app).verifyIdToken(body.idToken);
-    const role = decoded.role;
-    if (typeof role !== "string" || !ROLES.has(role as Role)) {
+    const staff = await findStaffUser(decoded.email ?? "");
+    const claimRole = typeof decoded.role === "string" && ROLES.has(decoded.role as Role) ? (decoded.role as Role) : null;
+    const staffRole = staff && ROLES.has(staff.role) ? staff.role : null;
+    const role = claimRole ?? staffRole;
+    if (!role) {
       return Response.json({ error: "role" }, { status: 403 });
     }
-    const staff = await findStaffUser(decoded.email ?? "");
-    const sections = staff ? effectiveSections(staff) : defaultSectionsForRole(role as Role);
+    const sections = staff ? effectiveSections(staff) : defaultSectionsForRole(role);
     const token = await signSession({
-      uid: decoded.uid,
-      email: decoded.email ?? "",
-      name: decoded.name ?? decoded.email ?? "",
-      role: role as Role,
+      uid: staff?.id ?? decoded.uid,
+      email: decoded.email ?? staff?.email ?? "",
+      name: staff?.name ?? decoded.name ?? decoded.email ?? "",
+      role,
       sections,
     });
     const response = Response.json({ ok: true });
