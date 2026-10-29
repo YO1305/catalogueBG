@@ -26,6 +26,9 @@ export function kindFields(kind: FabricKind, fabric: Pick<Fabric, "weave">): Pic
 
 /** What the section needs before «Сохранить и опубликовать». */
 export function kindReady(fabric: Fabric): boolean {
+  if (fabric.designCatalogEntry) {
+    return Boolean(fabric.design.webUrl && fabric.art.trim() && fabric.name.ru.trim());
+  }
   const kind = fabricKind(fabric);
   if (!fabric.design.webUrl) return false;
   if (kind === "woven") {

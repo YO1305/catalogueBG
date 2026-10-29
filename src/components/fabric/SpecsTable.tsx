@@ -1,10 +1,12 @@
 "use client";
 
 import { useI18n } from "@/components/i18n/I18n";
+import { isDesignCatalog } from "@/lib/catalogKind";
 import type { Catalog, Fabric } from "@/types";
 
 export function SpecsTable({ fabric, catalog }: { fabric: Fabric; catalog: Catalog }) {
   const { lang, t } = useI18n();
+  if (isDesignCatalog(catalog) || fabric.designCatalogEntry) return null;
   const rows = [
     [t("catalog.composition"), fabric.composition[lang]],
     [t("catalog.density"), fabric.density && `${fabric.density} ${t("common.gm2")}`],

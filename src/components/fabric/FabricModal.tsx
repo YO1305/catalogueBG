@@ -53,7 +53,7 @@ export function FabricModal({
   const fabric = withVariant(base, variant);
   const kind = fabricKind(fabric);
   const showFlat = catalog.showFlatDesign || kind === "printed";
-  const fabricView = modalFabricView(fabric, showFlat);
+  const fabricView = modalFabricView(fabric, showFlat, catalog);
   const productMockup = catalogProductCoverMockup(fabric, catalog.showProductTypes);
   const fabricSrc = fabricView?.src ?? "";
   const productRaw = productMockup?.webUrl || productMockup?.url || "";

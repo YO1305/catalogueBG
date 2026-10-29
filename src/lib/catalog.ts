@@ -1,3 +1,5 @@
+import { isDesignCatalog } from "@/lib/catalogKind";
+import { catalogFabricIdOrder, catalogHasManualSections } from "@/lib/catalogSections";
 import { fabricKind } from "@/lib/fabricKind";
 import { FABRIC_PRODUCT } from "@/lib/mockup/constants";
 import type { BuiltPage, Catalog, CatalogRules, Fabric, Mockup } from "@/types";
@@ -17,7 +19,7 @@ export function resolveFabrics(catalog: Catalog, fabrics: Fabric[]) {
   const published = fabrics.filter((fabric) => fabric.status === "published");
   if (catalog.mode === "manual") {
     const byId = new Map(published.map((fabric) => [fabric.id, fabric]));
-    return (catalog.fabricIds ?? []).flatMap((id) => {
+    return catalogFabricIdOrder(catalog).flatMap((id) => {
       const fabric = byId.get(id);
       return fabric ? [fabric] : [];
     });
@@ -75,6 +77,15 @@ export function catalogProductCoverMockup(fabric: Fabric, showProductTypes: stri
 }
 
 /** Обложка строки в журнале: всегда готовое изделие на мокапе, если сохранено. */
+/** Превью в списке страниц каталога. */
+export function catalogDesignPreviewSrc(fabric: Fabric, catalog: Catalog, showProductTypes: string[]): string {
+  if (isDesignCatalog(catalog) || fabric.designCatalogEntry) {
+    return fabric.design.webUrl || fabric.design.thumbUrl || "";
+  }
+  const mockup = catalogCoverMockup(fabric, showProductTypes);
+  return mockup?.url || mockup?.webUrl || fabric.design.webUrl || fabric.design.thumbUrl || "";
+}
+
 export function catalogCoverMockup(fabric: Fabric, showProductTypes: string[]): Mockup | undefined {
   const product = catalogProductCoverMockup(fabric, showProductTypes);
   if (product) return product;
@@ -86,7 +97,17 @@ export function catalogCoverMockup(fabric: Fabric, showProductTypes: string[]): 
 export type ModalFabricView = { src: string; thumb: string; seamless: boolean };
 
 /** Крупное фото в карточке ткани: мокап ткани или (для печати) рисунок. */
-export function modalFabricView(fabric: Fabric, showFlatDesign: boolean): ModalFabricView | null {
+export function modalFabricView(fabric: Fabric, showFlatDesign: boolean, catalog?: Pick<Catalog, "catalogKind">): ModalFabricView | null {
+  if (fabric.designCatalogEntry || (catalog && isDesignCatalog(catalog))) {
+    if (fabric.design.webUrl) {
+      return {
+        src: fabric.design.webUrl,
+        thumb: fabric.design.thumbUrl || fabric.design.webUrl,
+        seamless: fabric.design.seamless,
+      };
+    }
+    return null;
+  }
   const kind = fabricKind(fabric);
   const primary = primaryFabricMockup(fabric);
   if (primary?.url || primary?.webUrl) {
@@ -122,7 +143,7 @@ export function designsPerPage(catalog: Catalog) {
 export function buildPages(catalog: Catalog, fabrics: Fabric[]): BuiltPage[] {
   const perPage = designsPerPage(catalog);
   const content: Array<
-    | { kind: "section"; group: "fabricType" | "collection"; groupId: string }
+    | { kind: "section"; group: "fabricType" | "collection" | "manual"; groupId: string }
     | { kind: "designs"; fabricIds: string[] }
     | { kind: "back" }
   > = [];
@@ -133,7 +154,19 @@ export function buildPages(catalog: Catalog, fabrics: Fabric[]): BuiltPage[] {
     }
   };
 
-  if (catalog.layout.sectionBy === "none") {
+  if (catalogHasManualSections(catalog)) {
+    const byId = new Map(fabrics.map((fabric) => [fabric.id, fabric]));
+    for (const section of catalog.catalogSections ?? []) {
+      if (!section.fabricIds.length) continue;
+      const group = section.fabricIds.flatMap((id) => {
+        const fabric = byId.get(id);
+        return fabric ? [fabric] : [];
+      });
+      if (!group.length) continue;
+      content.push({ kind: "section", group: "manual", groupId: section.id });
+      pushDesigns(group);
+    }
+  } else if (catalog.layout.sectionBy === "none") {
     pushDesigns(fabrics);
   } else {
     const key = catalog.layout.sectionBy === "fabricType" ? "fabricTypeId" : "collectionId";

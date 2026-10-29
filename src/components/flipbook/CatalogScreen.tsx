@@ -11,6 +11,8 @@ import { FlipSideNav } from "@/components/flipbook/FlipSideButtons";
 import { Toolbar } from "@/components/flipbook/Toolbar";
 import { useCatalogChrome } from "@/components/flipbook/useCatalogChrome";
 import { I18nProvider, useI18n } from "@/components/i18n/I18n";
+import { CatalogSectionJumpBar } from "@/components/flipbook/CatalogSectionJumpBar";
+import { catalogSectionLinks } from "@/lib/catalogSections";
 import { remobileDesignPages } from "@/lib/catalogMobilePages";
 import { searchFabrics } from "@/lib/catalogSearch";
 import type { Lang } from "@/types";
@@ -125,9 +127,11 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   const results = useMemo(() => searchFabrics(model.fabrics, query), [model.fabrics, query]);
   const opened = model.fabrics.find((fabric) => fabric.id === openId);
   const currentPage = pages[page];
+  const sectionLinks = useMemo(() => catalogSectionLinks(model.catalog, pages, lang), [model.catalog, pages, lang]);
 
   return (
     <div ref={root} className="catalog-root relative min-h-screen" data-theme={model.catalog.layout.theme} style={{ fontSize: box.w / 28 }}>
+      <CatalogSectionJumpBar links={sectionLinks} currentPage={page} onJump={turn} />
       <div className={`flex min-h-screen items-center justify-center ${box.portrait ? "pb-[7.5rem]" : "pb-24"}`}>
         {reduced && currentPage ? (
           <StaticPage model={bookModel} page={currentPage} index={page} width={box.w} height={box.h} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} />

@@ -3,7 +3,8 @@
 import { CatalogImage, PageHeader } from "@/components/flipbook/PageHeader";
 import { PageFooter } from "@/components/flipbook/PageFooter";
 import { useI18n } from "@/components/i18n/I18n";
-import { catalogCoverMockup } from "@/lib/catalog";
+import { catalogCoverMockup, catalogDesignPreviewSrc } from "@/lib/catalog";
+import { isDesignCatalog } from "@/lib/catalogKind";
 import { shieldFlipPointer } from "@/lib/flipbook/shieldFlip";
 import { fabricKind } from "@/lib/fabricKind";
 import type { Catalog, Fabric, FabricType } from "@/types";
@@ -62,13 +63,15 @@ function DesignRow({
   onRequest: (id: string) => void;
 }) {
   const { lang, t } = useI18n();
+  const designOnly = isDesignCatalog(catalog) || fabric.designCatalogEntry;
+  const previewSrc = catalogDesignPreviewSrc(fabric, catalog, catalog.showProductTypes);
   const mockup = catalogCoverMockup(fabric, catalog.showProductTypes);
   const kind = fabricKind(fabric);
   const fallbackSrc = kind === "printed" ? fabric.design.webUrl || fabric.design.thumbUrl || undefined : undefined;
   const typeName = fabricTypes.find((item) => item.id === fabric.fabricTypeId)?.name[lang] ?? "";
-  const specs = [typeName, fabric.density && `${fabric.density} ${t("common.gm2")}`, fabric.width && `${fabric.width} ${t("common.cm")}`].filter(Boolean).join(" · ");
+  const specs = designOnly ? "" : [typeName, fabric.density && `${fabric.density} ${t("common.gm2")}`, fabric.width && `${fabric.width} ${t("common.cm")}`].filter(Boolean).join(" · ");
   return (
-    <div className="grid min-h-0 grid-cols-[1.1fr_1fr] items-stretch gap-[0.9em]">
+    <div className={`grid min-h-0 items-stretch gap-[0.9em] ${designOnly ? "grid-cols-1" : "grid-cols-[1.1fr_1fr]"}`}>
       <button
         type="button"
         className="lift cursor-zoom relative min-h-0 overflow-hidden rounded-[0.7em] bg-black/5"
@@ -76,29 +79,31 @@ function DesignRow({
         onClick={() => onOpen(fabric.id)}
       >
         <CatalogImage
-          src={mockup?.url || mockup?.webUrl || ""}
-          thumbUrl={mockup?.thumbUrl}
-          webUrl={mockup?.webUrl}
+          src={previewSrc || mockup?.url || mockup?.webUrl || ""}
+          thumbUrl={mockup?.thumbUrl || fabric.design.thumbUrl}
+          webUrl={mockup?.webUrl || fabric.design.webUrl}
           fallbackSrc={fallbackSrc}
           alt={`${fabric.name[lang]} — ${typeName}`}
           active={active}
         />
       </button>
-      <div className="flex min-w-0 flex-col justify-center gap-[0.35em]">
+      <div className={`flex min-w-0 flex-col justify-center gap-[0.35em] ${designOnly ? "px-[2%] pb-[2%]" : ""}`}>
         <button type="button" className="min-w-0 text-left" onClick={() => onOpen(fabric.id)}>
           <span className="font-display line-clamp-2 block text-[1.2em] leading-tight">{fabric.name[lang]}</span>
           <span className="font-mono mt-[0.15em] block text-[0.68em]" style={{ color: "var(--muted)" }}>{fabric.art}</span>
         </button>
         {specs ? <p className="line-clamp-2 text-[0.72em] leading-snug" style={{ color: "var(--muted)" }}>{specs}</p> : null}
         {fabric.isNew ? <span className="text-[0.66em] uppercase tracking-wider text-[#a6843d]">{t("catalog.newBadge")}</span> : null}
-        {catalog.showPrices && fabric.priceVisible ? (
+        {!designOnly && catalog.showPrices && fabric.priceVisible ? (
           <p className="font-mono text-[0.72em]">
             {fabric.priceVisible.usd ? `$${fabric.priceVisible.usd}` : ""} {fabric.priceVisible.uzs ? `${fabric.priceVisible.uzs} UZS` : ""}
           </p>
         ) : null}
-        <button type="button" className="mt-[0.3em] self-start rounded-full bg-majolica px-[1em] py-[0.45em] text-[0.68em] leading-none text-paper" onClick={() => onRequest(fabric.id)}>
-          {t("catalog.sample")}
-        </button>
+        {!designOnly ? (
+          <button type="button" className="mt-[0.3em] self-start rounded-full bg-majolica px-[1em] py-[0.45em] text-[0.68em] leading-none text-paper" onClick={() => onRequest(fabric.id)}>
+            {t("catalog.sample")}
+          </button>
+        ) : null}
       </div>
     </div>
   );

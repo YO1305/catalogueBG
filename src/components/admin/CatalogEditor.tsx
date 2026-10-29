@@ -13,23 +13,15 @@ import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/field";
 import { LangTabs } from "@/components/ui/lang-tabs";
+import { CatalogContentsPanel } from "@/components/admin/CatalogContentsPanel";
 import { createCatalogAction, saveCatalogAction } from "@/lib/actions";
-import { buildPages } from "@/lib/catalog";
+import { buildPages, resolveFabrics } from "@/lib/catalog";
+import { catalogFabricIdOrder } from "@/lib/catalogSections";
+import { isDesignCatalog } from "@/lib/catalogKind";
 import { addressField, localizeCatalogModel, setAddress } from "@/lib/localize";
 import type { Catalog, Collection, Fabric, FabricType, Lang, ProductType } from "@/types";
 
 const CatalogScreen = dynamic(() => import("@/components/flipbook/CatalogScreen").then((mod) => mod.CatalogScreen), { ssr: false });
-
-function resolvePreviewFabrics(catalog: Catalog, fabrics: Fabric[]) {
-  const byId = new Map(fabrics.map((fabric) => [fabric.id, fabric]));
-  if (catalog.mode === "manual") {
-    return (catalog.fabricIds ?? []).flatMap((id) => {
-      const fabric = byId.get(id);
-      return fabric ? [fabric] : [];
-    });
-  }
-  return fabrics.filter((fabric) => fabric.status === "published");
-}
 
 export function CatalogEditor({
   initial,
@@ -54,7 +46,7 @@ export function CatalogEditor({
   const [editLang, setEditLang] = useState<Lang>("ru");
 
   const previewCatalog = useDeferredValue(catalog);
-  const resolved = useMemo(() => resolvePreviewFabrics(previewCatalog, fabrics), [previewCatalog, fabrics]);
+  const resolved = useMemo(() => resolveFabrics(previewCatalog, fabrics), [previewCatalog, fabrics]);
   const pages = useMemo(() => buildPages(previewCatalog, resolved), [previewCatalog, resolved]);
   const previewModel = useMemo(
     () =>
@@ -86,6 +78,7 @@ export function CatalogEditor({
       status: live ? "live" : isNew ? "draft" : catalog.status,
       expiresAt: undefined,
       cover: { ...catalog.cover },
+      fabricIds: catalogFabricIdOrder(catalog),
       layout: { ...catalog.layout, sectionBy: "none" },
     };
     const result = isNew
@@ -112,6 +105,7 @@ export function CatalogEditor({
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Link href="/admin/catalogs" className="text-sm underline">{t("common.back")}</Link>
         <h1 className="font-display text-3xl">{isNew ? t("catalogs.createTitle") : t("catalogs.editTitle")}</h1>
+        <span className="rounded-full bg-ink/5 px-3 py-1 text-xs">{isDesignCatalog(catalog) ? t("catalogs.kindDesign") : t("catalogs.kindStandard")}</span>
       </div>
       <div className="grid gap-6 xl:grid-cols-[min(100%,22rem)_1fr]">
         <div className="space-y-4 bg-white p-4 shadow-sm">
@@ -164,10 +158,13 @@ export function CatalogEditor({
             hasCoverImage={Boolean(catalog.cover.imageUrl)}
             onChange={(coverTypography) => patch({ coverTypography })}
           />
-          <CatalogFabricModalSizeControl
-            value={catalog.layout.fabricModalScale ?? 100}
-            onChange={(fabricModalScale) => patch({ layout: { ...catalog.layout, fabricModalScale } })}
-          />
+          <CatalogContentsPanel catalog={catalog} fabrics={fabrics} isNew={isNew} editLang={editLang} onChange={setCatalog} />
+          {!isDesignCatalog(catalog) ? (
+            <CatalogFabricModalSizeControl
+              value={catalog.layout.fabricModalScale ?? 100}
+              onChange={(fabricModalScale) => patch({ layout: { ...catalog.layout, fabricModalScale } })}
+            />
+          ) : null}
           <div>
             <Label>{t("catalogs.accessLabel")}</Label>
             <Select className="w-full" value={catalog.access} onChange={(event) => patch({ access: event.target.value as Catalog["access"] })}>

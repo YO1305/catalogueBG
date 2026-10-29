@@ -26,7 +26,9 @@ import {
   saveTemplate,
   saveUser,
 } from "@/lib/db";
+import { emptyFabric } from "@/lib/fabricDraft";
 import { persistFabric } from "@/lib/fabricSave";
+import { catalogFabricIdOrder, catalogHasManualSections } from "@/lib/catalogSections";
 import { fallbackTranslate } from "@/lib/glossary";
 import { uniqueSlug } from "@/lib/ids";
 import { hashPassword, hashPin } from "@/lib/password";
@@ -99,6 +101,55 @@ export async function deleteFabricAction(id: string) {
   return { ok: true as const };
 }
 
+export async function addCatalogDesignEntryAction(input: {
+  catalogSlug: string;
+  art: string;
+  nameRu: string;
+  design: Fabric["design"];
+  sectionId?: string;
+}) {
+  const gate = await catalogActor();
+  if (!gate.ok) return gate;
+  const { session } = gate;
+  const catalog = await getCatalog(input.catalogSlug);
+  if (!catalog) return { ok: false as const, error: "missing" as const };
+  const art = input.art.trim();
+  const nameRu = input.nameRu.trim();
+  if (!art || !nameRu || !input.design.webUrl) return { ok: false as const, error: "invalid" as const };
+  const fabric: Fabric = {
+    ...emptyFabric(session.uid, "printed"),
+    art,
+    name: { ru: nameRu, en: "", uz: "" },
+    design: { ...input.design, seamless: input.design.seamless ?? true },
+    designCatalogEntry: true,
+    status: "published",
+  };
+  const saved = await persistFabric(session, fabric);
+  if (!saved.ok) return saved;
+  const fabricId = saved.fabric.id;
+  let catalogSections = catalog.catalogSections;
+  if (input.sectionId && catalogSections?.length) {
+    catalogSections = catalogSections.map((section) =>
+      section.id === input.sectionId ? { ...section, fabricIds: [...section.fabricIds, fabricId] } : section,
+    );
+  }
+  const fabricIds = [...new Set([...(catalog.fabricIds ?? []), fabricId])];
+  const ordered = catalogHasManualSections({ ...catalog, catalogSections, fabricIds })
+    ? catalogFabricIdOrder({ ...catalog, catalogSections, fabricIds })
+    : fabricIds;
+  await saveCatalog({
+    ...catalog,
+    catalogSections,
+    fabricIds: ordered,
+    mode: "manual",
+    updatedAt: new Date().toISOString(),
+  });
+  touch(`/admin/catalogs/${input.catalogSlug}`);
+  touch(`/c/${input.catalogSlug}`);
+  touch("/admin/fabrics");
+  return { ok: true as const, fabricId };
+}
+
 export async function addFabricsToCatalogAction(ids: string[], slug: string) {
   await actor(canEditCatalogs);
   const catalog = await getCatalog(slug);
@@ -120,9 +171,12 @@ export async function createCatalogAction(catalog: Catalog, pin?: string) {
     const db = await getDictionariesWithCatalogs();
     const slug = uniqueSlug(titleRu, db.catalogs.map((item) => item.slug));
     const pinHash = pin ? hashPin(pin) : catalog.access === "pin" ? catalog.pinHash : undefined;
-    const showProductTypes = catalog.showProductTypes.length
-      ? catalog.showProductTypes
-      : db.productTypes.filter((item) => item.active).map((item) => item.id);
+    const showProductTypes =
+      catalog.catalogKind === "design"
+        ? catalog.showProductTypes
+        : catalog.showProductTypes.length
+          ? catalog.showProductTypes
+          : db.productTypes.filter((item) => item.active).map((item) => item.id);
     const next: Catalog = {
       ...catalog,
       slug,

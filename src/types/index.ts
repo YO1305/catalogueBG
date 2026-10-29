@@ -133,6 +133,8 @@ export type Fabric = {
   variants?: FabricVariant[];
   status: FabricStatus;
   isNew: boolean;
+  /** Упрощённая карточка для каталога рисунков (арт, название, файл). */
+  designCatalogEntry?: boolean;
   priceVisible?: { uzs?: number; usd?: number };
   translationLocked: { name?: boolean; description?: boolean; composition?: boolean };
   createdBy: string;
@@ -233,6 +235,14 @@ export type CatalogCoverTypography = {
   textOnImage?: "light" | "dark";
 };
 
+export type CatalogKind = "standard" | "design";
+
+export type CatalogSection = {
+  id: string;
+  title: Localized;
+  fabricIds: string[];
+};
+
 export type CatalogRules = {
   collections?: string[];
   fabricTypes?: string[];
@@ -244,6 +254,8 @@ export type CatalogRules = {
 
 export type Catalog = {
   slug: string;
+  /** standard — журнал с макетами; design — каталог рисунков. */
+  catalogKind?: CatalogKind;
   title: Localized;
   subtitle: Localized;
   /** Верхняя строка на обложке (например «BAHMAL HOME»). */
@@ -254,6 +266,8 @@ export type Catalog = {
   mode: "rules" | "manual";
   rules?: CatalogRules;
   fabricIds?: string[];
+  /** Ручные разделы (Gold, Silver…). Если пусто — листается без разделителей. */
+  catalogSections?: CatalogSection[];
   showProductTypes: string[];
   layout: {
     perPage: 1 | 2 | 3 | 4;
@@ -335,6 +349,6 @@ export type PublicUser = Pick<AppUser, "id" | "email" | "name" | "role" | "secti
 
 export type BuiltPage =
   | { kind: "cover"; index: number }
-  | { kind: "section"; index: number; group: "fabricType" | "collection"; groupId: string }
+  | { kind: "section"; index: number; group: "fabricType" | "collection" | "manual"; groupId: string }
   | { kind: "designs"; index: number; fabricIds: string[] }
   | { kind: "back"; index: number };
