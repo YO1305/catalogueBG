@@ -52,8 +52,7 @@ export function useCatalogChrome({
     apply();
     media.addEventListener("change", apply);
     const measure = () => {
-      const portrait = window.innerWidth < 1024;
-      const mobileFeed = window.innerWidth < 768;
+      const mobileFeed = window.matchMedia("(max-width: 767px)").matches;
       if (mobileFeed) {
         document.documentElement.classList.add("catalog-mobile-feed");
         const toolbarReserve = 52;
@@ -69,21 +68,19 @@ export function useCatalogChrome({
         return;
       }
       document.documentElement.classList.remove("catalog-mobile-feed");
-      const toolbarReserve = portrait ? 128 : 108;
+      const toolbarReserve = 108;
       const maxH = window.innerHeight - toolbarReserve;
-      const maxW = portrait ? window.innerWidth - 20 : (window.innerWidth - 48 - 200) / 2;
+      const maxW = (window.innerWidth - 48 - 200) / 2;
       let height = maxH;
       let width = height / 1.414;
       if (width > maxW) {
         width = maxW;
         height = width * 1.414;
       }
-      const minW = portrait ? 260 : 240;
-      const minH = portrait ? 368 : 340;
       setBox({
-        w: Math.max(minW, Math.floor(width)),
-        h: Math.max(minH, Math.floor(height)),
-        portrait,
+        w: Math.max(240, Math.floor(width)),
+        h: Math.max(340, Math.floor(height)),
+        portrait: false,
         mobileFeed: false,
       });
     };

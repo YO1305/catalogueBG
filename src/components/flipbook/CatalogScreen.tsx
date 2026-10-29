@@ -68,8 +68,8 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   }
 
   const pages = useMemo(
-    () => (box.portrait ? remobileDesignPages(model.pages) : model.pages),
-    [model.pages, box.portrait],
+    () => (box.mobileFeed ? remobileDesignPages(model.pages) : model.pages),
+    [model.pages, box.mobileFeed],
   );
   const bookModel = useMemo(() => ({ ...model, pages }), [model, pages]);
 
@@ -114,7 +114,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
       }
       const flip = api.current?.pageFlip();
       const diff = index - pageRef.current;
-      const animate = preferAnimate && !reduced && !box.portrait && flip && Math.abs(diff) === 1;
+      const animate = preferAnimate && !reduced && !box.mobileFeed && flip && Math.abs(diff) === 1;
       if (animate) {
         if (diff > 0) flip.flipNext();
         else flip.flipPrev();
@@ -123,7 +123,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
       flip?.turnToPage(index);
       applyPage(index);
     },
-    [box.portrait, pages.length, reduced],
+    [box.mobileFeed, pages.length, reduced],
   );
 
   const onPageCommit = useCallback((index: number) => {
@@ -145,7 +145,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   });
 
   function go(delta: number) {
-    flipTo(pageRef.current + delta, !box.portrait);
+    flipTo(pageRef.current + delta, !box.mobileFeed);
   }
   function turn(index: number) {
     flipTo(index, Math.abs(index - pageRef.current) === 1);
@@ -183,7 +183,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
         className={
           box.mobileFeed
             ? "min-h-0 flex-1"
-            : `flex min-h-screen items-center justify-center ${box.portrait ? "pb-[7.5rem]" : "pb-24"}`
+            : "flex min-h-screen items-center justify-center pb-24"
         }
       >
         {box.mobileFeed && !openId ? (
@@ -202,8 +202,8 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
         ) : reduced && currentPage ? (
           <StaticPage model={bookModel} page={currentPage} index={page} width={box.w} height={box.h} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} />
         ) : (
-          <FlipSideNav page={page} total={pages.length} portrait={box.portrait} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)}>
-            <Book model={bookModel} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={box.portrait} onFlip={applyPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
+          <FlipSideNav page={page} total={pages.length} portrait={false} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)}>
+            <Book model={bookModel} width={box.w} height={box.h} startPage={page} current={page} reduced={reduced} portrait={false} onFlip={applyPage} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} apiRef={api} />
           </FlipSideNav>
         )}
       </div>
@@ -211,7 +211,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
         page={page + 1}
         total={pages.length}
         langs={model.catalog.langs}
-        portrait={box.portrait}
+        portrait={false}
         mobileFeed={box.mobileFeed}
         cart={cart.length}
         onPrev={() => go(-1)}

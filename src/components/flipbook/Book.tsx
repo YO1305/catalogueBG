@@ -111,7 +111,7 @@ export const Book = function Book({
       autoSize
       maxShadowOpacity={0.35}
       showCover
-      mobileScrollSupport
+      mobileScrollSupport={portrait}
       clickEventForward
       useMouseEvents={false}
       swipeDistance={24}
