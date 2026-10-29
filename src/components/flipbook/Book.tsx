@@ -94,24 +94,25 @@ export const Book = function Book({
   const byId = new Map(model.fabrics.map((fabric) => [fabric.id, fabric]));
   return (
     <Flip
+      key={`book-${width}x${height}-${portrait ? "p" : "l"}-${model.pages.length}`}
       ref={ref}
       className="flipbook"
-      style={{}}
+      style={{ width: portrait ? width : width * 2, height }}
       width={width}
       height={height}
       size="fixed"
-      minWidth={240}
-      maxWidth={900}
-      minHeight={340}
-      maxHeight={1300}
+      minWidth={width}
+      maxWidth={width}
+      minHeight={height}
+      maxHeight={height}
       drawShadow={!reduced}
-      flippingTime={reduced ? 1 : 1000}
+      flippingTime={reduced ? 1 : 700}
       usePortrait={portrait}
       startZIndex={2}
-      autoSize
+      autoSize={false}
       maxShadowOpacity={0.35}
       showCover
-      mobileScrollSupport
+      mobileScrollSupport={portrait}
       clickEventForward
       useMouseEvents={false}
       swipeDistance={24}

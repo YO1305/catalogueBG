@@ -33,6 +33,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   const root = useRef<HTMLDivElement>(null);
   const api = useRef<{ pageFlip: () => { flipNext: () => void; flipPrev: () => void; turnToPage: (page: number) => void } } | null>(null);
   const [box, setBox] = useState({ w: 420, h: 594, portrait: false });
+  const [chromeReady, setChromeReady] = useState(false);
   const [page, setPage] = useState(Math.min(initialPage, Math.max(model.pages.length - 1, 0)));
   const [openId, setOpenId] = useState<string | undefined>(initialArt);
   const [openVariant, setOpenVariant] = useState<string | undefined>();
@@ -103,7 +104,10 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     sessionId,
     setPage,
     setReduced,
-    setBox,
+    setBox: (next) => {
+      setBox(next);
+      setChromeReady(true);
+    },
     onStepFlip: (delta) => flipTo(pageRef.current + delta, true),
   });
 
@@ -135,10 +139,15 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   const sectionLinks = useMemo(() => catalogSectionLinks(model.catalog, pages, lang), [model.catalog, pages, lang]);
 
   return (
-    <div ref={root} className="catalog-root relative min-h-screen" data-theme={model.catalog.layout.theme} style={{ fontSize: box.w / 28 }}>
+    <div
+      ref={root}
+      className={`catalog-root relative ${box.portrait ? "min-h-screen" : "h-dvh overflow-hidden"}`}
+      data-theme={model.catalog.layout.theme}
+      style={{ fontSize: box.w / 28 }}
+    >
       <CatalogSectionJumpBar links={sectionLinks} currentPage={page} onJump={turn} />
-      <div className={`flex min-h-screen items-center justify-center ${box.portrait ? "pb-[7.5rem]" : "pb-24"}`}>
-        {reduced && currentPage ? (
+      <div className={`flex items-center justify-center ${box.portrait ? "min-h-screen pb-[7.5rem]" : "h-[calc(100dvh-6.5rem)] pb-4"}`}>
+        {!chromeReady ? null : reduced && currentPage ? (
           <StaticPage model={bookModel} page={currentPage} index={page} width={box.w} height={box.h} onOpen={openFabric} onRequest={requestSample} onLead={() => setLead(true)} onJump={turn} />
         ) : (
           <FlipSideNav page={page} total={pages.length} portrait={box.portrait} hidden={Boolean(openId) || reduced} onPrev={() => go(-1)} onNext={() => go(1)}>
