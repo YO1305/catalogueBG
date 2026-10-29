@@ -3,8 +3,8 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
 import { toast } from "sonner";
+import { CatalogAdminPreview } from "@/components/admin/CatalogAdminPreview";
 import { CatalogCoverTypographyControl } from "@/components/admin/CatalogCoverTypographyControl";
 import { CatalogCoverUpload } from "@/components/admin/CatalogCoverUpload";
 import { CatalogFabricModalSizeControl } from "@/components/admin/CatalogFabricModalSizeControl";
@@ -20,8 +20,6 @@ import { catalogFabricIdOrder } from "@/lib/catalogSections";
 import { isDesignCatalog } from "@/lib/catalogKind";
 import { addressField, localizeCatalogModel, setAddress } from "@/lib/localize";
 import type { Catalog, Collection, Fabric, FabricType, Lang, ProductType } from "@/types";
-
-const CatalogScreen = dynamic(() => import("@/components/flipbook/CatalogScreen").then((mod) => mod.CatalogScreen), { ssr: false });
 
 export function CatalogEditor({
   initial,
@@ -207,8 +205,7 @@ export function CatalogEditor({
           </div>
         </div>
         <div className="min-h-[70vh] overflow-hidden border bg-sand">
-          <p className="bg-white/80 px-3 py-2 text-xs text-ink/60">{t("catalogs.preview")}</p>
-          <CatalogScreen key={editLang} model={previewModel} initialPage={0} />
+          <CatalogAdminPreview key={editLang} model={previewModel} />
         </div>
       </div>
     </div>

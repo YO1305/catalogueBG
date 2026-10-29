@@ -23,7 +23,8 @@ type PendingDelta = {
 };
 
 let pending: PendingDelta = { reads: 0, writes: 0, deletes: 0, bySource: new Map() };
-let lastFlushAt = 0;
+/** Start the clock on boot so the first admin write is not blocked by a usage transaction. */
+let lastFlushAt = Date.now();
 let flushInFlight: Promise<void> | null = null;
 
 export function pacificDayKey(date = new Date()): string {

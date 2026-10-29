@@ -51,6 +51,7 @@ function record(source: string, delta: Partial<SourceCounts>) {
 
   if (process.env.NODE_ENV === "production") {
     enqueueUsageDelta({ reads, writes, deletes, source: fullSource });
+    // Fire-and-forget: do not block save/publish on usage flush.
     void maybeFlushUsageToFirestore();
   }
 }

@@ -3,15 +3,13 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import dynamic from "next/dynamic";
+import { CatalogAdminPreview } from "@/components/admin/CatalogAdminPreview";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Input, Label, Textarea } from "@/components/ui/field";
 import { saveCatalogAction } from "@/lib/actions";
 import { buildPages, resolveFabrics } from "@/lib/catalog";
 import type { Catalog, Collection, Fabric, FabricType, ProductType } from "@/types";
-
-const CatalogScreen = dynamic(() => import("@/components/flipbook/CatalogScreen").then((mod) => mod.CatalogScreen), { ssr: false });
 
 export { CatalogList } from "@/components/admin/CatalogList";
 
@@ -102,7 +100,7 @@ export function CatalogBuilder({ initial, fabrics, collections, fabricTypes, pro
         </div>
       </form>
       <div className="min-h-[70vh] overflow-hidden border bg-sand">
-        <CatalogScreen model={{ catalog, fabrics: resolved, pages, fabricTypes, collections, productTypes, qr: "" }} initialPage={0} />
+        <CatalogAdminPreview model={{ catalog, fabrics: resolved, pages, fabricTypes, collections, productTypes, qr: "" }} />
       </div>
     </div>
   );

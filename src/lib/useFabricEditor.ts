@@ -47,9 +47,21 @@ export function useFabricEditor(
     dirty.current = false;
   }, [initial, isNew]);
 
+  function update(partial: Partial<Fabric>, opts?: { silent?: boolean }) {
+    if (!opts?.silent) dirty.current = true;
+    fabricRef.current = { ...fabricRef.current, ...partial };
+    setFabric((current) => ({ ...current, ...partial }));
+  }
+
+  const weave = useWeaveEditor(fabricRef, update, uploadDesign);
+  const tones = useToneEditor(fabricRef, update, uploadDesign);
+  const mockupJobs = useMockupJobs(fabricRef, setFabric, templates);
+  const mockupsBusy = useRef(false);
+  mockupsBusy.current = Boolean(mockupJobs.progress);
+
   useEffect(() => {
     const timer = window.setInterval(() => {
-      if (!dirty.current || autosaving.current || !fabricRef.current.art) return;
+      if (!dirty.current || autosaving.current || !fabricRef.current.art || mockupsBusy.current) return;
       dirty.current = false;
       autosaving.current = true;
       void fetch("/api/fabrics/autosave", {
@@ -66,16 +78,6 @@ export function useFabricEditor(
     }, 8000);
     return () => window.clearInterval(timer);
   }, []);
-
-  function update(partial: Partial<Fabric>, opts?: { silent?: boolean }) {
-    if (!opts?.silent) dirty.current = true;
-    fabricRef.current = { ...fabricRef.current, ...partial };
-    setFabric((current) => ({ ...current, ...partial }));
-  }
-
-  const weave = useWeaveEditor(fabricRef, update, uploadDesign);
-  const tones = useToneEditor(fabricRef, update, uploadDesign);
-  const mockupJobs = useMockupJobs(fabricRef, setFabric, templates);
 
   async function upload(raw: File) {
     const data = await uploadDesign(raw);

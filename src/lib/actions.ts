@@ -70,9 +70,8 @@ export async function publishFabricAction(fabric: Fabric) {
   const session = await actor(canEditFabrics);
   const saved = await persistFabric(session, { ...fabric, status: "published" });
   if (!saved.ok) return saved;
+  // Rules catalogs pick fabrics on read — no need to rewrite every matching catalog doc.
   const names = matchingCatalogs(saved.fabric, await getCatalogs());
-  const now = new Date().toISOString();
-  await Promise.all(names.map((catalog) => saveCatalog({ ...catalog, updatedAt: now })));
   touch("/admin/fabrics");
   touch("/admin/catalogs");
   for (const catalog of names) touch(`/c/${catalog.slug}`);
