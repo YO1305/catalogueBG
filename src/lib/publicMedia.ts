@@ -1,4 +1,4 @@
-/** Same-origin photo URL so catalog images are not blocked as third-party / “fabric” ads. */
+/** Same-origin photo URL. Hex so the word “fabric” cannot appear in the path and get blocked. */
 const REMOTE = /blob\.vercel-storage\.com|storage\.googleapis\.com/i;
 
 export function isRemoteMediaUrl(url: string): boolean {
@@ -9,10 +9,9 @@ export function publicMediaSrc(url: string, _width = 1200): string {
   if (!url || url.startsWith("/") || url.startsWith("data:") || url.startsWith("blob:")) return url;
   if (!isRemoteMediaUrl(url)) return url;
   const bytes = new TextEncoder().encode(url);
-  let bin = "";
-  for (const byte of bytes) bin += String.fromCharCode(byte);
-  const token = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  return `/api/m/${token}`;
+  let hex = "";
+  for (const byte of bytes) hex += byte.toString(16).padStart(2, "0");
+  return `/api/m/${hex}`;
 }
 
 export function isTemplatePlaceholder(url: string): boolean {

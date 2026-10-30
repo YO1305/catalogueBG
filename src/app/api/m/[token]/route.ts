@@ -7,7 +7,8 @@ export async function GET(_request: Request, context: { params: Promise<{ token:
   const { token } = await context.params;
   let url = "";
   try {
-    url = Buffer.from(token, "base64url").toString("utf8");
+    if (!/^[0-9a-f]+$/i.test(token) || token.length % 2) return new Response("bad", { status: 400 });
+    url = Buffer.from(token, "hex").toString("utf8");
   } catch {
     return new Response("bad", { status: 400 });
   }
