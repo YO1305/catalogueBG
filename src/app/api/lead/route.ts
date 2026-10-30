@@ -1,4 +1,4 @@
-import { getDb, saveLead } from "@/lib/db";
+import { getCatalog, getFabricsByIds, saveLead } from "@/lib/db";
 import { rateLimit } from "@/lib/rateLimit";
 import { notifyLead } from "@/lib/telegram";
 import type { Lang } from "@/types";
@@ -12,10 +12,9 @@ export async function POST(request: Request) {
   if (!body.catalogSlug || name.length < 2 || name.length > 120 || contact.length < 3 || contact.length > 160) {
     return Response.json({ error: "invalid" }, { status: 400 });
   }
-  const db = await getDb();
-  const catalog = db.catalogs.find((item) => item.slug === body.catalogSlug && item.status === "live");
-  if (!catalog) return Response.json({ error: "missing" }, { status: 404 });
-  const fabrics = db.fabrics.filter((fabric) => body.fabricIds?.includes(fabric.id));
+  const catalog = await getCatalog(String(body.catalogSlug));
+  if (!catalog || catalog.status !== "live") return Response.json({ error: "missing" }, { status: 404 });
+  const fabrics = await getFabricsByIds(body.fabricIds ?? []);
   const lead = {
     id: crypto.randomUUID(),
     catalogSlug: catalog.slug,

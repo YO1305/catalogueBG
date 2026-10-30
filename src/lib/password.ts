@@ -16,11 +16,16 @@ export function verifyPassword(password: string, stored: string) {
 }
 
 export function hashPin(pin: string) {
+  return hashPassword(pin);
+}
+
+function legacyPinHash(pin: string) {
   return createHash("sha256").update(`bahmal-pin:${pin}`).digest("hex");
 }
 
 export function verifyPin(pin: string, stored: string) {
-  const check = Buffer.from(hashPin(pin));
+  if (stored.startsWith("scrypt:")) return verifyPassword(pin, stored);
+  const check = Buffer.from(legacyPinHash(pin));
   const expected = Buffer.from(stored);
   if (check.length !== expected.length) return false;
   return timingSafeEqual(check, expected);

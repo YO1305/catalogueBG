@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { getDb } from "@/lib/db";
+import { getGlossary } from "@/lib/db";
 import { suspectTerms } from "@/lib/glossary";
 import { canEditCatalogs, canEditDictionaries, canEditFabrics } from "@/lib/roles";
 import { translateFields } from "@/lib/translate";
@@ -13,8 +13,8 @@ export async function POST(request: Request) {
   const fields = body.fields ?? {};
   const locked = body.locked ?? {};
   const open = Object.fromEntries(Object.entries(fields).filter(([key]) => !locked[key]));
-  const db = await getDb();
-  const translated = await translateFields(open, db.glossary);
-  const suspects = suspectTerms(Object.values(fields).join(" "), db.glossary);
+  const glossary = await getGlossary();
+  const translated = await translateFields(open, glossary);
+  const suspects = suspectTerms(Object.values(fields).join(" "), glossary);
   return Response.json({ ...translated, suspects });
 }

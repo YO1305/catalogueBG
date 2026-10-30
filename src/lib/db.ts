@@ -214,17 +214,19 @@ export async function findStaffUser(email: string) {
   if (!normalized) return null;
   if (firebaseAdminConfigured()) {
     try {
-      const snap = await firestore().collection("users").get();
-      trackFirestoreRead(snap.size, "users:scan");
-      for (const doc of snap.docs) {
-        const user = fromRemote(doc.data()) as AppUser;
-        if (!user.id) user.id = doc.id;
-        if (user.email.toLowerCase() === normalized) return user;
-      }
+      const snap = await firestore().collection("users").where("email", "==", normalized).limit(1).get();
+      trackFirestoreRead(snap.size, "users:email");
+      const doc = snap.docs[0];
+      if (!doc) return null;
+      const user = fromRemote(doc.data()) as AppUser;
+      if (!user.id) user.id = doc.id;
+      return user;
     } catch (error) {
       console.error("findStaffUser", error);
+      return null;
     }
   }
+  if (process.env.NODE_ENV === "production") return null;
   return staffFromLocalSeed(normalized);
 }
 

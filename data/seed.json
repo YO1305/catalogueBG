@@ -3635,21 +3635,21 @@
       "email": "admin@bahmal.uz",
       "name": "Администратор",
       "role": "admin",
-      "passwordHash": "scrypt:ca002bb1e5f3af151162fc9f2dca086e:ad96a84cdfe29a97f15faa678b2862647cae2344f2d58db22dc0be9c53dccf91"
+      "passwordHash": ""
     },
     {
       "id": "user-designer",
       "email": "designer@bahmal.uz",
       "name": "Дизайнер",
       "role": "designer",
-      "passwordHash": "scrypt:67f39b740ddaf95cc73e255f16df0dc3:1e0367bf77cfd50ebeff6332f4fb59a2be776e6de58526052fc0f14d86ac0533"
+      "passwordHash": ""
     },
     {
       "id": "user-manager",
       "email": "manager@bahmal.uz",
       "name": "Менеджер",
       "role": "manager",
-      "passwordHash": "scrypt:68df0aa00f718864de9b6fa9bfa36e5d:3494fdb04392685b7045222e04bb4be8a52463f8497979f5ffe9e81794858d73"
+      "passwordHash": ""
     }
   ],
   "glossary": [

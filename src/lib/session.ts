@@ -18,7 +18,12 @@ export type Session = {
 };
 
 function secret() {
-  return process.env.SESSION_SECRET || "dev-only-bahmal-session-change-me";
+  const value = process.env.SESSION_SECRET?.trim();
+  if (value) return value;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("SESSION_SECRET is required in production");
+  }
+  return "dev-only-bahmal-session-change-me";
 }
 
 function bytesToBase64Url(bytes: Uint8Array) {

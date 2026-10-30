@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { writePsdBuffer } from "ag-psd";
 import sharp from "sharp";
-import { hashPassword, hashPin } from "../src/lib/password.ts";
+import { hashPin } from "../src/lib/password.ts";
 import { parseDensity, parseWidths } from "../src/lib/parseSpecs.ts";
 import type { Catalog, Collection, Database, Fabric, FabricType, GlossaryTerm, Mockup, ProductType, Template, TemplateArea } from "../src/types/index.ts";
 
@@ -227,9 +227,9 @@ async function main() {
     ],
     events: sampleEvents(),
     users: [
-      { id: "user-admin", email: "admin@bahmal.uz", name: "Администратор", role: "admin", passwordHash: hashPassword("bahmal-admin") },
-      { id: "user-designer", email: "designer@bahmal.uz", name: "Дизайнер", role: "designer", passwordHash: hashPassword("bahmal-design") },
-      { id: "user-manager", email: "manager@bahmal.uz", name: "Менеджер", role: "manager", passwordHash: hashPassword("bahmal-manager") },
+      { id: "user-admin", email: "admin@bahmal.uz", name: "Администратор", role: "admin", passwordHash: "" },
+      { id: "user-designer", email: "designer@bahmal.uz", name: "Дизайнер", role: "designer", passwordHash: "" },
+      { id: "user-manager", email: "manager@bahmal.uz", name: "Менеджер", role: "manager", passwordHash: "" },
     ],
     glossary: glossary(),
   };

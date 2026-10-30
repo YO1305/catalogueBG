@@ -31,7 +31,10 @@ async function main() {
   for (const item of seed.fabrics) writes.push(["fabrics", item.id, item]);
   for (const item of seed.catalogs) writes.push(["catalogs", item.slug, item]);
   for (const item of seed.leads) writes.push(["leads", item.id, item]);
-  for (const item of seed.users) writes.push(["users", item.id, item]);
+  for (const item of seed.users) {
+    if (!item.passwordHash) continue;
+    writes.push(["users", item.id, item]);
+  }
   writes.push(["settings", "glossary", { terms: seed.glossary }]);
   for (let offset = 0; offset < writes.length; offset += batchSize) {
     const batch = db.batch();

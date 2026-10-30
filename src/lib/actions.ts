@@ -466,7 +466,7 @@ export async function createUserAction(input: { email: string; name: string; rol
   if (users.some((user) => user.email.toLowerCase() === input.email.toLowerCase())) return { ok: false as const, error: "exists" };
   const user: AppUser = {
     id: crypto.randomUUID(),
-    email: input.email.trim(),
+    email: input.email.trim().toLowerCase(),
     name: input.name.trim(),
     role: input.role,
     passwordHash: hashPassword(input.password),
