@@ -3,6 +3,7 @@
 import { MockupAdjuster } from "@/components/admin/MockupAdjuster";
 import { useI18n } from "@/components/i18n/I18n";
 import { Checkbox } from "@/components/ui/field";
+import type { MockupSaveStep } from "@/lib/mockup/clientRender";
 import { FABRIC_PRODUCT } from "@/lib/mockup/constants";
 import { wovenTemplateHint } from "@/lib/mockup/weave";
 import type { Fabric, Mockup, Template } from "@/types";
@@ -18,7 +19,11 @@ export function WizardFabricMockupStep({
   templates: Template[];
   onChange: (partial: Partial<Fabric>) => void;
   onChoose: (productType: string, template: Template, selected: boolean) => void;
-  onSaveMockup: (slot: Pick<Mockup, "templateId" | "productType">, jpeg?: Blob) => Promise<number>;
+  onSaveMockup: (
+    slot: Pick<Mockup, "templateId" | "productType">,
+    onProgress?: (step: MockupSaveStep) => void,
+    signal?: AbortSignal,
+  ) => Promise<number>;
 }) {
   const { t } = useI18n();
   const list = templates.filter((item) => item.productTypes.includes(FABRIC_PRODUCT));
@@ -69,7 +74,7 @@ export function WizardFabricMockupStep({
                       ),
                     })
                   }
-                  onSave={(jpeg) => onSaveMockup({ templateId: template.id, productType: FABRIC_PRODUCT }, jpeg)}
+                  onSave={(onProgress, signal) => onSaveMockup({ templateId: template.id, productType: FABRIC_PRODUCT }, onProgress, signal)}
                 />
               </>
             ) : null}

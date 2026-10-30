@@ -142,6 +142,8 @@ export type Fabric = {
   createdBy: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  /** Client-only: fabric row already exists in Firestore. Not stored. */
+  persisted?: boolean;
 };
 
 export type Collection = {

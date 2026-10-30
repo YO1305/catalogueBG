@@ -3,6 +3,7 @@
 import { MockupAdjuster } from "@/components/admin/MockupAdjuster";
 import { useI18n } from "@/components/i18n/I18n";
 import { Checkbox, Label, Select } from "@/components/ui/field";
+import type { MockupSaveStep } from "@/lib/mockup/clientRender";
 import { FABRIC_PRODUCT } from "@/lib/mockup/constants";
 import { MOCKUP_CATEGORIES, mockupCategoryLabelKey, templatesInCategory } from "@/lib/mockupCategories";
 import { templateFitsFabric, wovenTemplateHint } from "@/lib/mockup/weave";
@@ -19,7 +20,11 @@ export function WizardMockupCategoryStep({
   templates: Template[];
   onChange: (partial: Partial<Fabric>) => void;
   onChoose: (productType: string, template: Template, selected: boolean) => void;
-  onSaveMockup: (slot: Pick<Mockup, "templateId" | "productType">, jpeg?: Blob) => Promise<number>;
+  onSaveMockup: (
+    slot: Pick<Mockup, "templateId" | "productType">,
+    onProgress?: (step: MockupSaveStep) => void,
+    signal?: AbortSignal,
+  ) => Promise<number>;
 }) {
   const { t } = useI18n();
   const category = fabric.mockupCategory ?? "bedding";
@@ -69,7 +74,7 @@ export function WizardMockupCategoryStep({
                 template={template}
                 mockup={selected}
                 onChange={(mockup: Mockup) => onChange({ mockups: fabric.mockups.map((item) => (item.templateId === template.id ? mockup : item)) })}
-                onSave={(jpeg) => onSaveMockup({ templateId: template.id, productType: selected.productType }, jpeg)}
+                onSave={(onProgress, signal) => onSaveMockup({ templateId: template.id, productType: selected.productType }, onProgress, signal)}
               />
             ) : null}
           </div>

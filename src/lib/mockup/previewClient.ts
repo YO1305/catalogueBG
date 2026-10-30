@@ -8,18 +8,18 @@ export const PREVIEW_SCALE = 0.4;
 type Input = { jsonUrl: string; backgroundUrl: string; plan: FillPlan; opts: RenderOptions };
 type Done = Extract<PreviewResponse, { ok: true }>;
 
+type Waiting = { kind: "preview" | "final"; resolve: (data: Done) => void; reject: (error: Error) => void };
+
 type Slot = {
   worker: Worker | null;
   nextId: number;
-  waiting: Map<number, { resolve: (data: Done) => void; reject: (error: Error) => void }>;
-  latestPreviewId: number;
+  waiting: Map<number, Waiting>;
 };
 
 function emptySlot(): Slot {
-  return { worker: null, nextId: 1, waiting: new Map(), latestPreviewId: 0 };
+  return { worker: null, nextId: 1, waiting: new Map() };
 }
 
-/** One worker: preview already warmed the template layers, so save does not reload them. */
 const slot = emptySlot();
 
 function abortSlot(target: Slot, message: string) {
@@ -33,6 +33,16 @@ function abortSlot(target: Slot, message: string) {
     worker.terminate();
   }
   for (const entry of pending) {
+    const error = new Error(message);
+    error.name = "AbortError";
+    entry.reject(error);
+  }
+}
+
+function dropPreviews(message: string) {
+  for (const [id, entry] of slot.waiting) {
+    if (entry.kind !== "preview") continue;
+    slot.waiting.delete(id);
     const error = new Error(message);
     error.name = "AbortError";
     entry.reject(error);
@@ -62,29 +72,15 @@ function getWorker(target: Slot): Worker {
 }
 
 function send(request: Omit<PreviewRequest, "id">, kind: "preview" | "final"): Promise<Done> {
+  if (kind === "final") dropPreviews("stale");
   const id = slot.nextId;
   slot.nextId += 1;
-  if (kind === "preview") slot.latestPreviewId = id;
   return new Promise((resolve, reject) => {
-    const timer =
-      kind === "final"
-        ? window.setTimeout(() => abortSlot(slot, "Рендер макета занял слишком долго — нажмите ещё раз"), 20_000)
-        : 0;
-    slot.waiting.set(id, {
-      resolve: (data) => {
-        if (timer) window.clearTimeout(timer);
-        resolve(data);
-      },
-      reject: (error) => {
-        if (timer) window.clearTimeout(timer);
-        reject(error);
-      },
-    });
+    slot.waiting.set(id, { kind, resolve, reject });
     try {
       getWorker(slot).postMessage({ id, ...request, dropIfStalePreview: kind === "preview" } satisfies PreviewRequest);
     } catch (error: unknown) {
       slot.waiting.delete(id);
-      if (timer) window.clearTimeout(timer);
       reject(error instanceof Error ? error : new Error(String(error)));
     }
   });
@@ -97,11 +93,11 @@ export async function renderPreview(input: Input): Promise<ImageData> {
   return new ImageData(new Uint8ClampedArray(data.buffer), data.width, data.height);
 }
 
-/** Same worker as preview — template layers are already in memory. */
-export async function renderFinal(input: Input): Promise<Blob> {
+/** Same worker as preview — template layers are already in memory. Cancels queued previews. */
+export async function renderFinal(input: Input): Promise<{ web: Blob; thumb: Blob }> {
   const data = await send({ ...input, final: true }, "final");
-  if (!("blob" in data)) throw new Error("Ошибка рендера макета");
-  return data.blob;
+  if (!("web" in data)) throw new Error("Ошибка рендера макета");
+  return { web: data.web, thumb: data.thumb };
 }
 
 export function abortRenderers() {

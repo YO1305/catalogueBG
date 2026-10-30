@@ -13,6 +13,7 @@ import { WizardMockupCategoryStep } from "@/components/admin/WizardMockupCategor
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { addFabricsToCatalogAction } from "@/lib/actions";
+import type { MockupSaveStep } from "@/lib/mockup/clientRender";
 import { fabricKind, kindReady } from "@/lib/fabricKind";
 import { useFabricEditor } from "@/lib/useFabricEditor";
 import { FabricToneSection } from "@/components/admin/FabricToneSection";
@@ -82,17 +83,21 @@ export function FabricEditor({
   }
   const jobs = editor.mockupJobs.progress;
 
-  async function saveMockup(slot: Parameters<typeof editor.mockupJobs.run>[0], jpeg?: Blob) {
+  async function saveMockup(
+    slot: Parameters<typeof editor.mockupJobs.run>[0],
+    onProgress?: (step: MockupSaveStep) => void,
+    signal?: AbortSignal,
+  ) {
     let openedEdit = false;
-    const count = await editor.mockupJobs.run(slot, {
-      jpeg,
+    return editor.mockupJobs.run(slot, {
+      onProgress,
+      signal,
       onPersisted: (persisted) => {
         if (!isNew || openedEdit) return;
         openedEdit = true;
         router.replace(`/admin/fabrics/${persisted.id}`);
       },
     });
-    return count;
   }
 
   return (

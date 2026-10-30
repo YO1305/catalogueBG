@@ -32,6 +32,7 @@ export function emptyFabric(userId: string, kind: FabricKind = "printed"): Fabri
     createdBy: userId,
     createdAt: now,
     updatedAt: now,
+    persisted: false,
   };
 }
 

@@ -6,17 +6,18 @@ import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
 import { abortRenderers } from "@/lib/mockup/previewClient";
+import type { MockupSaveStep } from "@/lib/mockup/clientRender";
 import { useMockupPreview } from "@/lib/mockup/useMockupPreview";
 import { SCALE_PRESETS, scaleToSlider, sliderToScale } from "@/lib/mockupMath";
 import type { Fabric, Mockup, Template } from "@/types";
 
-function jpegFromCanvas(node: HTMLCanvasElement | null): Promise<Blob | undefined> {
-  if (!node || node.width < 200 || node.height < 200) return Promise.resolve(undefined);
-  const pixel = node.getContext("2d")?.getImageData(Math.floor(node.width / 2), Math.floor(node.height / 2), 1, 1).data;
-  if (!pixel || pixel[3] === 0) return Promise.resolve(undefined);
-  return new Promise((resolve) => {
-    node.toBlob((blob) => resolve(blob && blob.size > 0 ? blob : undefined), "image/jpeg", 0.88);
-  });
+function stepLabel(t: (key: string, vars?: Record<string, string | number>) => string, step: MockupSaveStep | null, saving: boolean) {
+  if (!saving) return t("templates.rebuildOne");
+  if (step === "render") return t("designs.mockupStepRender");
+  if (step === "upload1") return t("designs.mockupStepUpload", { n: 1 });
+  if (step === "upload2") return t("designs.mockupStepUpload", { n: 2 });
+  if (step === "save") return t("designs.mockupStepSave");
+  return t("designs.mockupSaving");
 }
 
 export function MockupAdjuster({
@@ -30,7 +31,7 @@ export function MockupAdjuster({
   template: Template;
   mockup: Mockup;
   onChange: (mockup: Mockup) => void;
-  onSave: (jpeg?: Blob) => Promise<number>;
+  onSave: (onProgress?: (step: MockupSaveStep) => void, signal?: AbortSignal) => Promise<number>;
 }) {
   const { t } = useI18n();
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -38,6 +39,7 @@ export function MockupAdjuster({
   const savingRef = useRef(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState<MockupSaveStep | null>(null);
   const preview = useMockupPreview(canvas, fabric, template, mockup);
   const { isUvgrid } = preview;
   const areaId = mockup.sameForAllAreas ? "all" : mockup.areas[0]?.areaId ?? template.areas[0]?.id ?? "all";
@@ -65,36 +67,26 @@ export function MockupAdjuster({
     if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
+    setStep("render");
     setSaveError(null);
-    toast(t("designs.mockupSaving"));
-    let timer = 0;
+    const controller = new AbortController();
     try {
-      const jpeg = preview.busy ? undefined : await jpegFromCanvas(canvas.current);
-      const job = onSave(jpeg);
-      void job.catch(() => undefined);
-      await Promise.race([
-        job,
-        new Promise<never>((_, reject) => {
-          timer = window.setTimeout(() => {
-            abortRenderers();
-            reject(new Error("Сохранение заняло слишком долго — нажмите ещё раз"));
-          }, 25_000);
-        }),
-      ]);
+      await onSave(setStep, controller.signal);
       toast(t("designs.mockupSaved"));
     } catch (error: unknown) {
+      if (error instanceof Error && error.name === "AbortError") abortRenderers();
       const message =
         error instanceof Error && error.name === "AbortError"
-          ? "Сохранение заняло слишком долго — нажмите ещё раз"
+          ? t("designs.mockupTimeout")
           : error instanceof Error
             ? error.message
             : String(error);
       setSaveError(message);
       toast.error(message);
     } finally {
-      window.clearTimeout(timer);
       savingRef.current = false;
       setSaving(false);
+      setStep(null);
     }
   }
 
@@ -188,7 +180,7 @@ export function MockupAdjuster({
       <div className="mt-3 flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="outline" onClick={() => patch({ scale: 1, offsetX: 0, offsetY: 0, rotation: 0 })}>{t("wizard.resetReal")}</Button>
         <Button type="button" size="sm" disabled={saving} aria-busy={saving} onClick={() => void saveWebp()}>
-          {saving ? t("designs.mockupSaving") : t("templates.rebuildOne")}
+          {stepLabel(t, step, saving)}
         </Button>
       </div>
     </div>

@@ -12,9 +12,9 @@ export function contentTypeForFilename(filename: string): string | undefined {
 export async function uploadPublicBlob(
   pathname: string,
   body: Blob | File,
-  options?: { onUploadProgress?: (loaded: number, total: number) => void },
+  options?: { onUploadProgress?: (loaded: number, total: number) => void; signal?: AbortSignal },
 ): Promise<string> {
-  const result = await upload(pathname, body, {
+  const job = upload(pathname, body, {
     access: "public",
     handleUploadUrl: "/api/blob/upload",
     contentType: contentTypeForFilename(pathname.split("/").pop() ?? pathname),
@@ -22,6 +22,22 @@ export async function uploadPublicBlob(
     onUploadProgress: options?.onUploadProgress
       ? (event) => options.onUploadProgress?.(event.loaded, event.total)
       : undefined,
+  }).then((result) => result.url);
+  const signal = options?.signal;
+  if (!signal) return job;
+  if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+  return new Promise<string>((resolve, reject) => {
+    const onAbort = () => reject(new DOMException("Aborted", "AbortError"));
+    signal.addEventListener("abort", onAbort, { once: true });
+    job.then(
+      (url) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(url);
+      },
+      (error: unknown) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(error);
+      },
+    );
   });
-  return result.url;
 }

@@ -25,7 +25,7 @@ export function useFabricEditor(
   options?: EditorOptions,
 ) {
   const isNew = Boolean(options?.isNew);
-  const [fabric, setFabric] = useState(initial);
+  const [fabric, setFabric] = useState<Fabric>({ ...initial, persisted: !isNew || Boolean(initial.persisted) });
   const [lists, setLists] = useState(listsIn);
   const [progress, setProgress] = useState(0);
   const dirty = useRef(false);
@@ -42,7 +42,7 @@ export function useFabricEditor(
   useEffect(() => {
     if (isNew) return;
     if (initial.id === fabricRef.current.id) return;
-    setFabric(initial);
+    setFabric({ ...initial, persisted: true });
     setProgress(0);
     dirty.current = false;
   }, [initial, isNew]);
@@ -187,6 +187,8 @@ export function useFabricEditor(
     const result = await saveFabricAction({ ...fabricRef.current, status: "draft" });
     if (!result.ok) return { ok: false as const, reason: "art" as const };
     dirty.current = false;
+    fabricRef.current = { ...result.fabric, persisted: true };
+    setFabric((current) => ({ ...current, persisted: true }));
     return { ok: true as const, id: fabricRef.current.id };
   }
 
@@ -197,6 +199,8 @@ export function useFabricEditor(
     const result = await publishFabricAction(payload);
     if (!result.ok) return { ok: false as const, reason: "art" as const };
     dirty.current = false;
+    fabricRef.current = { ...fabricRef.current, persisted: true };
+    setFabric((current) => ({ ...current, persisted: true }));
     void mockupJobs
       .run(undefined, {
         onPersisted: (persisted) => {

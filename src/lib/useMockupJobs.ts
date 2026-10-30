@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { saveFabricAction } from "@/lib/actions";
-import { renderAndSave } from "@/lib/mockup/clientRender";
+import { renderAndSave, type MockupSaveStep } from "@/lib/mockup/clientRender";
 import { abortRenderers } from "@/lib/mockup/previewClient";
 import { placeMockup } from "@/lib/variants";
 import type { Fabric, Mockup, Template } from "@/types";
@@ -13,7 +13,7 @@ type Slot = Pick<Mockup, "templateId" | "productType">;
 
 const sameSlot = (a: Slot, b: Slot) => a.templateId === b.templateId && a.productType === b.productType;
 
-type RunOptions = { onPersisted?: (fabric: Fabric) => void; jpeg?: Blob };
+type RunOptions = { onPersisted?: (fabric: Fabric) => void; onProgress?: (step: MockupSaveStep) => void; signal?: AbortSignal };
 
 function areasKey(mockup: Mockup): string {
   return JSON.stringify({
@@ -66,22 +66,21 @@ export function useMockupJobs(fabricRef: MutableRefObject<Fabric>, setFabric: Di
         const jobs = only ? candidates : candidates.filter((job) => !skipOnPublish(snapshot, job.mockup, job.variantId, only));
         if (!jobs.length) return 0;
         setProgress({ done: 0, total: jobs.length });
-        const alreadyOnServer = Boolean(snapshot.id && snapshot.art);
-        if (!alreadyOnServer) {
+        if (!snapshot.persisted) {
           const status = snapshot.status === "published" ? "published" : "draft";
           const savedOnce = await saveFabricAction({ ...fabricRef.current, status });
           if (!savedOnce.ok) throw new Error("Сохраните черновик перед сохранением макетов");
-          fabricRef.current = savedOnce.fabric;
+          fabricRef.current = { ...savedOnce.fabric, persisted: true };
         }
         for (const [index, job] of jobs.entries()) {
           if (generation.current !== mine) return 0;
           const live = fabricRef.current.mockups.find((item) => sameSlot(item, job.mockup)) ?? job.mockup;
           const template = templates.find((item) => item.id === live.templateId);
           if (template) {
-            const jpeg = !job.variantId && only && sameSlot(live, only) ? options?.jpeg : undefined;
             const { mockup: saved } = await renderAndSave(fabricRef.current, template, live, job.variantId, {
               persisted: fabricRef.current,
-              jpeg,
+              onProgress: options?.onProgress,
+              signal: options?.signal,
             });
             if (generation.current !== mine) return 0;
             fabricRef.current = placeMockup(fabricRef.current, saved, job.variantId);

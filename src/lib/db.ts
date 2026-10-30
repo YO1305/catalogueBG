@@ -5,6 +5,7 @@ import { getFirestore, type DocumentData, type Firestore, Timestamp } from "fire
 import { firebaseAdminConfigured, getAdminApp } from "@/lib/firebaseAdmin";
 import { recordCatalogDayStats } from "@/lib/catalogDayStats";
 import { trackFirestoreDelete, trackFirestoreRead, trackFirestoreWrite } from "@/lib/firestoreMetrics";
+import { fabricMatchesRules } from "@/lib/catalog";
 import { withDefaultFinishes } from "@/lib/finishes";
 import type { AnalyticsEvent, AppUser, Catalog, Collection, Database, Fabric, FabricType, Finish, GlossaryTerm, Lead, ProductType, Template } from "@/types";
 
@@ -310,6 +311,32 @@ export async function getCatalogs(): Promise<Catalog[]> {
   return readCollection<Catalog>("catalogs", "slug");
 }
 
+export async function listCatalogsTouchingFabric(fabric: Fabric): Promise<Catalog[]> {
+  const keep = (catalog: Catalog) => catalog.status !== "archived";
+  if (!firebaseAdminConfigured()) {
+    return readLocal().catalogs.filter(
+      (catalog) =>
+        keep(catalog) &&
+        ((catalog.fabricIds ?? []).includes(fabric.id) || (catalog.mode === "rules" && fabricMatchesRules(fabric, catalog.rules ?? {}))),
+    );
+  }
+  const db = firestore();
+  const [manualSnap, rulesSnap] = await Promise.all([
+    db.collection("catalogs").where("fabricIds", "array-contains", fabric.id).get(),
+    db.collection("catalogs").where("mode", "==", "rules").get(),
+  ]);
+  trackFirestoreRead(manualSnap.size + rulesSnap.size, "catalogs:touching-fabric");
+  const bySlug = new Map<string, Catalog>();
+  for (const snap of [...manualSnap.docs, ...rulesSnap.docs]) {
+    const catalog = fromRemote(snap.data()) as Catalog;
+    if (!catalog.slug) catalog.slug = snap.id;
+    if (!keep(catalog)) continue;
+    if (catalog.mode === "rules" && !fabricMatchesRules(fabric, catalog.rules ?? {}) && !(catalog.fabricIds ?? []).includes(fabric.id)) continue;
+    bySlug.set(catalog.slug, catalog);
+  }
+  return [...bySlug.values()];
+}
+
 export async function getGlossary(): Promise<GlossaryTerm[]> {
   if (!firebaseAdminConfigured()) return readLocal().glossary;
   return readGlossary();
@@ -486,11 +513,12 @@ async function upsert(collection: string, id: string, value: object) {
 }
 
 export async function saveFabric(fabric: Fabric) {
-  if (firebaseAdminConfigured()) return upsert("fabrics", fabric.id, fabric);
+  const { persisted: _persisted, ...stored } = fabric;
+  if (firebaseAdminConfigured()) return upsert("fabrics", stored.id, stored);
   await mutate((db) => {
-    const index = db.fabrics.findIndex((item) => item.id === fabric.id);
-    if (index >= 0) db.fabrics[index] = fabric;
-    else db.fabrics.push(fabric);
+    const index = db.fabrics.findIndex((item) => item.id === stored.id);
+    if (index >= 0) db.fabrics[index] = stored;
+    else db.fabrics.push(stored);
   });
 }
 

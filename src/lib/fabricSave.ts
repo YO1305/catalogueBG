@@ -22,7 +22,7 @@ export async function persistFabric(session: Session, fabric: Fabric) {
     updatedAt: new Date().toISOString(),
   };
   await saveFabric(next);
-  return { ok: true as const, fabric: next };
+  return { ok: true as const, fabric: { ...next, persisted: true } };
 }
 
 /** Keep a newer saved mockup URL so autosave cannot wipe «Сохранить макет WebP». */

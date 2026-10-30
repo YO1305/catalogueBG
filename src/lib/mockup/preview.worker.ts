@@ -15,7 +15,7 @@ export type PreviewRequest = {
 };
 export type PreviewResponse =
   | { id: number; ok: true; width: number; height: number; buffer: ArrayBuffer }
-  | { id: number; ok: true; blob: Blob }
+  | { id: number; ok: true; web: Blob; thumb: Blob }
   | { id: number; ok: false; error: string; stale?: true };
 
 type Assets = { tpl: TemplateJson; background: RGBA; layers: Record<string, ZoneLayers> };
@@ -69,13 +69,22 @@ async function loadTemplate(jsonUrl: string, backgroundUrl: string): Promise<Ass
   return { tpl, background, layers: Object.fromEntries(zones) };
 }
 
-/** Final mockup as JPEG: every browser can encode it, and the server turns it into WebP sizes. */
-async function encode(image: RGBA): Promise<Blob> {
-  const canvas = new OffscreenCanvas(image.width, image.height);
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("Браузер не дал canvas для сохранения макета");
-  context.putImageData(new ImageData(new Uint8ClampedArray(image.data), image.width, image.height), 0, 0);
-  return canvas.convertToBlob({ type: "image/jpeg", quality: 0.82 });
+async function encodeWebp(image: RGBA, maxEdge: number): Promise<Blob> {
+  const scale = Math.min(1, maxEdge / Math.max(image.width, image.height, 1));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const source = new OffscreenCanvas(image.width, image.height);
+  const sourceCtx = source.getContext("2d");
+  if (!sourceCtx) throw new Error("Браузер не дал canvas для сохранения макета");
+  sourceCtx.putImageData(new ImageData(new Uint8ClampedArray(image.data), image.width, image.height), 0, 0);
+  if (width === image.width && height === image.height) {
+    return source.convertToBlob({ type: "image/webp", quality: 0.9 });
+  }
+  const out = new OffscreenCanvas(width, height);
+  const outCtx = out.getContext("2d");
+  if (!outCtx) throw new Error("Браузер не дал canvas для сохранения макета");
+  outCtx.drawImage(source, 0, 0, width, height);
+  return out.convertToBlob({ type: "image/webp", quality: 0.9 });
 }
 
 function finalScale(tpl: TemplateJson): number {
@@ -95,15 +104,23 @@ async function handle(request: PreviewRequest): Promise<PreviewResponse> {
   if (dropIfStalePreview && id < latestPreviewId) return { id, ok: false, error: "stale", stale: true };
   const outputScale = final ? finalScale(assets.tpl) : (opts.outputScale ?? 0.4);
   const image = renderUvgrid(assets.tpl, assets.background, assets.layers, fill, { ...opts, outputScale });
-  if (final) return { id, ok: true, blob: await encode(image) };
+  if (final) {
+    const [web, thumb] = await Promise.all([encodeWebp(image, 1200), encodeWebp(image, 600)]);
+    return { id, ok: true, web, thumb };
+  }
   const buffer = image.data.buffer as ArrayBuffer;
   return { id, ok: true, width: image.width, height: image.height, buffer };
 }
 
 scope.onmessage = (event: MessageEvent<PreviewRequest>) => {
   const request = event.data;
+  if (request.final) latestPreviewId = Math.max(latestPreviewId, request.id);
   chain = chain.then(async () => {
     try {
+      if (!request.final && request.id < latestPreviewId) {
+        scope.postMessage({ id: request.id, ok: false, error: "stale", stale: true } satisfies PreviewResponse);
+        return;
+      }
       const message = await handle(request);
       if ("buffer" in message && message.ok) {
         scope.postMessage(message, [message.buffer]);
