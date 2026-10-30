@@ -1,4 +1,5 @@
 import { saveFabricAction } from "@/lib/actions";
+import { uploadPublicBlob } from "@/lib/blob/clientUpload";
 import { fillPlan, mockupOptions } from "@/lib/mockup/fill";
 import { renderFinal } from "@/lib/mockup/previewClient";
 import { variantFabric } from "@/lib/variants";
@@ -17,8 +18,8 @@ async function ensureFabricSaved(fabric: Fabric): Promise<Fabric> {
 }
 
 /**
- * ZIP templates are rendered in the browser worker and posted as FormData —
- * no intermediate Blob round-trip (that added ~30–60s per mockup).
+ * Render in the browser, upload JPEG from the client, then a tiny JSON save.
+ * Serverless never sees the file — that was the 504.
  */
 export async function renderAndSave(
   fabric: Fabric,
@@ -44,15 +45,19 @@ export async function renderAndSave(
     50_000,
     "Рендер макета занял слишком долго — нажмите ещё раз",
   );
-  const body = new FormData();
-  body.append("file", blob, "mockup.jpg");
-  body.append("fabricId", persisted.id);
-  if (variantId) body.append("variantId", variantId);
-  body.append("mockup", JSON.stringify(mockup));
+  const sourceUrl = await withTimeout(
+    uploadPublicBlob(`mockups/${persisted.id}/${crypto.randomUUID()}.jpg`, blob),
+    40_000,
+    "Загрузка макета заняла слишком долго — нажмите ещё раз",
+  );
   const response = await withTimeout(
-    fetch("/api/mockups/save", { method: "POST", body }),
-    50_000,
-    "Сервер слишком долго сохраняет WebP — нажмите ещё раз",
+    fetch("/api/mockups/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sourceUrl, fabricId: persisted.id, variantId, mockup }),
+    }),
+    20_000,
+    "Не удалось записать макет — нажмите ещё раз",
   );
   const data = (await response.json().catch(() => ({}))) as Saved;
   if (!response.ok || !data.ok || !data.mockup) throw new Error(data.error ?? `Макет не сохранился: ${response.status}`);
