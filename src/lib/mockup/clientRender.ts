@@ -41,8 +41,8 @@ export async function renderAndSave(
       plan,
       opts: mockupOptions(mockup),
     }),
-    35_000,
-    "Рендер макета занял больше 35 секунд — нажмите ещё раз",
+    50_000,
+    "Рендер макета занял слишком долго — нажмите ещё раз",
   );
   const body = new FormData();
   body.append("file", blob, "mockup.jpg");
@@ -51,7 +51,7 @@ export async function renderAndSave(
   body.append("mockup", JSON.stringify(mockup));
   const response = await withTimeout(
     fetch("/api/mockups/save", { method: "POST", body }),
-    35_000,
+    50_000,
     "Сервер слишком долго сохраняет WebP — нажмите ещё раз",
   );
   const data = (await response.json().catch(() => ({}))) as Saved;

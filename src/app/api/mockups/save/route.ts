@@ -54,14 +54,13 @@ export async function POST(request: Request) {
   const fabric = await getFabric(fabricId);
   if (!fabric) return Response.json({ error: "Ткань не найдена — сохраните черновик" }, { status: 404 });
 
-  const { full, mid, thumb } = await mockupWebpVariants(buffer);
+  const { full, thumb } = await mockupWebpVariants(buffer);
   const id = [fabricId, variantId, settings.templateId, settings.productType, Date.now().toString(36)].filter(Boolean).join("-");
-  const [url, webUrl, thumbUrl] = await Promise.all([
+  const [url, thumbUrl] = await Promise.all([
     saveBuffer(`mockups/${id}.webp`, full, "image/webp"),
-    saveBuffer(`mockups/${id}-1200.webp`, mid, "image/webp"),
     saveBuffer(`mockups/${id}-800.webp`, thumb, "image/webp"),
   ]);
-  const mockup: Mockup = { ...settings, url, webUrl, thumbUrl, engine: "uvgrid", generatedAt: new Date().toISOString() };
+  const mockup: Mockup = { ...settings, url, webUrl: url, thumbUrl, engine: "uvgrid", generatedAt: new Date().toISOString() };
   await saveFabric({ ...placeMockup(fabric, mockup, variantId), updatedAt: new Date().toISOString() });
   return Response.json({ ok: true, mockup });
 }

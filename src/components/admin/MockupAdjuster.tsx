@@ -59,7 +59,7 @@ export function MockupAdjuster({
       await Promise.race([
         onSave(),
         new Promise<never>((_, reject) => {
-          window.setTimeout(() => reject(new Error("Сохранение заняло слишком долго — нажмите ещё раз")), 40_000);
+          window.setTimeout(() => reject(new Error("Сохранение заняло слишком долго — нажмите ещё раз")), 55_000);
         }),
       ]);
       toast(t("designs.mockupSaved"));
