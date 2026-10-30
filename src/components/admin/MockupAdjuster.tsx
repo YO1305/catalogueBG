@@ -30,7 +30,7 @@ export function MockupAdjuster({
   fabric: Fabric;
   template: Template;
   mockup: Mockup;
-  onChange: (mockup: Mockup) => void;
+  onChange: (mockup: Mockup, opts?: { silent?: boolean }) => void;
   onSave: (onProgress?: (step: MockupSaveStep) => void, signal?: AbortSignal) => Promise<number>;
 }) {
   const { t } = useI18n();
@@ -47,7 +47,7 @@ export function MockupAdjuster({
   const scale = setting?.scale ?? 1;
   const rotation = setting?.rotation ?? 0;
 
-  function patch(partial: Partial<NonNullable<typeof setting>>, all = mockup.sameForAllAreas) {
+  function patch(partial: Partial<NonNullable<typeof setting>>, all = mockup.sameForAllAreas, silent = false) {
     const areas = (all ? template.areas : template.areas.filter((area) => area.id === areaId)).map((area) => ({
       areaId: area.id,
       scale: partial.scale ?? setting?.scale ?? 1,
@@ -60,7 +60,7 @@ export function MockupAdjuster({
         areas.find((item) => item.areaId === area.id) ??
         mockup.areas.find((item) => item.areaId === area.id) ?? { areaId: area.id, scale: 1, offsetX: 0, offsetY: 0, rotation: 0 },
     );
-    onChange({ ...mockup, sameForAllAreas: all, areas: merged });
+    onChange({ ...mockup, sameForAllAreas: all, areas: merged }, { silent });
   }
 
   async function saveWebp() {
@@ -93,7 +93,9 @@ export function MockupAdjuster({
   return (
     <div className="border border-ink/10 bg-white p-3">
       <p className="text-sm font-medium">{template.name}</p>
-      {preview.error ? (
+      {!isUvgrid ? (
+        <p className="mt-2 text-sm text-ink/60">{t("wizard.mockupNeedsUvgrid")}</p>
+      ) : preview.error ? (
         <p className="mt-2 text-sm text-red-700" role="alert">
           {t("wizard.mockupPreviewError")}
           <span className="mt-1 block font-mono text-xs">{preview.error}</span>
@@ -114,20 +116,16 @@ export function MockupAdjuster({
         }}
         onPointerMove={(event) => {
           if (!drag.current) return;
-          if (isUvgrid) {
-            const node = canvas.current;
-            const pxPerCm = template.areas.find((a) => a.id === (mockup.sameForAllAreas ? template.areas[0]?.id : areaId))?.pxPerCm ?? 5;
-            const clientW = node?.clientWidth ?? 1000;
-            const cmPerPx = template.source.widthPx / clientW / pxPerCm;
-            const dx = (event.clientX - drag.current.x) * cmPerPx;
-            const dy = (event.clientY - drag.current.y) * cmPerPx;
-            patch({ offsetX: drag.current.ox + dx, offsetY: drag.current.oy + dy });
-            return;
-          }
-          patch({ offsetX: drag.current.ox + event.clientX - drag.current.x, offsetY: drag.current.oy + event.clientY - drag.current.y });
+          const pxPerCm = template.areas.find((a) => a.id === (mockup.sameForAllAreas ? template.areas[0]?.id : areaId))?.pxPerCm ?? 5;
+          const cmPerPx = template.source.widthPx / (canvas.current?.clientWidth ?? 1000) / pxPerCm;
+          patch({
+            offsetX: drag.current.ox + (event.clientX - drag.current.x) * cmPerPx,
+            offsetY: drag.current.oy + (event.clientY - drag.current.y) * cmPerPx,
+          }, mockup.sameForAllAreas, true);
         }}
         onPointerUp={() => {
           drag.current = null;
+          onChange({ ...mockup });
         }}
       />
       <label className="mt-3 block text-xs uppercase text-ink/50">{t("wizard.zone")}</label>
@@ -140,7 +138,16 @@ export function MockupAdjuster({
       <label className="mt-3 block text-xs uppercase text-ink/50">{t("wizard.scale")}</label>
       <div className="flex items-center gap-2">
         <span className="text-xs">×0.1</span>
-        <input className="flex-1" type="range" min={0} max={1} step={0.001} value={scaleToSlider(scale)} onChange={(event) => patch({ scale: sliderToScale(Number(event.target.value)) })} />
+        <input
+          className="flex-1"
+          type="range"
+          min={0}
+          max={1}
+          step={0.001}
+          value={scaleToSlider(scale)}
+          onChange={(event) => patch({ scale: sliderToScale(Number(event.target.value)) }, mockup.sameForAllAreas, true)}
+          onPointerUp={() => onChange({ ...mockup })}
+        />
         <span className="text-xs">×10</span>
         <Input className="w-20" type="number" min={0.1} max={10} step={0.05} value={scale} onChange={(event) => patch({ scale: Number(event.target.value) })} />
       </div>
@@ -159,7 +166,8 @@ export function MockupAdjuster({
           max={360}
           step={1}
           value={rotation}
-          onChange={(event) => patch({ rotation: Number(event.target.value) })}
+          onChange={(event) => patch({ rotation: Number(event.target.value) }, mockup.sameForAllAreas, true)}
+          onPointerUp={() => onChange({ ...mockup })}
         />
         <span className="text-xs">360°</span>
         <Input

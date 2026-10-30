@@ -1,10 +1,101 @@
 import "server-only";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { firebaseAdminConfigured, getAdminApp } from "@/lib/firebaseAdmin";
-import { trackFirestoreWrite } from "@/lib/firestoreMetrics";
+import type { CatalogStats } from "@/lib/analytics";
+import { trackFirestoreRead, trackFirestoreWrite } from "@/lib/firestoreMetrics";
 import type { AnalyticsEvent } from "@/types";
 
 const FLUSH_MS = 5 * 60 * 1000;
+const RANGE_CAP = 62;
+
+export type CatalogDayStat = {
+  catalogSlug: string;
+  day: string;
+  open?: number;
+  page?: number;
+  zoom?: number;
+  unique?: number;
+  fabric_open?: number;
+  fabrics?: Record<string, number>;
+};
+
+export function defaultStatsRange(from?: string, to?: string): { from: string; to: string } {
+  const iso = (value?: string) => (value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "");
+  const today = new Date();
+  const start = new Date(today);
+  start.setUTCDate(start.getUTCDate() - 29);
+  let a = iso(from) || start.toISOString().slice(0, 10);
+  let b = iso(to) || today.toISOString().slice(0, 10);
+  if (a > b) [a, b] = [b, a];
+  return { from: a, to: b };
+}
+
+export function eachDayInclusive(from: string, to: string): string[] {
+  const days: string[] = [];
+  const cursor = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${to}T00:00:00Z`);
+  if (Number.isNaN(cursor.getTime()) || Number.isNaN(end.getTime())) return days;
+  while (cursor <= end && days.length < RANGE_CAP) {
+    days.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return days;
+}
+
+export function summarizeDayStats(days: CatalogDayStat[], leadCount: number): CatalogStats {
+  let opens = 0;
+  let unique = 0;
+  let pages = 0;
+  let zooms = 0;
+  const byFabric = new Map<string, number>();
+  for (const day of days) {
+    opens += day.open ?? 0;
+    unique += day.unique ?? 0;
+    pages += day.page ?? 0;
+    zooms += day.zoom ?? 0;
+    for (const [id, count] of Object.entries(day.fabrics ?? {})) {
+      byFabric.set(id, (byFabric.get(id) ?? 0) + count);
+    }
+  }
+  const top = [...byFabric.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([fabricId, count]) => ({ fabricId, count }));
+  return {
+    opens,
+    unique,
+    avgPages: opens ? Math.round((pages / opens) * 10) / 10 : 0,
+    zooms,
+    leads: leadCount,
+    conversion: unique ? Math.round((leadCount / unique) * 1000) / 10 : 0,
+    top,
+  };
+}
+
+export async function listCatalogDayStats(slug: string, from: string, to: string): Promise<CatalogDayStat[]> {
+  if (!firebaseAdminConfigured()) return [];
+  const app = getAdminApp();
+  if (!app) return [];
+  const db = getFirestore(app);
+  const refs = eachDayInclusive(from, to).map((day) => db.collection("stats").doc(`${slug}_${day}`));
+  if (!refs.length) return [];
+  const chunks: Array<typeof refs> = [];
+  for (let i = 0; i < refs.length; i += 100) chunks.push(refs.slice(i, i + 100));
+  const snaps = (await Promise.all(chunks.map((chunk) => db.getAll(...chunk)))).flat();
+  trackFirestoreRead(snaps.length, "stats:days");
+  return snaps.flatMap((snap) => {
+    if (!snap.exists) return [];
+    const data = snap.data() as CatalogDayStat;
+    const underscore = snap.id.lastIndexOf("_");
+    return [
+      {
+        ...data,
+        catalogSlug: data.catalogSlug ?? slug,
+        day: data.day ?? snap.id.slice(underscore + 1),
+      },
+    ];
+  });
+}
 
 type Pending = {
   counts: Partial<Record<AnalyticsEvent["type"], number>>;

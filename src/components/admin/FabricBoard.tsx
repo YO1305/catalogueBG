@@ -24,7 +24,8 @@ export function FabricBoard({
   fabricTypes,
   productTypes: _productTypes,
   catalogs: _catalogs,
-  page = 1,
+  cursor = null,
+  nextCursor = null,
   hasMore = false,
 }: {
   kind: FabricKind;
@@ -34,7 +35,8 @@ export function FabricBoard({
   fabricTypes: FabricType[];
   productTypes: ProductType[];
   catalogs: Catalog[];
-  page?: number;
+  cursor?: string | null;
+  nextCursor?: string | null;
   hasMore?: boolean;
 }) {
   const { lang, t } = useI18n();
@@ -72,14 +74,13 @@ export function FabricBoard({
       />
       <FabricKindTabs value={kind} counts={counts} />
       <div className="mb-4 flex items-center justify-end gap-2 text-sm">
-        <span className="font-mono text-ink/60">{t("catalog.of", { current: page, total: hasMore ? page + 1 : page })}</span>
-        {page > 1 ? (
-          <Link href={`/admin/fabrics?kind=${kind}&page=${page - 1}`} className="underline">
+        {cursor ? (
+          <Link href={`/admin/fabrics?kind=${kind}`} className="underline">
             {t("common.back")}
           </Link>
         ) : null}
-        {hasMore ? (
-          <Link href={`/admin/fabrics?kind=${kind}&page=${page + 1}`} className="underline">
+        {hasMore && nextCursor ? (
+          <Link href={`/admin/fabrics?kind=${kind}&cursor=${encodeURIComponent(nextCursor)}`} className="underline">
             {t("common.next")}
           </Link>
         ) : null}

@@ -16,13 +16,15 @@ export function CatalogList({
   catalogs,
   fabrics,
   role,
-  page = 1,
+  cursor = null,
+  nextCursor = null,
   hasMore = false,
 }: {
   catalogs: Catalog[];
   fabrics: Fabric[];
   role: Role;
-  page?: number;
+  cursor?: string | null;
+  nextCursor?: string | null;
   hasMore?: boolean;
 }) {
   const { t } = useI18n();
@@ -59,14 +61,13 @@ export function CatalogList({
       />
       {!catalogs.length ? <p className="mt-6 text-sm text-ink/60">{t("catalogs.emptyList")}</p> : null}
       <div className="mb-4 flex items-center justify-end gap-2 text-sm">
-        <span className="font-mono text-ink/60">{t("catalog.of", { current: page, total: hasMore ? page + 1 : page })}</span>
-        {page > 1 ? (
-          <Link href={`/admin/catalogs?page=${page - 1}`} className="underline">
+        {cursor ? (
+          <Link href="/admin/catalogs" className="underline">
             {t("common.back")}
           </Link>
         ) : null}
-        {hasMore ? (
-          <Link href={`/admin/catalogs?page=${page + 1}`} className="underline">
+        {hasMore && nextCursor ? (
+          <Link href={`/admin/catalogs?cursor=${encodeURIComponent(nextCursor)}`} className="underline">
             {t("common.next")}
           </Link>
         ) : null}

@@ -129,6 +129,8 @@ export type Fabric = {
   design: FabricDesign;
   realPhotos: Photo[];
   mockups: Mockup[];
+  /** Template ids from mockups + variants, for rebuild queries. */
+  templateIds?: string[];
   /** Название цвета основного рисунка, показывается рядом с вариантами */
   colorName?: string;
   /** Тот же дизайн в других цветах; макеты строятся с настройками основных */

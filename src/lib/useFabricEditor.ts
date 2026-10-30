@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createCollectionAction, createFabricTypeAction, createFinishAction, createProductTypeAction, publishFabricAction, saveFabricAction } from "@/lib/actions";
+import { fabricAutosaveHash } from "@/lib/fabricAutosaveHash";
 import { autoFabricColor } from "@/lib/mockup/fabricColor";
 import { FABRIC_PRODUCT } from "@/lib/mockup/constants";
 import { DEFAULT_CORRECTION } from "@/lib/mockup/weave";
@@ -31,6 +32,7 @@ export function useFabricEditor(
   const dirty = useRef(false);
   const autosaving = useRef(false);
   const fabricRef = useRef(fabric);
+  const lastSavedHash = useRef(fabricAutosaveHash(initial));
   fabricRef.current = fabric;
 
   const { collections, fabricTypes, finishes, productTypes } = listsIn;
@@ -62,6 +64,11 @@ export function useFabricEditor(
   useEffect(() => {
     const timer = window.setInterval(() => {
       if (!dirty.current || autosaving.current || !fabricRef.current.art || mockupsBusy.current) return;
+      const hash = fabricAutosaveHash(fabricRef.current);
+      if (hash === lastSavedHash.current) {
+        dirty.current = false;
+        return;
+      }
       dirty.current = false;
       autosaving.current = true;
       void fetch("/api/fabrics/autosave", {
@@ -69,13 +76,17 @@ export function useFabricEditor(
         headers: { "content-type": "application/json" },
         body: JSON.stringify(fabricRef.current),
       })
+        .then((response) => {
+          if (!response.ok) throw new Error("autosave");
+          lastSavedHash.current = hash;
+        })
         .catch(() => {
           dirty.current = true;
         })
         .finally(() => {
           autosaving.current = false;
         });
-    }, 8000);
+    }, 30_000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -188,6 +199,7 @@ export function useFabricEditor(
     if (!result.ok) return { ok: false as const, reason: "art" as const };
     dirty.current = false;
     fabricRef.current = { ...result.fabric, persisted: true };
+    lastSavedHash.current = fabricAutosaveHash(fabricRef.current);
     setFabric((current) => ({ ...current, persisted: true }));
     return { ok: true as const, id: fabricRef.current.id };
   }
@@ -200,6 +212,7 @@ export function useFabricEditor(
     if (!result.ok) return { ok: false as const, reason: "art" as const };
     dirty.current = false;
     fabricRef.current = { ...fabricRef.current, persisted: true };
+    lastSavedHash.current = fabricAutosaveHash(fabricRef.current);
     setFabric((current) => ({ ...current, persisted: true }));
     void mockupJobs
       .run(undefined, {

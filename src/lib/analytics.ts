@@ -10,6 +10,10 @@ export type CatalogStats = {
   top: Array<{ fabricId: string; count: number }>;
 };
 
+export function emptyCatalogStats(): CatalogStats {
+  return { opens: 0, unique: 0, avgPages: 0, zooms: 0, leads: 0, conversion: 0, top: [] };
+}
+
 export function summarizeCatalog(slug: string, events: AnalyticsEvent[], leads: Lead[]): CatalogStats {
   const mine = events.filter((event) => event.catalogSlug === slug);
   const opens = mine.filter((event) => event.type === "open");

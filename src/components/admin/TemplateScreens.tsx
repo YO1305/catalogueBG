@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { MeshEditor } from "@/components/mockup/MeshEditor";
+import { TemplateRebuildButton } from "@/components/admin/TemplateRebuildButton";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Input, Label } from "@/components/ui/field";
@@ -13,7 +14,6 @@ import type { ProductType, Template, TemplateArea } from "@/types";
 
 export function TemplateList({ templates, products }: { templates: Template[]; products: ProductType[] }) {
   const { lang, t } = useI18n();
-  const router = useRouter();
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -28,12 +28,7 @@ export function TemplateList({ templates, products }: { templates: Template[]; p
             <p className="text-sm text-ink/60">{template.productTypes.map((id) => products.find((item) => item.id === id)?.name[lang] ?? id).join(", ")}</p>
             <p className="mt-1 text-sm">{template.compatibility.ok ? t("templates.compatOk") : t("templates.compatWarn")}</p>
             {template.isDefault ? <p className="text-xs uppercase text-gold">{t("templates.default")}</p> : null}
-            <Button type="button" className="mt-3" variant="outline" onClick={async () => {
-              const response = await fetch("/api/mockups/render", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ templateId: template.id }) });
-              const data = (await response.json()) as { count?: number };
-              toast(t("templates.rebuildDone", { count: data.count ?? 0 }));
-              router.refresh();
-            }}>{t("templates.rebuild")}</Button>
+            <TemplateRebuildButton template={template} />
           </article>
         ))}
       </div>
