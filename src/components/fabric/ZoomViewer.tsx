@@ -25,6 +25,8 @@ export function ZoomViewer({
   const [tile, setTile] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const onZoomedRef = useRef(onZoomed);
+  onZoomedRef.current = onZoomed;
   const [ruler, setRuler] = useState(48);
 
   useEffect(() => {
@@ -34,13 +36,13 @@ export function ZoomViewer({
       event.preventDefault();
       setZoom((current) => {
         const next = Math.min(4, Math.max(1, current * (event.deltaY < 0 ? 1.08 : 0.92)));
-        if (next > 1.4) onZoomed?.();
+        if (next > 1.4) onZoomedRef.current?.();
         return Math.round(next * 100) / 100;
       });
     };
     node.addEventListener("wheel", onWheel, { passive: false });
     return () => node.removeEventListener("wheel", onWheel);
-  }, [onZoomed]);
+  }, []);
 
   useEffect(() => {
     const width = imageRef.current?.getBoundingClientRect().width ?? 240;

@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { getFirestore, type DocumentData, type Firestore, Timestamp } from "firebase-admin/firestore";
 import { firebaseAdminConfigured, getAdminApp } from "@/lib/firebaseAdmin";
+import { recordCatalogDayStats } from "@/lib/catalogDayStats";
 import { trackFirestoreDelete, trackFirestoreRead, trackFirestoreWrite } from "@/lib/firestoreMetrics";
 import { withDefaultFinishes } from "@/lib/finishes";
 import type { AnalyticsEvent, AppUser, Catalog, Collection, Database, Fabric, FabricType, Finish, GlossaryTerm, Lead, ProductType, Template } from "@/types";
@@ -671,17 +672,7 @@ export async function saveLead(item: Lead) {
 }
 
 export async function saveEvents(items: AnalyticsEvent[]) {
-  if (firebaseAdminConfigured()) {
-    const batch = firestore().batch();
-    for (const item of items) batch.set(firestore().collection("events").doc(item.id), toRemote(item) as DocumentData);
-    await batch.commit();
-    trackFirestoreWrite(items.length, "batch:events");
-    return;
-  }
-  await mutate((db) => {
-    db.events.push(...items);
-    if (db.events.length > 5000) db.events = db.events.slice(-5000);
-  });
+  await recordCatalogDayStats(items);
 }
 
 export async function saveGlossary(terms: GlossaryTerm[]) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Heart, Share2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FabricModalGallery } from "@/components/fabric/FabricModalGallery";
 import { SpecsTable } from "@/components/fabric/SpecsTable";
 import { useI18n } from "@/components/i18n/I18n";
@@ -64,16 +64,26 @@ export function FabricModal({
     t("admin.product");
   const index = fabrics.findIndex((item) => item.id === fabric.id);
   const typeName = fabricTypes.find((item) => item.id === fabric.fabricTypeId)?.name[lang] ?? "";
+  const onCloseRef = useRef(onClose);
+  const onPickRef = useRef(onPick);
+  const fabricsRef = useRef(fabrics);
+  const indexRef = useRef(index);
+  onCloseRef.current = onClose;
+  onPickRef.current = onPick;
+  fabricsRef.current = fabrics;
+  indexRef.current = index;
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-      if (event.key === "ArrowLeft" && fabrics[index - 1]) onPick(fabrics[index - 1]!.id);
-      if (event.key === "ArrowRight" && fabrics[index + 1]) onPick(fabrics[index + 1]!.id);
+      if (event.key === "Escape") onCloseRef.current();
+      const list = fabricsRef.current;
+      const at = indexRef.current;
+      if (event.key === "ArrowLeft" && list[at - 1]) onPickRef.current(list[at - 1]!.id);
+      if (event.key === "ArrowRight" && list[at + 1]) onPickRef.current(list[at + 1]!.id);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [fabrics, index, onClose, onPick]);
+  }, []);
 
   return (
     <div

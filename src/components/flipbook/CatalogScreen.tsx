@@ -49,18 +49,8 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   const zoomed = useRef(new Set<string>());
   const sessionId = useRef("");
   const pageRef = useRef(page);
+  const applyPageRef = useRef<(index: number) => void>(() => undefined);
   pageRef.current = page;
-  function applyPage(index: number) {
-    pageRef.current = index;
-    setPage(index);
-    const url = `${location.pathname}${location.search}#p${index + 1}`;
-    history.replaceState(null, "", url);
-    void fetch("/api/event", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ events: [{ catalogSlug: model.catalog.slug, type: "page", page: index + 1, sessionId: sessionId.current, ts: new Date().toISOString() }] }),
-    });
-  }
 
   // Classic catalog pages on computer; remobile only on phone (<768).
   const pages = useMemo(
@@ -91,12 +81,17 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
         return;
       }
       flip?.turnToPage(index);
-      applyPage(index);
+      applyPageRef.current(index);
     },
     [box.portrait, pages.length, reduced],
   );
 
-  useCatalogChrome({
+  const onBox = useCallback((next: { w: number; h: number; portrait: boolean }) => {
+    setBox(next);
+    setChromeReady(true);
+  }, []);
+  const onStepFlip = useCallback((delta: number) => flipTo(pageRef.current + delta, true), [flipTo]);
+  const track = useCatalogChrome({
     slug: model.catalog.slug,
     pageCount: pages.length,
     api,
@@ -104,12 +99,20 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
     sessionId,
     setPage,
     setReduced,
-    setBox: (next) => {
-      setBox(next);
-      setChromeReady(true);
-    },
-    onStepFlip: (delta) => flipTo(pageRef.current + delta, true),
+    setBox: onBox,
+    onStepFlip,
   });
+
+  const applyPage = useCallback(
+    (index: number) => {
+      pageRef.current = index;
+      setPage(index);
+      history.replaceState(null, "", `${location.pathname}${location.search}#p${index + 1}`);
+      track({ type: "page", page: index + 1 });
+    },
+    [track],
+  );
+  applyPageRef.current = applyPage;
 
   function go(delta: number) {
     flipTo(pageRef.current + delta, !box.portrait);
@@ -117,18 +120,16 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
   function turn(index: number) {
     flipTo(index, Math.abs(index - pageRef.current) === 1);
   }
-  function openFabric(id: string, variantId?: string) {
-    setOpenId(id);
-    setOpenVariant(variantId);
-    const fabric = model.fabrics.find((item) => item.id === id);
-    const url = `/c/${model.catalog.slug}/d/${fabric?.art ?? id}`;
-    history.replaceState(null, "", url);
-    void fetch("/api/event", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ events: [{ catalogSlug: model.catalog.slug, type: "fabric_open", fabricId: id, sessionId: sessionId.current, ts: new Date().toISOString() }] }),
-    });
-  }
+  const openFabric = useCallback(
+    (id: string, variantId?: string) => {
+      setOpenId(id);
+      setOpenVariant(variantId);
+      const fabric = model.fabrics.find((item) => item.id === id);
+      history.replaceState(null, "", `/c/${model.catalog.slug}/d/${fabric?.art ?? id}`);
+      track({ type: "fabric_open", fabricId: id });
+    },
+    [model.catalog.slug, model.fabrics, track],
+  );
   function requestSample(id: string) {
     setRequestId(id);
     setLead(true);
@@ -220,7 +221,7 @@ function Screen({ model, initialPage, initialArt }: { model: BookModel; initialP
           onZoomed={() => {
             if (zoomed.current.has(opened.id)) return;
             zoomed.current.add(opened.id);
-            void fetch("/api/event", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ events: [{ catalogSlug: model.catalog.slug, type: "zoom", fabricId: opened.id, sessionId: sessionId.current, ts: new Date().toISOString() }] }) });
+            track({ type: "zoom", fabricId: opened.id });
           }}
           onShare={() => {
             const link = `${location.origin}/c/${model.catalog.slug}/d/${opened.art}`;
