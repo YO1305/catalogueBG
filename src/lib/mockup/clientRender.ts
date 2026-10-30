@@ -56,7 +56,7 @@ export async function renderAndSave(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sourceUrl, fabricId: persisted.id, variantId, mockup }),
     }),
-    20_000,
+    45_000,
     "Не удалось записать макет — нажмите ещё раз",
   );
   const data = (await response.json().catch(() => ({}))) as Saved;

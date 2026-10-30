@@ -5,7 +5,7 @@ import { placeMockup } from "@/lib/variants";
 import type { Mockup } from "@/types";
 
 export const runtime = "nodejs";
-export const maxDuration = 15;
+export const maxDuration = 60;
 
 /** Browser already uploaded the JPEG; here we only attach the URL to the fabric. */
 export async function POST(request: Request) {
