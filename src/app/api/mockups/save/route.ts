@@ -1,5 +1,6 @@
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getSession } from "@/lib/auth";
-import { getFabric, saveFabric } from "@/lib/db";
+import { getCatalogs, getFabric, saveFabric } from "@/lib/db";
 import { canEditFabrics, isAdmin } from "@/lib/roles";
 import { placeMockup } from "@/lib/variants";
 import type { Mockup } from "@/types";
@@ -37,5 +38,11 @@ export async function POST(request: Request) {
   };
   const variantId = String(body.variantId ?? "") || undefined;
   await saveFabric({ ...placeMockup(fabric, mockup, variantId), updatedAt: new Date().toISOString() });
+  const catalogs = await getCatalogs();
+  for (const catalog of catalogs) {
+    if (catalog.status === "archived") continue;
+    revalidateTag(`catalog-${catalog.slug}`);
+    revalidatePath(`/c/${catalog.slug}`);
+  }
   return Response.json({ ok: true, mockup });
 }

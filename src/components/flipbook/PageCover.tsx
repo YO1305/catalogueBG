@@ -4,6 +4,7 @@ import { useI18n } from "@/components/i18n/I18n";
 import { catalogCoverKicker } from "@/lib/catalogCoverKicker";
 import { resolveCoverTypography } from "@/lib/catalogCoverTypography";
 import { coverStyle } from "@/lib/catalogThemes";
+import { publicMediaSrc } from "@/lib/publicMedia";
 import type { Catalog } from "@/types";
 
 export function PageCover({ catalog, coverImage }: { catalog: Catalog; coverImage?: string }) {
@@ -25,7 +26,7 @@ export function PageCover({ catalog, coverImage }: { catalog: Catalog; coverImag
     return (
       <div className="relative h-full overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={publicMediaSrc(image, 1920)} alt="" className="absolute inset-0 h-full w-full object-cover" />
         {dim > 0 ? <div className="absolute inset-0 bg-black" style={{ opacity: dim }} aria-hidden /> : null}
         <div className="absolute inset-x-[8%] whitespace-pre-wrap" style={{ top: `${typo.kickerTopPct}%`, color: onPhotoAccent, fontWeight: typo.kickerWeight }}>
           <span className="text-[0.78em] uppercase tracking-[0.28em]">{kicker}</span>

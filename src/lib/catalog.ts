@@ -2,6 +2,7 @@ import { isDesignCatalog } from "@/lib/catalogKind";
 import { catalogFabricIdOrder, catalogHasManualSections } from "@/lib/catalogSections";
 import { fabricKind } from "@/lib/fabricKind";
 import { FABRIC_PRODUCT } from "@/lib/mockup/constants";
+import { renderedMockupSrc } from "@/lib/publicMedia";
 import type { BuiltPage, Catalog, CatalogRules, Fabric, Mockup } from "@/types";
 
 export function fabricMatchesRules(fabric: Fabric, rules: CatalogRules) {
@@ -56,7 +57,7 @@ export function primaryFabricMockup(fabric: Fabric): Mockup | undefined {
 }
 
 export function mockupIsSaved(mockup: Mockup | undefined): boolean {
-  return Boolean(mockup?.webUrl || mockup?.url);
+  return Boolean(renderedMockupSrc(mockup));
 }
 
 /** Достаточно сохранённого мокапа ткани или изделия — для публикации и каталога. */
@@ -70,9 +71,9 @@ export function hasSavedCatalogMockup(fabric: Fabric): boolean {
 /** Мокап изделия (КПБ, курпача…) — для списка страниц журнала, не мокап «ткани». */
 export function catalogProductCoverMockup(fabric: Fabric, showProductTypes: string[]): Mockup | undefined {
   const hero = heroMockup(fabric, showProductTypes);
-  if (hero && hero.productType !== FABRIC_PRODUCT && (hero.url || hero.webUrl)) return hero;
+  if (hero && hero.productType !== FABRIC_PRODUCT && renderedMockupSrc(hero)) return hero;
   return visibleMockups(fabric, showProductTypes).find(
-    (mockup) => mockup.productType !== FABRIC_PRODUCT && (mockup.url || mockup.webUrl),
+    (mockup) => mockup.productType !== FABRIC_PRODUCT && renderedMockupSrc(mockup),
   );
 }
 
@@ -83,14 +84,14 @@ export function catalogDesignPreviewSrc(fabric: Fabric, catalog: Catalog, showPr
     return fabric.design.webUrl || fabric.design.thumbUrl || "";
   }
   const mockup = catalogCoverMockup(fabric, showProductTypes);
-  return mockup?.url || mockup?.webUrl || fabric.design.webUrl || fabric.design.thumbUrl || "";
+  return renderedMockupSrc(mockup) || fabric.design.webUrl || fabric.design.thumbUrl || "";
 }
 
 export function catalogCoverMockup(fabric: Fabric, showProductTypes: string[]): Mockup | undefined {
   const product = catalogProductCoverMockup(fabric, showProductTypes);
   if (product) return product;
   const fabricHero = primaryFabricMockup(fabric);
-  if (fabricHero?.url || fabricHero?.webUrl) return fabricHero;
+  if (renderedMockupSrc(fabricHero)) return fabricHero;
   return heroMockup(fabric, showProductTypes);
 }
 
@@ -110,13 +111,13 @@ export function modalFabricView(fabric: Fabric, showFlatDesign: boolean, catalog
   }
   const kind = fabricKind(fabric);
   const primary = primaryFabricMockup(fabric);
-  if (primary?.url || primary?.webUrl) {
-    const src = primary.url || primary.webUrl || "";
-    return { src, thumb: primary.thumbUrl || primary.webUrl || primary.url || src, seamless: false };
+  const primarySrc = renderedMockupSrc(primary);
+  if (primary && primarySrc) {
+    return { src: primarySrc, thumb: primary.thumbUrl || primary.webUrl || primary.url || primarySrc, seamless: false };
   }
-  const anyFabric = fabricMockups(fabric).find((mockup) => mockup.url || mockup.webUrl);
+  const anyFabric = fabricMockups(fabric).find((mockup) => renderedMockupSrc(mockup));
   if (anyFabric) {
-    const src = anyFabric.url || anyFabric.webUrl || "";
+    const src = renderedMockupSrc(anyFabric);
     return { src, thumb: anyFabric.thumbUrl || anyFabric.webUrl || anyFabric.url || src, seamless: false };
   }
   if (showFlatDesign && kind === "printed" && fabric.design.webUrl) {

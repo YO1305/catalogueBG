@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { ZoomViewer } from "@/components/fabric/ZoomViewer";
 import { fabricModalScaleFactor, fabricModalTileStyle } from "@/lib/fabricModalLayout";
+import { publicMediaSrc } from "@/lib/publicMedia";
 
 function MediaTile({ label, tileStyle, children }: { label: string; tileStyle: CSSProperties; children: React.ReactNode }) {
   return (
@@ -49,7 +50,7 @@ export function FabricModalGallery({
         {productSrc ? (
           <MediaTile label={productLabel} tileStyle={tileStyle}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={productSrc} alt={productLabel} className="h-full w-full object-contain" />
+            <img src={publicMediaSrc(productSrc, 1200)} alt={productLabel} className="h-full w-full object-contain" />
           </MediaTile>
         ) : null}
       </div>

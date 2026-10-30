@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/components/i18n/I18n";
+import { publicMediaSrc } from "@/lib/publicMedia";
 
 export function ZoomViewer({
   src,
@@ -19,6 +20,7 @@ export function ZoomViewer({
   chrome?: "full" | "minimal";
 }) {
   const { t } = useI18n();
+  const media = publicMediaSrc(src, 1200);
   const [zoom, setZoom] = useState(1);
   const [tile, setTile] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -52,11 +54,11 @@ export function ZoomViewer({
           role="img"
           aria-label={alt}
           className="h-full w-full"
-          style={{ backgroundImage: `url(${src})`, backgroundRepeat: "repeat", backgroundSize: `${100 / 3}%`, transform: `scale(${zoom})` }}
+          style={{ backgroundImage: `url(${media})`, backgroundRepeat: "repeat", backgroundSize: `${100 / 3}%`, transform: `scale(${zoom})` }}
         />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
-        <img ref={imageRef} src={src} alt={alt} className="h-full w-full object-contain" style={{ transform: `scale(${zoom})` }} />
+        <img ref={imageRef} src={media} alt={alt} className="h-full w-full object-contain" style={{ transform: `scale(${zoom})` }} />
       )}
       {chrome === "full" ? (
         <>
