@@ -1,7 +1,7 @@
 import { saveFabricAction } from "@/lib/actions";
 import { uploadPublicBlob } from "@/lib/blob/clientUpload";
 import { fillPlan, mockupOptions } from "@/lib/mockup/fill";
-import { renderFinal } from "@/lib/mockup/previewClient";
+import { abortRenderers, renderFinal } from "@/lib/mockup/previewClient";
 import { variantFabric } from "@/lib/variants";
 import type { Fabric, Mockup, Template } from "@/types";
 
@@ -18,15 +18,15 @@ async function ensureFabricSaved(fabric: Fabric): Promise<Fabric> {
 }
 
 /**
- * Render in the browser, upload JPEG from the client, then a tiny JSON save.
- * Serverless never sees the file — that was the 504.
+ * Prefer the on-screen preview JPEG (already drawn). Only re-render in the worker
+ * when the canvas was empty — that used to take 15–20s and freeze the button.
  */
 export async function renderAndSave(
   fabric: Fabric,
   template: Template,
   mockup: Mockup,
   variantId?: string,
-  opts?: { persisted?: Fabric },
+  opts?: { persisted?: Fabric; jpeg?: Blob },
 ): Promise<{ mockup: Mockup; fabric: Fabric }> {
   const persisted = opts?.persisted ?? (await ensureFabricSaved(fabric));
   const variant = variantId ? persisted.variants?.find((item) => item.id === variantId) : undefined;
@@ -35,19 +35,23 @@ export async function renderAndSave(
   if (template.engine !== "uvgrid" || !template.baked.jsonUrl) return renderOnServer(persisted, template, mockup, variantId);
   const plan = fillPlan(source);
   if (!plan) throw new Error("Нет рисунка или цвета ткани для макета");
-  const blob = await withTimeout(
-    renderFinal({
-      jsonUrl: template.baked.jsonUrl,
-      backgroundUrl: template.baked.backgroundUrl,
-      plan,
-      opts: mockupOptions(mockup),
-    }),
-    50_000,
-    "Рендер макета занял слишком долго — нажмите ещё раз",
-  );
+  const blob =
+    opts?.jpeg && opts.jpeg.size > 0
+      ? opts.jpeg
+      : await withTimeout(
+          renderFinal({
+            jsonUrl: template.baked.jsonUrl,
+            backgroundUrl: template.baked.backgroundUrl,
+            plan,
+            opts: mockupOptions(mockup),
+          }),
+          20_000,
+          "Рендер макета занял слишком долго — нажмите ещё раз",
+          true,
+        );
   const sourceUrl = await withTimeout(
     uploadPublicBlob(`mockups/${persisted.id}/${crypto.randomUUID()}.jpg`, blob),
-    40_000,
+    20_000,
     "Загрузка макета заняла слишком долго — нажмите ещё раз",
   );
   const response = await withTimeout(
@@ -56,7 +60,7 @@ export async function renderAndSave(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sourceUrl, fabricId: persisted.id, variantId, mockup }),
     }),
-    45_000,
+    20_000,
     "Не удалось записать макет — нажмите ещё раз",
   );
   const data = (await response.json().catch(() => ({}))) as Saved;
@@ -64,9 +68,12 @@ export async function renderAndSave(
   return { mockup: data.mockup, fabric: persisted };
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string, abortWorker = false): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timer = window.setTimeout(() => reject(new Error(message)), ms);
+    const timer = window.setTimeout(() => {
+      if (abortWorker) abortRenderers();
+      reject(new Error(message));
+    }, ms);
     promise.then(
       (value) => {
         window.clearTimeout(timer);

@@ -25,7 +25,7 @@ const templates = new Map<string, Promise<Assets>>();
 const images = new Map<string, Promise<RGBA>>();
 const KEEP_TEMPLATES = 2;
 const KEEP_IMAGES = 6;
-/** Long edge for save — 1200 px matches catalogue cards and keeps render near 15s. */
+/** Long edge for worker fallback. Click-save uses the on-screen preview instead. */
 const FINAL_MAX_EDGE = 1200;
 
 let latestPreviewId = 0;

@@ -25,11 +25,15 @@ export async function persistFabric(session: Session, fabric: Fabric) {
   return { ok: true as const, fabric: next };
 }
 
-/** Keep server-rendered WebP URLs when the editor still holds the template thumbnail for an unchanged mockup. */
+/** Keep a newer saved mockup URL so autosave cannot wipe «Сохранить макет WebP». */
 function mergeRenderedMockups(incoming: Fabric["mockups"], stored: Fabric["mockups"]): Fabric["mockups"] {
   return incoming.map((mockup) => {
     const saved = stored.find((item) => item.templateId === mockup.templateId && item.productType === mockup.productType);
-    if (!saved?.webUrl || mockup.webUrl) return mockup;
+    if (!saved?.webUrl) return mockup;
+    if (saved.generatedAt && (!mockup.generatedAt || saved.generatedAt > mockup.generatedAt)) {
+      return { ...mockup, url: saved.url, webUrl: saved.webUrl, thumbUrl: saved.thumbUrl, generatedAt: saved.generatedAt, engine: saved.engine };
+    }
+    if (mockup.webUrl) return mockup;
     if (JSON.stringify(saved.areas) !== JSON.stringify(mockup.areas) || saved.sameForAllAreas !== mockup.sameForAllAreas) return mockup;
     return { ...mockup, url: saved.url, webUrl: saved.webUrl, thumbUrl: saved.thumbUrl, generatedAt: saved.generatedAt, engine: saved.engine };
   });

@@ -5,9 +5,19 @@ import { toast } from "sonner";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
+import { abortRenderers } from "@/lib/mockup/previewClient";
 import { useMockupPreview } from "@/lib/mockup/useMockupPreview";
 import { SCALE_PRESETS, scaleToSlider, sliderToScale } from "@/lib/mockupMath";
 import type { Fabric, Mockup, Template } from "@/types";
+
+function jpegFromCanvas(node: HTMLCanvasElement | null): Promise<Blob | undefined> {
+  if (!node || node.width < 200 || node.height < 200) return Promise.resolve(undefined);
+  const pixel = node.getContext("2d")?.getImageData(Math.floor(node.width / 2), Math.floor(node.height / 2), 1, 1).data;
+  if (!pixel || pixel[3] === 0) return Promise.resolve(undefined);
+  return new Promise((resolve) => {
+    node.toBlob((blob) => resolve(blob && blob.size > 0 ? blob : undefined), "image/jpeg", 0.88);
+  });
+}
 
 export function MockupAdjuster({
   fabric,
@@ -20,11 +30,12 @@ export function MockupAdjuster({
   template: Template;
   mockup: Mockup;
   onChange: (mockup: Mockup) => void;
-  onSave: () => Promise<number>;
+  onSave: (jpeg?: Blob) => Promise<number>;
 }) {
   const { t } = useI18n();
   const canvas = useRef<HTMLCanvasElement>(null);
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const savingRef = useRef(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const preview = useMockupPreview(canvas, fabric, template, mockup);
@@ -51,23 +62,38 @@ export function MockupAdjuster({
   }
 
   async function saveWebp() {
-    if (saving) return;
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     setSaveError(null);
     toast(t("designs.mockupSaving"));
+    let timer = 0;
     try {
+      const jpeg = preview.busy ? undefined : await jpegFromCanvas(canvas.current);
+      const job = onSave(jpeg);
+      void job.catch(() => undefined);
       await Promise.race([
-        onSave(),
+        job,
         new Promise<never>((_, reject) => {
-          window.setTimeout(() => reject(new Error("Сохранение заняло слишком долго — нажмите ещё раз")), 55_000);
+          timer = window.setTimeout(() => {
+            abortRenderers();
+            reject(new Error("Сохранение заняло слишком долго — нажмите ещё раз"));
+          }, 25_000);
         }),
       ]);
       toast(t("designs.mockupSaved"));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message =
+        error instanceof Error && error.name === "AbortError"
+          ? "Сохранение заняло слишком долго — нажмите ещё раз"
+          : error instanceof Error
+            ? error.message
+            : String(error);
       setSaveError(message);
       toast.error(message);
     } finally {
+      window.clearTimeout(timer);
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -161,7 +187,7 @@ export function MockupAdjuster({
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="outline" onClick={() => patch({ scale: 1, offsetX: 0, offsetY: 0, rotation: 0 })}>{t("wizard.resetReal")}</Button>
-        <Button type="button" size="sm" disabled={saving} onClick={() => void saveWebp()}>
+        <Button type="button" size="sm" disabled={saving} aria-busy={saving} onClick={() => void saveWebp()}>
           {saving ? t("designs.mockupSaving") : t("templates.rebuildOne")}
         </Button>
       </div>

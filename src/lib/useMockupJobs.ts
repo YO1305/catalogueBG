@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { saveFabricAction } from "@/lib/actions";
 import { renderAndSave } from "@/lib/mockup/clientRender";
+import { abortRenderers } from "@/lib/mockup/previewClient";
 import { placeMockup } from "@/lib/variants";
 import type { Fabric, Mockup, Template } from "@/types";
 
@@ -12,7 +13,7 @@ type Slot = Pick<Mockup, "templateId" | "productType">;
 
 const sameSlot = (a: Slot, b: Slot) => a.templateId === b.templateId && a.productType === b.productType;
 
-type RunOptions = { onPersisted?: (fabric: Fabric) => void };
+type RunOptions = { onPersisted?: (fabric: Fabric) => void; jpeg?: Blob };
 
 function areasKey(mockup: Mockup): string {
   return JSON.stringify({
@@ -36,6 +37,8 @@ function skipOnPublish(fabric: Fabric, mockup: Mockup, variantId: string | undef
 
 export function useMockupJobs(fabricRef: MutableRefObject<Fabric>, setFabric: Dispatch<SetStateAction<Fabric>>, templates: Template[]) {
   const [progress, setProgress] = useState<MockupProgress | null>(null);
+  const generation = useRef(0);
+  const running = useRef(false);
 
   useEffect(() => {
     if (!progress) return;
@@ -46,20 +49,23 @@ export function useMockupJobs(fabricRef: MutableRefObject<Fabric>, setFabric: Di
 
   const run = useCallback(
     async (only?: Slot, options?: RunOptions) => {
-      const snapshot = fabricRef.current;
-      const mockups = snapshot.mockups.filter((item) => !only || sameSlot(item, only));
-      const woven = Boolean(snapshot.woven || snapshot.kind === "woven");
-      const variantIds = only
-        ? []
-        : (snapshot.variants ?? [])
-            .filter((item) => item.design.webUrl || (woven && (item.weaveColor || item.mockups.some((m) => m.webUrl || m.url))))
-            .map((item) => item.id);
-      const candidates = [undefined, ...variantIds].flatMap((variantId) => mockups.map((mockup) => ({ variantId, mockup })));
-      const jobs = only ? candidates : candidates.filter((job) => !skipOnPublish(snapshot, job.mockup, job.variantId, only));
-      if (!jobs.length) return 0;
-
-      setProgress({ done: 0, total: jobs.length });
+      if (running.current) abortRenderers();
+      const mine = generation.current + 1;
+      generation.current = mine;
+      running.current = true;
       try {
+        const snapshot = fabricRef.current;
+        const mockups = snapshot.mockups.filter((item) => !only || sameSlot(item, only));
+        const woven = Boolean(snapshot.woven || snapshot.kind === "woven");
+        const variantIds = only
+          ? []
+          : (snapshot.variants ?? [])
+              .filter((item) => item.design.webUrl || (woven && (item.weaveColor || item.mockups.some((m) => m.webUrl || m.url))))
+              .map((item) => item.id);
+        const candidates = [undefined, ...variantIds].flatMap((variantId) => mockups.map((mockup) => ({ variantId, mockup })));
+        const jobs = only ? candidates : candidates.filter((job) => !skipOnPublish(snapshot, job.mockup, job.variantId, only));
+        if (!jobs.length) return 0;
+        setProgress({ done: 0, total: jobs.length });
         const alreadyOnServer = Boolean(snapshot.id && snapshot.art);
         if (!alreadyOnServer) {
           const status = snapshot.status === "published" ? "published" : "draft";
@@ -68,12 +74,16 @@ export function useMockupJobs(fabricRef: MutableRefObject<Fabric>, setFabric: Di
           fabricRef.current = savedOnce.fabric;
         }
         for (const [index, job] of jobs.entries()) {
+          if (generation.current !== mine) return 0;
           const live = fabricRef.current.mockups.find((item) => sameSlot(item, job.mockup)) ?? job.mockup;
           const template = templates.find((item) => item.id === live.templateId);
           if (template) {
+            const jpeg = !job.variantId && only && sameSlot(live, only) ? options?.jpeg : undefined;
             const { mockup: saved } = await renderAndSave(fabricRef.current, template, live, job.variantId, {
               persisted: fabricRef.current,
+              jpeg,
             });
+            if (generation.current !== mine) return 0;
             fabricRef.current = placeMockup(fabricRef.current, saved, job.variantId);
             options?.onPersisted?.(fabricRef.current);
             if (fabricRef.current.id === snapshot.id) {
@@ -82,10 +92,13 @@ export function useMockupJobs(fabricRef: MutableRefObject<Fabric>, setFabric: Di
           }
           setProgress({ done: index + 1, total: jobs.length });
         }
+        return jobs.length;
       } finally {
-        setProgress(null);
+        if (generation.current === mine) {
+          running.current = false;
+          setProgress(null);
+        }
       }
-      return jobs.length;
     },
     [fabricRef, setFabric, templates],
   );

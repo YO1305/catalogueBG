@@ -82,9 +82,10 @@ export function FabricEditor({
   }
   const jobs = editor.mockupJobs.progress;
 
-  async function saveMockup(slot: Parameters<typeof editor.mockupJobs.run>[0]) {
+  async function saveMockup(slot: Parameters<typeof editor.mockupJobs.run>[0], jpeg?: Blob) {
     let openedEdit = false;
     const count = await editor.mockupJobs.run(slot, {
+      jpeg,
       onPersisted: (persisted) => {
         if (!isNew || openedEdit) return;
         openedEdit = true;

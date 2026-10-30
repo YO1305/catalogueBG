@@ -18,7 +18,7 @@ export function WizardFabricMockupStep({
   templates: Template[];
   onChange: (partial: Partial<Fabric>) => void;
   onChoose: (productType: string, template: Template, selected: boolean) => void;
-  onSaveMockup: (slot: Pick<Mockup, "templateId" | "productType">) => Promise<number>;
+  onSaveMockup: (slot: Pick<Mockup, "templateId" | "productType">, jpeg?: Blob) => Promise<number>;
 }) {
   const { t } = useI18n();
   const list = templates.filter((item) => item.productTypes.includes(FABRIC_PRODUCT));
@@ -69,7 +69,7 @@ export function WizardFabricMockupStep({
                       ),
                     })
                   }
-                  onSave={() => onSaveMockup({ templateId: template.id, productType: FABRIC_PRODUCT })}
+                  onSave={(jpeg) => onSaveMockup({ templateId: template.id, productType: FABRIC_PRODUCT }, jpeg)}
                 />
               </>
             ) : null}
