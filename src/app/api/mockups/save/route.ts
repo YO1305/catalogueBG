@@ -1,5 +1,6 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { getSession } from "@/lib/auth";
+import { catalogCacheTag } from "@/lib/catalogMeta";
 import { getFabric, listCatalogsTouchingFabric, saveFabric } from "@/lib/db";
 import { canEditFabrics, isAdmin } from "@/lib/roles";
 import { placeMockup } from "@/lib/variants";
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
   await saveFabric(next);
   const catalogs = await listCatalogsTouchingFabric(next);
   for (const catalog of catalogs) {
-    revalidateTag(`catalog-${catalog.slug}`);
+    revalidateTag(catalogCacheTag(catalog.slug));
     revalidatePath(`/c/${catalog.slug}`);
   }
   return Response.json({ ok: true, mockup });

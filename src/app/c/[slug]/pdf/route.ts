@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 export async function GET(_request: Request, context: { params: Promise<{ slug: string }> }) {
   const { slug } = await context.params;
   const loaded = await loadCatalog(slug);
+  if (loaded.state === "unavailable") return new Response("Service Unavailable", { status: 503 });
   if (loaded.state !== "ready") return new Response("Not found", { status: 404 });
   const { catalog, fabrics, pages, fabricTypes } = loaded.model;
   const cacheDir = path.join(process.cwd(), "data", "pdf-cache");

@@ -2,7 +2,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { buildPages, catalogCoverMockup, resolveFabrics } from "@/lib/catalog";
 import { catalogFabricIdOrder } from "@/lib/catalogSections";
-import { CATALOG_REVALIDATE_SEC } from "@/lib/catalogMeta";
+import { CATALOG_REVALIDATE_SEC, catalogCacheTag } from "@/lib/catalogMeta";
 import { getCatalog, getDictionaries, getFabrics, getFabricsByIds } from "@/lib/db";
 import { localizeCatalogModel } from "@/lib/localize";
 import { sanitizePublicFabric } from "@/lib/publicFabric";
@@ -43,6 +43,6 @@ export async function buildPublicCatalogModel(slug: string) {
 export function getCachedPublicCatalogModel(slug: string) {
   return unstable_cache(() => buildPublicCatalogModel(slug), [`catalog-model-${slug}`], {
     revalidate: CATALOG_REVALIDATE_SEC,
-    tags: [`catalog-${slug}`],
+    tags: [catalogCacheTag(slug)],
   })();
 }

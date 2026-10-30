@@ -18,6 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function DesignPage({ params }: { params: Promise<{ slug: string; art: string }> }) {
   const { slug, art } = await params;
   const loaded = await loadCatalog(slug);
+  if (loaded.state === "unavailable") return <p className="p-10">{translate("ru", "catalog.unavailable")}</p>;
   if (loaded.state === "missing") return <p className="p-10">{translate("ru", "catalog.searchEmpty")}</p>;
   if (loaded.state === "expired") return <p className="p-10">{translate("ru", "catalog.expired")}</p>;
   if (loaded.state === "pin") return <PinGate slug={loaded.slug} title={loaded.title.ru} />;

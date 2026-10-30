@@ -73,10 +73,29 @@ const LOCAL_COLLECTION: Partial<Record<string, keyof Database>> = {
   users: "users",
 };
 
+export class FirestoreUnavailableError extends Error {
+  constructor(source: string, cause?: unknown) {
+    super(`firestore_unavailable:${source}`);
+    this.name = "FirestoreUnavailableError";
+    if (cause !== undefined) this.cause = cause;
+  }
+}
+
 function firestoreDb(): Firestore | null {
   const app = getAdminApp();
   if (!app) return null;
   return getFirestore(app);
+}
+
+function requireFirestore(source: string): Firestore {
+  const db = firestoreDb();
+  if (!db) throw new FirestoreUnavailableError(source);
+  return db;
+}
+
+function abortFirestoreRead(source: string, error: unknown): never {
+  console.error(source, error);
+  throw new FirestoreUnavailableError(source, error);
 }
 
 function firestore(): Firestore {
@@ -116,9 +135,8 @@ async function mutate(fn: (db: Database) => void) {
 
 async function readCollection<T>(name: string, idField?: keyof T): Promise<T[]> {
   if (!firebaseAdminConfigured()) return readLocalCollection<T>(name, idField);
-  const db = firestoreDb();
-  if (!db) return readLocalCollection<T>(name, idField);
   try {
+    const db = requireFirestore(`collection:${name}`);
     const snap = await db.collection(name).get();
     trackFirestoreRead(snap.size, `collection:${name}`);
     return snap.docs.map((doc) => {
@@ -129,8 +147,8 @@ async function readCollection<T>(name: string, idField?: keyof T): Promise<T[]> 
       return data;
     });
   } catch (error) {
-    console.error(`readCollection:${name}`, error);
-    return readLocalCollection<T>(name, idField);
+    if (error instanceof FirestoreUnavailableError) throw error;
+    abortFirestoreRead(`readCollection:${name}`, error);
   }
 }
 
@@ -147,12 +165,8 @@ async function readCollectionPage<T>(
     const all = readLocalCollection<T>(name, idField);
     return all.slice(offset, offset + limit);
   }
-  const db = firestoreDb();
-  if (!db) {
-    const all = readLocalCollection<T>(name, idField);
-    return all.slice(offset, offset + limit);
-  }
   try {
+    const db = requireFirestore(`collectionPage:${name}`);
     const snap = await db.collection(name).orderBy(options.orderBy).offset(offset).limit(limit).get();
     trackFirestoreRead(snap.size, `collectionPage:${name}`);
     return snap.docs.map((doc) => {
@@ -163,9 +177,8 @@ async function readCollectionPage<T>(
       return data;
     });
   } catch (error) {
-    console.error(`readCollectionPage:${name}`, error);
-    const all = readLocalCollection<T>(name, idField);
-    return all.slice(offset, offset + limit);
+    if (error instanceof FirestoreUnavailableError) throw error;
+    abortFirestoreRead(`readCollectionPage:${name}`, error);
   }
 }
 
@@ -179,15 +192,8 @@ export async function getFabricsByIds(ids: string[]): Promise<Fabric[]> {
       return fabric ? [fabric] : [];
     });
   }
-  const db = firestoreDb();
-  if (!db) {
-    const byId = new Map(readLocal().fabrics.map((item) => [item.id, item]));
-    return unique.flatMap((id) => {
-      const fabric = byId.get(id);
-      return fabric ? [fabric] : [];
-    });
-  }
   try {
+    const db = requireFirestore("fabrics:getAll");
     const refs = unique.map((id) => db.collection("fabrics").doc(id));
     const snaps = await db.getAll(...refs);
     trackFirestoreRead(snaps.length, "fabrics:getAll");
@@ -198,12 +204,8 @@ export async function getFabricsByIds(ids: string[]): Promise<Fabric[]> {
       return [data];
     });
   } catch (error) {
-    console.error("getFabricsByIds", error);
-    const byId = new Map(readLocal().fabrics.map((item) => [item.id, item]));
-    return unique.flatMap((id) => {
-      const fabric = byId.get(id);
-      return fabric ? [fabric] : [];
-    });
+    if (error instanceof FirestoreUnavailableError) throw error;
+    abortFirestoreRead("getFabricsByIds", error);
   }
 }
 
@@ -289,7 +291,7 @@ export async function listFabricPickerPage(input: {
   const cursor = input.cursor?.trim() || null;
   if (!firebaseAdminConfigured()) return localFabricPickerPage(query, cursor, limit);
   const db = firestoreDb();
-  if (!db) return localFabricPickerPage(query, cursor, limit);
+  if (!db) return { items: [], cursor: null };
   try {
     const page = await runFabricPickerQuery(db, "art", query, cursor, limit, "fabrics:picker");
     if (page.items.length || !query) return page;
@@ -372,11 +374,8 @@ async function readDoc<T>(name: string, id: string, idField: keyof T): Promise<T
   if (!firebaseAdminConfigured()) {
     return readLocalCollection<T>(name, idField).find((item) => String((item as Record<string, unknown>)[idField as string]) === id) ?? null;
   }
-  const db = firestoreDb();
-  if (!db) {
-    return readLocalCollection<T>(name, idField).find((item) => String((item as Record<string, unknown>)[idField as string]) === id) ?? null;
-  }
   try {
+    const db = requireFirestore(`doc:${name}`);
     const snap = await db.collection(name).doc(id).get();
     trackFirestoreRead(snap.exists ? 1 : 0, `doc:${name}`);
     if (!snap.exists) return null;
@@ -384,23 +383,22 @@ async function readDoc<T>(name: string, id: string, idField: keyof T): Promise<T
     if (!(data as Record<string, unknown>)[idField as string]) (data as Record<string, unknown>)[idField as string] = snap.id;
     return data;
   } catch (error) {
-    console.error(`readDoc:${name}/${id}`, error);
-    return readLocalCollection<T>(name, idField).find((item) => String((item as Record<string, unknown>)[idField as string]) === id) ?? null;
+    if (error instanceof FirestoreUnavailableError) throw error;
+    abortFirestoreRead(`readDoc:${name}/${id}`, error);
   }
 }
 
 async function readGlossary(): Promise<GlossaryTerm[]> {
   if (!firebaseAdminConfigured()) return readLocal().glossary;
-  const db = firestoreDb();
-  if (!db) return readLocal().glossary;
   try {
+    const db = requireFirestore("doc:settings/glossary");
     const snap = await db.doc("settings/glossary").get();
     trackFirestoreRead(1, "doc:settings/glossary");
     const data = snap.exists ? (fromRemote(snap.data()) as { terms?: GlossaryTerm[] }) : undefined;
-    return data?.terms ?? readLocal().glossary;
+    return data?.terms ?? [];
   } catch (error) {
-    console.error("readGlossary", error);
-    return readLocal().glossary;
+    if (error instanceof FirestoreUnavailableError) throw error;
+    abortFirestoreRead("readGlossary", error);
   }
 }
 

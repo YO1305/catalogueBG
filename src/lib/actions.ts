@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { catalogCacheTag } from "@/lib/catalogMeta";
 import { getSession } from "@/lib/auth";
 import { matchingCatalogs } from "@/lib/catalog";
 import {
@@ -54,6 +55,8 @@ async function catalogActor() {
 
 function touch(path: string) {
   revalidatePath(path);
+  const catalogMatch = /^\/c\/([^/]+)/.exec(path);
+  if (catalogMatch) revalidateTag(catalogCacheTag(catalogMatch[1]));
 }
 
 export async function listFabricPickerPageAction(query: string, cursor: string | null) {

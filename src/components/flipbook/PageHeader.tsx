@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useI18n } from "@/components/i18n/I18n";
-import { publicMediaSrc } from "@/lib/publicMedia";
+import { publicMediaSrc, publicMediaSrcSet } from "@/lib/publicMedia";
 
 export function PageHeader({ title, page }: { title: string; page: number }) {
   const { t } = useI18n();
@@ -33,18 +33,14 @@ export function CatalogImage({
 }) {
   const [failed, setFailed] = useState(false);
   const raw = failed && fallbackSrc ? fallbackSrc : src;
-  const display = publicMediaSrc(raw, 1200);
+  const src1200 = failed ? raw : webUrl || raw;
+  const src600 = failed ? undefined : thumbUrl;
+  const display = publicMediaSrc(src1200);
   if (!active || !display) return <div className="h-full w-full bg-black/5" />;
-  const hasVariants = Boolean(thumbUrl && webUrl && !failed);
-  const srcSet = hasVariants
-    ? `${publicMediaSrc(thumbUrl ?? src, 640)} 640w, ${publicMediaSrc(webUrl ?? src, 1200)} 1200w, ${publicMediaSrc(src, 1920)} 1920w`
-    : undefined;
   return (
-    // Catalog images use explicit WebP srcset widths from the spec when mockup variants exist.
-    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={display}
-      srcSet={srcSet}
+      srcSet={publicMediaSrcSet(src600, src1200)}
       sizes="(max-width: 1024px) 92vw, 40vw"
       alt={alt}
       className="h-full w-full object-cover"

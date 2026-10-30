@@ -1,4 +1,4 @@
-/** Same-origin photo URL. XOR+hex so “fabric” and https:// cannot appear in the token. */
+/** Direct Blob URLs for catalog photos. `/api/p` remains for old bookmarked tokens. */
 const REMOTE = /blob\.vercel-storage\.com|storage\.googleapis\.com/i;
 const XOR = 0x5a;
 
@@ -34,10 +34,24 @@ export function decodeMediaToken(token: string): string | null {
   return null;
 }
 
+/** Pass blob WebP through as-is — no `/_next/image` and no same-origin proxy. */
 export function publicMediaSrc(url: string, _width = 1200): string {
-  if (!url || url.startsWith("/") || url.startsWith("data:") || url.startsWith("blob:")) return url;
-  if (!isRemoteMediaUrl(url)) return url;
-  return `/api/p?t=${encodeMediaToken(url)}`;
+  return url || "";
+}
+
+export function sizedMediaUrl(url: string, width: 600 | 1200): string {
+  if (!url) return url;
+  if (url.includes(`-${width}.webp`)) return url;
+  return url.replace(/-(?:600|1200)\.webp(\?.*)?$/i, `-${width}.webp$1`);
+}
+
+export function publicMediaSrcSet(src600?: string, src1200?: string): string | undefined {
+  const twelve = src1200 ? publicMediaSrc(src1200) : "";
+  const six = src600 ? publicMediaSrc(src600) : twelve ? sizedMediaUrl(twelve, 600) : "";
+  const parts: string[] = [];
+  if (six) parts.push(`${six} 600w`);
+  if (twelve && twelve !== six) parts.push(`${twelve} 1200w`);
+  return parts.length ? parts.join(", ") : undefined;
 }
 
 export function isTemplatePlaceholder(url: string): boolean {
