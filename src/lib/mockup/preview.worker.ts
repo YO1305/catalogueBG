@@ -25,8 +25,8 @@ const templates = new Map<string, Promise<Assets>>();
 const images = new Map<string, Promise<RGBA>>();
 const KEEP_TEMPLATES = 2;
 const KEEP_IMAGES = 6;
-/** Long edge for save: 1400 px keeps WebP under ~15s on ZIP templates. */
-const FINAL_MAX_EDGE = 1400;
+/** Long edge for save — 1200 px matches catalogue cards and keeps render near 15s. */
+const FINAL_MAX_EDGE = 1200;
 
 let latestPreviewId = 0;
 let chain: Promise<void> = Promise.resolve();
@@ -75,7 +75,7 @@ async function encode(image: RGBA): Promise<Blob> {
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Браузер не дал canvas для сохранения макета");
   context.putImageData(new ImageData(new Uint8ClampedArray(image.data), image.width, image.height), 0, 0);
-  return canvas.convertToBlob({ type: "image/jpeg", quality: 0.9 });
+  return canvas.convertToBlob({ type: "image/jpeg", quality: 0.82 });
 }
 
 function finalScale(tpl: TemplateJson): number {
