@@ -1,15 +1,18 @@
-/** Same-origin `/_next/image` so catalog photos load when the blob host is blocked. */
+/** Same-origin photo URL so catalog images are not blocked as third-party / “fabric” ads. */
 const REMOTE = /blob\.vercel-storage\.com|storage\.googleapis\.com/i;
-const WIDTHS = [640, 750, 828, 1080, 1200, 1920, 2048];
 
-function nearestWidth(width: number): number {
-  return WIDTHS.reduce((best, item) => (Math.abs(item - width) < Math.abs(best - width) ? item : best), WIDTHS[0]);
+export function isRemoteMediaUrl(url: string): boolean {
+  return /^https:\/\//i.test(url) && REMOTE.test(url);
 }
 
-export function publicMediaSrc(url: string, width = 1200): string {
+export function publicMediaSrc(url: string, _width = 1200): string {
   if (!url || url.startsWith("/") || url.startsWith("data:") || url.startsWith("blob:")) return url;
-  if (!REMOTE.test(url)) return url;
-  return `/_next/image?url=${encodeURIComponent(url)}&w=${nearestWidth(width)}&q=80`;
+  if (!isRemoteMediaUrl(url)) return url;
+  const bytes = new TextEncoder().encode(url);
+  let bin = "";
+  for (const byte of bytes) bin += String.fromCharCode(byte);
+  const token = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return `/api/m/${token}`;
 }
 
 export function isTemplatePlaceholder(url: string): boolean {
