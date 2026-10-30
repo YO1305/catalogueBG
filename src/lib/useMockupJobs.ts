@@ -60,10 +60,13 @@ export function useMockupJobs(fabricRef: MutableRefObject<Fabric>, setFabric: Di
 
       setProgress({ done: 0, total: jobs.length });
       try {
-        const status = snapshot.status === "published" ? "published" : "draft";
-        const savedOnce = await saveFabricAction({ ...fabricRef.current, status });
-        if (!savedOnce.ok) throw new Error("Сохраните черновик перед сохранением макетов");
-        fabricRef.current = savedOnce.fabric;
+        const alreadyOnServer = Boolean(snapshot.id && snapshot.art);
+        if (!alreadyOnServer) {
+          const status = snapshot.status === "published" ? "published" : "draft";
+          const savedOnce = await saveFabricAction({ ...fabricRef.current, status });
+          if (!savedOnce.ok) throw new Error("Сохраните черновик перед сохранением макетов");
+          fabricRef.current = savedOnce.fabric;
+        }
         for (const [index, job] of jobs.entries()) {
           const live = fabricRef.current.mockups.find((item) => sameSlot(item, job.mockup)) ?? job.mockup;
           const template = templates.find((item) => item.id === live.templateId);

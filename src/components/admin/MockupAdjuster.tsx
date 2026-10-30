@@ -56,7 +56,12 @@ export function MockupAdjuster({
     setSaveError(null);
     toast(t("designs.mockupSaving"));
     try {
-      await onSave();
+      await Promise.race([
+        onSave(),
+        new Promise<never>((_, reject) => {
+          window.setTimeout(() => reject(new Error("Сохранение заняло слишком долго — нажмите ещё раз")), 40_000);
+        }),
+      ]);
       toast(t("designs.mockupSaved"));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
