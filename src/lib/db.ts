@@ -1,13 +1,14 @@
 import "server-only";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
-import { getFirestore, type DocumentData, type Firestore, Timestamp } from "firebase-admin/firestore";
+import { getFirestore, type DocumentData, type Firestore, type Query, Timestamp } from "firebase-admin/firestore";
 import { firebaseAdminConfigured, getAdminApp } from "@/lib/firebaseAdmin";
 import { recordCatalogDayStats } from "@/lib/catalogDayStats";
 import { trackFirestoreDelete, trackFirestoreRead, trackFirestoreWrite } from "@/lib/firestoreMetrics";
 import { fabricMatchesRules } from "@/lib/catalog";
 import { withDefaultFinishes } from "@/lib/finishes";
-import type { AnalyticsEvent, AppUser, Catalog, Collection, Database, Fabric, FabricType, Finish, GlossaryTerm, Lead, ProductType, Template } from "@/types";
+import { slugify } from "@/lib/ids";
+import type { AnalyticsEvent, AppUser, Catalog, Collection, Database, Fabric, FabricPickerRow, FabricType, Finish, GlossaryTerm, Lead, ProductType, Template } from "@/types";
 
 const seedPath = path.join(process.cwd(), "data", "seed.json");
 const runtimePath = path.join(process.cwd(), "data", "runtime.json");
@@ -206,6 +207,118 @@ export async function getFabricsByIds(ids: string[]): Promise<Fabric[]> {
   }
 }
 
+function toPickerRow(fabric: Fabric): FabricPickerRow {
+  return {
+    id: fabric.id,
+    art: fabric.art,
+    name: fabric.name,
+    thumbUrl: fabric.design?.thumbUrl || "",
+    status: fabric.status,
+    collectionId: fabric.collectionId,
+    fabricTypeId: fabric.fabricTypeId,
+  };
+}
+
+function pickerCursorKey(fabric: Fabric, query: string) {
+  return query ? fabric.artKey || fabric.art.toLowerCase() : fabric.art;
+}
+
+function matchesPickerQuery(fabric: Fabric, query: string) {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  return (
+    fabric.art.toLowerCase().includes(q) ||
+    fabric.name.ru.toLowerCase().includes(q) ||
+    (fabric.name.en ?? "").toLowerCase().includes(q) ||
+    (fabric.name.uz ?? "").toLowerCase().includes(q)
+  );
+}
+
+function localFabricPickerPage(query: string, cursor: string | null, limit: number): { items: FabricPickerRow[]; cursor: string | null } {
+  const rows = readLocal()
+    .fabrics.filter((fabric) => fabric.status === "published" && matchesPickerQuery(fabric, query))
+    .sort((a, b) => a.art.localeCompare(b.art, undefined, { numeric: true }));
+  const start = cursor ? rows.findIndex((fabric) => pickerCursorKey(fabric, query) === cursor) + 1 : 0;
+  const slice = rows.slice(Math.max(start, 0), Math.max(start, 0) + limit);
+  const last = slice[slice.length - 1];
+  return {
+    items: slice.map(toPickerRow),
+    cursor: slice.length === limit && last ? pickerCursorKey(last, query) : null,
+  };
+}
+
+async function runFabricPickerQuery(
+  db: Firestore,
+  orderField: "art" | "artKey",
+  query: string,
+  cursor: string | null,
+  limit: number,
+  label: string,
+) {
+  let ref: Query = db.collection("fabrics").orderBy(orderField);
+  if (query) {
+    const start = orderField === "artKey" ? query.toLowerCase() : query;
+    if (cursor) ref = ref.startAfter(cursor).endAt(`${start}\uf8ff`);
+    else ref = ref.startAt(start).endAt(`${start}\uf8ff`);
+  } else if (cursor) {
+    ref = ref.startAfter(cursor);
+  }
+  const snap = await ref.limit(limit).select("art", "artKey", "name", "status", "collectionId", "fabricTypeId", "design").get();
+  trackFirestoreRead(snap.size, label);
+  const rows = snap.docs.flatMap((doc) => {
+    const data = fromRemote(doc.data()) as Fabric;
+    if (!data.id) data.id = doc.id;
+    if (data.status !== "published") return [];
+    if (query && !matchesPickerQuery(data, query)) return [];
+    return [data];
+  });
+  const lastDoc = snap.docs[snap.docs.length - 1];
+  const last = lastDoc ? (fromRemote(lastDoc.data()) as Fabric) : null;
+  return {
+    items: rows.map(toPickerRow),
+    cursor: snap.size === limit && last ? (orderField === "artKey" ? pickerCursorKey(last, query) : last.art) : null,
+  };
+}
+
+export async function listFabricPickerPage(input: {
+  query?: string;
+  cursor?: string | null;
+}): Promise<{ items: FabricPickerRow[]; cursor: string | null }> {
+  const limit = ADMIN_PAGE_SIZE;
+  const query = input.query?.trim() ?? "";
+  const cursor = input.cursor?.trim() || null;
+  if (!firebaseAdminConfigured()) return localFabricPickerPage(query, cursor, limit);
+  const db = firestoreDb();
+  if (!db) return localFabricPickerPage(query, cursor, limit);
+  try {
+    const page = await runFabricPickerQuery(db, "art", query, cursor, limit, "fabrics:picker");
+    if (page.items.length || !query) return page;
+    return await runFabricPickerQuery(db, "artKey", query, cursor, limit, "fabrics:picker-artKey");
+  } catch (error) {
+    console.error("listFabricPickerPage", error);
+    try {
+      let ref: Query = db.collection("fabrics").orderBy("art");
+      if (cursor) ref = ref.startAfter(cursor);
+      const snap = await ref.limit(limit).get();
+      trackFirestoreRead(snap.size, "fabrics:picker-fallback");
+      const rows = snap.docs.flatMap((doc) => {
+        const data = fromRemote(doc.data()) as Fabric;
+        if (!data.id) data.id = doc.id;
+        if (data.status !== "published" || !matchesPickerQuery(data, query)) return [];
+        return [data];
+      });
+      const last = rows[rows.length - 1];
+      return {
+        items: rows.map(toPickerRow),
+        cursor: snap.size === limit && last ? last.art : null,
+      };
+    } catch (fallbackError) {
+      console.error("listFabricPickerPage fallback", fallbackError);
+      return { items: [], cursor: null };
+    }
+  }
+}
+
 function staffFromLocalSeed(email: string) {
   return readLocal().users.find((item) => item.email.toLowerCase() === email) ?? null;
 }
@@ -304,6 +417,16 @@ export async function getFabrics(): Promise<Fabric[]> {
 export async function getCatalog(slug: string): Promise<Catalog | null> {
   if (!firebaseAdminConfigured()) return readLocal().catalogs.find((item) => item.slug === slug) ?? null;
   return readDoc<Catalog>("catalogs", slug, "slug");
+}
+
+export async function uniqueCatalogSlug(base: string): Promise<string> {
+  const root = slugify(base);
+  if (!(await getCatalog(root))) return root;
+  for (let n = 2; n < 400; n += 1) {
+    const candidate = `${root}-${n}`;
+    if (!(await getCatalog(candidate))) return candidate;
+  }
+  return `${root}-${Date.now()}`;
 }
 
 export async function getCatalogs(): Promise<Catalog[]> {
@@ -440,25 +563,22 @@ export async function getUsers(): Promise<AppUser[]> {
   return readCollection<AppUser>("users", "id");
 }
 
-export async function getCatalogEditorData() {
-  if (!firebaseAdminConfigured()) {
-    const db = readLocal();
-    return {
-      catalogs: db.catalogs,
-      fabrics: db.fabrics,
-      collections: db.collections,
-      fabricTypes: db.fabricTypes,
-      productTypes: db.productTypes,
-    };
-  }
-  const [catalogs, fabrics, collections, fabricTypes, productTypes] = await Promise.all([
-    readCollection<Catalog>("catalogs", "slug"),
-    readCollection<Fabric>("fabrics", "id"),
-    readCollection<Collection>("collections", "id"),
-    readCollection<FabricType>("fabricTypes", "id"),
-    readCollection<ProductType>("productTypes", "id"),
+export async function getCatalogWorkspace(slug?: string) {
+  const [dictionaries, catalog] = await Promise.all([
+    getDictionaries(),
+    slug ? getCatalog(slug) : Promise.resolve(null),
   ]);
-  return { catalogs, fabrics, collections, fabricTypes, productTypes };
+  const ids = catalog
+    ? [...new Set([...(catalog.fabricIds ?? []), ...(catalog.catalogSections ?? []).flatMap((section) => section.fabricIds)])]
+    : [];
+  const fabrics = await getFabricsByIds(ids);
+  return {
+    catalog,
+    fabrics,
+    collections: dictionaries.collections,
+    fabricTypes: dictionaries.fabricTypes,
+    productTypes: dictionaries.productTypes,
+  };
 }
 
 export async function getDb(): Promise<Database> {

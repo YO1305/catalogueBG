@@ -14,6 +14,8 @@ import {
   getDictionaries,
   getFabric,
   getUsers,
+  listFabricPickerPage,
+  uniqueCatalogSlug,
   saveCatalog,
   saveCollection,
   saveFabric,
@@ -54,9 +56,16 @@ function touch(path: string) {
   revalidatePath(path);
 }
 
-async function getDictionariesWithCatalogs() {
-  const [dictionaries, catalogs] = await Promise.all([getDictionaries(), getCatalogs()]);
-  return { ...dictionaries, catalogs };
+export async function listFabricPickerPageAction(query: string, cursor: string | null) {
+  const gate = await catalogActor();
+  if (!gate.ok) return { items: [], cursor: null };
+  return listFabricPickerPage({ query, cursor });
+}
+
+export async function getFabricForCatalogAction(id: string) {
+  const gate = await catalogActor();
+  if (!gate.ok) return null;
+  return getFabric(id);
 }
 
 export async function saveFabricAction(fabric: Fabric) {
@@ -146,7 +155,13 @@ export async function addCatalogDesignEntryAction(input: {
   touch(`/admin/catalogs/${input.catalogSlug}`);
   touch(`/c/${input.catalogSlug}`);
   touch("/admin/fabrics");
-  return { ok: true as const, fabricId };
+  return {
+    ok: true as const,
+    fabricId,
+    fabric: saved.fabric,
+    fabricIds: ordered,
+    catalogSections,
+  };
 }
 
 export async function addFabricsToCatalogAction(ids: string[], slug: string) {
@@ -167,8 +182,8 @@ export async function createCatalogAction(catalog: Catalog, pin?: string) {
   try {
     const titleRu = catalog.title.ru.trim();
     if (!titleRu) return { ok: false as const, error: "title" as const };
-    const db = await getDictionariesWithCatalogs();
-    const slug = uniqueSlug(titleRu, db.catalogs.map((item) => item.slug));
+    const db = await getDictionaries();
+    const slug = await uniqueCatalogSlug(titleRu);
     const pinHash = pin ? hashPin(pin) : catalog.access === "pin" ? catalog.pinHash : undefined;
     const showProductTypes =
       catalog.catalogKind === "design"
@@ -241,8 +256,8 @@ export async function saveCatalogAction(catalog: Catalog, pin?: string) {
 
 export async function quickCatalogAction(title: string) {
   const session = await actor(canEditCatalogs);
-  const db = await getDictionariesWithCatalogs();
-  const slug = uniqueSlug(title, db.catalogs.map((item) => item.slug));
+  const db = await getDictionaries();
+  const slug = await uniqueCatalogSlug(title);
   const translated = await translateFields({ title }, db.glossary);
   const now = new Date().toISOString();
   const catalog: Catalog = {
@@ -270,16 +285,16 @@ export async function quickCatalogAction(title: string) {
 
 export async function presetCatalogAction(preset: string) {
   const session = await actor(canEditCatalogs);
-  const db = await getDictionariesWithCatalogs();
+  const db = await getDictionaries();
   const draft = presetCatalog(preset, "tmp", session.uid, db.productTypes);
-  const slug = uniqueSlug(draft.title.ru, db.catalogs.map((item) => item.slug));
+  const slug = await uniqueCatalogSlug(draft.title.ru);
   await saveCatalog({ ...draft, slug });
   return { ok: true as const, slug };
 }
 
 export async function createCollectionAction(input: { nameRu: string; autoCatalog: boolean }) {
   const session = await actor(canEditDictionaries);
-  const db = await getDictionariesWithCatalogs();
+  const db = await getDictionaries();
   const id = uniqueSlug(input.nameRu, db.collections.map((item) => item.id));
   const translated = await translateFields({ name: input.nameRu }, db.glossary);
   const item: Collection = {
@@ -290,7 +305,7 @@ export async function createCollectionAction(input: { nameRu: string; autoCatalo
     active: true,
   };
   if (input.autoCatalog) {
-    const slug = uniqueSlug(input.nameRu, db.catalogs.map((catalog) => catalog.slug));
+    const slug = await uniqueCatalogSlug(input.nameRu);
     item.catalogSlug = slug;
     await saveCatalog({
       slug,

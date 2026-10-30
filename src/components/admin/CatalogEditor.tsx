@@ -1,12 +1,12 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CatalogAdminPreview } from "@/components/admin/CatalogAdminPreview";
 import { CatalogCoverTypographyControl } from "@/components/admin/CatalogCoverTypographyControl";
 import { CatalogCoverUpload } from "@/components/admin/CatalogCoverUpload";
+import { CatalogEditorPreview } from "@/components/admin/CatalogEditorPreview";
 import { CatalogFabricModalSizeControl } from "@/components/admin/CatalogFabricModalSizeControl";
 import { CatalogThemePicker } from "@/components/admin/CatalogThemePicker";
 import { useI18n } from "@/components/i18n/I18n";
@@ -15,16 +15,15 @@ import { Input, Label, Select, Textarea } from "@/components/ui/field";
 import { LangTabs } from "@/components/ui/lang-tabs";
 import { CatalogContentsPanel } from "@/components/admin/CatalogContentsPanel";
 import { createCatalogAction, saveCatalogAction } from "@/lib/actions";
-import { buildPages, resolveFabrics } from "@/lib/catalog";
 import { catalogFabricIdOrder } from "@/lib/catalogSections";
 import { isDesignCatalog } from "@/lib/catalogKind";
-import { addressField, localizeCatalogModel, setAddress } from "@/lib/localize";
+import { addressField, setAddress } from "@/lib/localize";
 import type { Catalog, Collection, Fabric, FabricType, Lang, ProductType } from "@/types";
 
 export function CatalogEditor({
   initial,
   isNew,
-  fabrics,
+  fabrics: initialFabrics,
   collections,
   fabricTypes,
   productTypes,
@@ -39,27 +38,10 @@ export function CatalogEditor({
   const { t } = useI18n();
   const router = useRouter();
   const [catalog, setCatalog] = useState(initial);
+  const [fabrics, setFabrics] = useState(initialFabrics);
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
   const [editLang, setEditLang] = useState<Lang>("ru");
-
-  const previewCatalog = useDeferredValue(catalog);
-  const resolved = useMemo(() => resolveFabrics(previewCatalog, fabrics), [previewCatalog, fabrics]);
-  const pages = useMemo(() => buildPages(previewCatalog, resolved), [previewCatalog, resolved]);
-  const previewModel = useMemo(
-    () =>
-      localizeCatalogModel({
-        catalog: { ...previewCatalog, defaultLang: editLang },
-        fabrics: resolved,
-        pages,
-        fabricTypes,
-        collections,
-        productTypes,
-        coverImage: previewCatalog.cover.imageUrl,
-        qr: "",
-      }),
-    [previewCatalog, editLang, resolved, pages, fabricTypes, collections, productTypes],
-  );
 
   function patch(partial: Partial<Catalog>) {
     setCatalog((current) => ({ ...current, ...partial }));
@@ -91,11 +73,7 @@ export function CatalogEditor({
       return;
     }
     toast(live ? t("catalogs.saveAndPublish") : t("common.save"));
-    if (isNew && "slug" in result) {
-      router.replace(`/admin/catalogs/${result.slug}`);
-    } else {
-      router.refresh();
-    }
+    if (isNew && "slug" in result) router.replace(`/admin/catalogs/${result.slug}`);
   }
 
   return (
@@ -156,7 +134,7 @@ export function CatalogEditor({
             hasCoverImage={Boolean(catalog.cover.imageUrl)}
             onChange={(coverTypography) => patch({ coverTypography })}
           />
-          <CatalogContentsPanel catalog={catalog} fabrics={fabrics} isNew={isNew} editLang={editLang} onChange={setCatalog} />
+          <CatalogContentsPanel catalog={catalog} fabrics={fabrics} isNew={isNew} editLang={editLang} onChange={setCatalog} onFabricsChange={setFabrics} />
           {!isDesignCatalog(catalog) ? (
             <CatalogFabricModalSizeControl
               value={catalog.layout.fabricModalScale ?? 100}
@@ -204,9 +182,14 @@ export function CatalogEditor({
             <Button type="button" variant="outline" disabled={busy} onClick={() => void persist(true)}>{t("catalogs.saveAndPublish")}</Button>
           </div>
         </div>
-        <div className="min-h-[70vh] overflow-hidden border bg-sand">
-          <CatalogAdminPreview key={editLang} model={previewModel} />
-        </div>
+        <CatalogEditorPreview
+          catalog={catalog}
+          fabrics={fabrics}
+          collections={collections}
+          fabricTypes={fabricTypes}
+          productTypes={productTypes}
+          editLang={editLang}
+        />
       </div>
     </div>
   );

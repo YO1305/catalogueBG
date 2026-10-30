@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, type Dispatch, type SetStateAction } from "react";
 import { useI18n } from "@/components/i18n/I18n";
 import { CatalogDesignQuickAdd } from "@/components/admin/CatalogDesignQuickAdd";
+import { CatalogFabricPicker } from "@/components/admin/CatalogFabricPicker";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
+import { getFabricForCatalogAction } from "@/lib/actions";
 import { catalogFabricIdOrder, catalogHasManualSections } from "@/lib/catalogSections";
 import { isDesignCatalog } from "@/lib/catalogKind";
 import type { Catalog, CatalogSection, Fabric, Lang } from "@/types";
@@ -20,15 +21,16 @@ export function CatalogContentsPanel({
   isNew,
   editLang,
   onChange,
+  onFabricsChange,
 }: {
   catalog: Catalog;
   fabrics: Fabric[];
   isNew: boolean;
   editLang: Lang;
   onChange: (next: Catalog) => void;
+  onFabricsChange: Dispatch<SetStateAction<Fabric[]>>;
 }) {
   const { t } = useI18n();
-  const router = useRouter();
   const designCatalog = isDesignCatalog(catalog);
   const byId = useMemo(() => new Map(fabrics.map((f) => [f.id, f])), [fabrics]);
   const sections = catalog.catalogSections ?? [];
@@ -57,15 +59,25 @@ export function CatalogContentsPanel({
     } else {
       patch({ fabricIds: [...new Set([...(catalog.fabricIds ?? []), id])] });
     }
+    if (byId.has(id)) return;
+    void getFabricForCatalogAction(id).then((fabric) => {
+      if (!fabric) return;
+      onFabricsChange((current) => (current.some((item) => item.id === fabric.id) ? current : [...current, fabric]));
+    });
   }
 
-  function renderFabricRow(id: string, sectionId?: string) {
+  function renderFabricRow(id: string) {
     const fabric = byId.get(id);
-    if (!fabric) return null;
     return (
       <div key={id} className="flex items-center justify-between gap-2 rounded-md bg-ink/[0.03] px-2 py-1.5 text-sm">
         <span className="min-w-0 truncate">
-          <span className="font-mono text-xs">{fabric.art}</span> · {fabric.name.ru || fabric.name[editLang]}
+          {fabric ? (
+            <>
+              <span className="font-mono text-xs">{fabric.art}</span> · {fabric.name.ru || fabric.name[editLang]}
+            </>
+          ) : (
+            <span className="font-mono text-xs">{id}</span>
+          )}
         </span>
         <button type="button" className="shrink-0 text-xs underline" onClick={() => removeFabric(id)}>
           {t("common.delete")}
@@ -106,18 +118,23 @@ export function CatalogContentsPanel({
                     )
                   }
                 />
-                <div className="mt-2 space-y-1">{section.fabricIds.map((id) => renderFabricRow(id, section.id))}</div>
+                <div className="mt-2 space-y-1">{section.fabricIds.map((id) => renderFabricRow(id))}</div>
                 {designCatalog ? (
                   <div className="mt-2">
-                    <CatalogDesignQuickAdd slug={catalog.slug} sectionId={section.id} disabled={isNew} onAdded={() => router.refresh()} />
+                    <CatalogDesignQuickAdd
+                      slug={catalog.slug}
+                      sectionId={section.id}
+                      disabled={isNew}
+                      onAdded={(payload) => {
+                        onFabricsChange((current) =>
+                          current.some((item) => item.id === payload.fabric.id) ? current : [...current, payload.fabric],
+                        );
+                        onChange({ ...catalog, fabricIds: payload.fabricIds, catalogSections: payload.catalogSections ?? catalog.catalogSections });
+                      }}
+                    />
                   </div>
                 ) : (
-                  <select className="mt-2 h-9 w-full border px-2 text-sm" value="" onChange={(event) => event.target.value && addExisting(event.target.value, section.id)}>
-                    <option value="">{t("catalogs.pickFabric")}</option>
-                    {fabrics.filter((f) => f.status === "published" && !section.fabricIds.includes(f.id)).map((f) => (
-                      <option key={f.id} value={f.id}>{f.art}</option>
-                    ))}
-                  </select>
+                  <CatalogFabricPicker excludeIds={section.fabricIds} onPick={(id) => void addExisting(id, section.id)} />
                 )}
                 <button type="button" className="mt-2 text-xs text-ink/50 underline" onClick={() => patch({ catalogSections: sections.filter((s) => s.id !== section.id) })}>
                   {t("catalogs.sectionRemove")}
@@ -129,19 +146,23 @@ export function CatalogContentsPanel({
       </div>
 
       {designCatalog && !hasSections ? (
-        <CatalogDesignQuickAdd slug={catalog.slug} disabled={isNew} onAdded={() => router.refresh()} />
+        <CatalogDesignQuickAdd
+          slug={catalog.slug}
+          disabled={isNew}
+          onAdded={(payload) => {
+            onFabricsChange((current) =>
+              current.some((item) => item.id === payload.fabric.id) ? current : [...current, payload.fabric],
+            );
+            onChange({ ...catalog, fabricIds: payload.fabricIds, catalogSections: payload.catalogSections ?? catalog.catalogSections });
+          }}
+        />
       ) : null}
 
       {!hasSections ? (
         <div className="space-y-1">
           {orderedIds.map((id) => renderFabricRow(id))}
           {!designCatalog ? (
-            <select className="h-9 w-full border px-2 text-sm" value="" onChange={(event) => event.target.value && addExisting(event.target.value)}>
-              <option value="">{t("catalogs.pickFabric")}</option>
-              {fabrics.filter((f) => f.status === "published" && !(catalog.fabricIds ?? []).includes(f.id)).map((f) => (
-                <option key={f.id} value={f.id}>{f.art}</option>
-              ))}
-            </select>
+            <CatalogFabricPicker excludeIds={catalog.fabricIds ?? []} onPick={(id) => void addExisting(id)} />
           ) : null}
         </div>
       ) : null}

@@ -146,6 +146,17 @@ export type Fabric = {
   persisted?: boolean;
 };
 
+/** Short row for catalog fabric picker — no mockups or design buffers. */
+export type FabricPickerRow = {
+  id: string;
+  art: string;
+  name: Localized;
+  thumbUrl: string;
+  status: FabricStatus;
+  collectionId: string;
+  fabricTypeId: string;
+};
+
 export type Collection = {
   id: string;
   name: Localized;

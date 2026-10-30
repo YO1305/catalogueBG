@@ -6,6 +6,7 @@ import { useI18n } from "@/components/i18n/I18n";
 import { Input, Label } from "@/components/ui/field";
 import { addCatalogDesignEntryAction } from "@/lib/actions";
 import { processDesignUpload } from "@/lib/processDesignUpload";
+import type { CatalogSection, Fabric } from "@/types";
 
 export function CatalogDesignQuickAdd({
   slug,
@@ -16,7 +17,7 @@ export function CatalogDesignQuickAdd({
   slug: string;
   sectionId?: string;
   disabled?: boolean;
-  onAdded: (fabricId: string) => void;
+  onAdded: (payload: { fabric: Fabric; fabricIds: string[]; catalogSections?: CatalogSection[] }) => void;
 }) {
   const { t } = useI18n();
   const [art, setArt] = useState("");
@@ -57,7 +58,11 @@ export function CatalogDesignQuickAdd({
       toast(t("catalogs.designEntryDone"));
       setArt("");
       setName("");
-      onAdded(result.fabricId);
+      onAdded({
+        fabric: result.fabric,
+        fabricIds: result.fabricIds,
+        catalogSections: result.catalogSections,
+      });
     } finally {
       setBusy(false);
     }

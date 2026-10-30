@@ -34,24 +34,25 @@ async function processDesignBuffer(original: Buffer, fileName: string, id: strin
   } catch {
     return Response.json({ error: "file" }, { status: 400 });
   }
-  const web = await image.clone().resize({ width: 4000, height: 4000, fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
-  const thumb = await image.clone().resize({ width: 400, height: 400, fit: "cover" }).webp({ quality: 78 }).toBuffer();
-  const mid = await image.clone().resize({ width: 1200, height: 1200, fit: "inside", withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
-  const small = await image.clone().resize({ width: 600, height: 600, fit: "inside", withoutEnlargement: true }).webp({ quality: 78 }).toBuffer();
+  const [web, thumb, mid, small] = await Promise.all([
+    image.clone().resize({ width: 4000, height: 4000, fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
+    image.clone().resize({ width: 400, height: 400, fit: "cover" }).webp({ quality: 78 }).toBuffer(),
+    image.clone().resize({ width: 1200, height: 1200, fit: "inside", withoutEnlargement: true }).webp({ quality: 80 }).toBuffer(),
+    image.clone().resize({ width: 600, height: 600, fit: "inside", withoutEnlargement: true }).webp({ quality: 78 }).toBuffer(),
+  ]);
   try {
     const skipOriginal = storageProvider() === "vercel-blob";
     const type = mimeFromName(fileName);
-    const [webUrl, thumbUrl] = await Promise.all([
+    const [webUrl, thumbUrl, , , extraOriginal] = await Promise.all([
       saveBuffer(`private/designs/${id}/web.webp`, web, "image/webp"),
       saveBuffer(`private/designs/${id}/thumb.webp`, thumb, "image/webp"),
-    ]);
-    await Promise.all([
       saveBuffer(`private/designs/${id}/web-1200.webp`, mid, "image/webp"),
       saveBuffer(`private/designs/${id}/web-600.webp`, small, "image/webp"),
+      skipOriginal
+        ? Promise.resolve(null)
+        : saveBuffer(`fabrics/${id}/original${ext(fileName)}`, original, type || "application/octet-stream"),
     ]);
-    const originalUrl = skipOriginal
-      ? webUrl
-      : await saveBuffer(`fabrics/${id}/original${ext(fileName)}`, original, type || "application/octet-stream");
+    const originalUrl = extraOriginal ?? webUrl;
     const colors = await dominantColors(web);
     return Response.json({ originalUrl, webUrl, thumbUrl, widthPx: meta.width ?? 0, heightPx: meta.height ?? 0, colors });
   } catch (error) {
