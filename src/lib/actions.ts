@@ -11,10 +11,10 @@ import {
   deleteUser,
   getCatalog,
   getCatalogs,
-  getDb,
   getDictionaries,
   getFabric,
   getUsers,
+  isDictionaryItemUsed,
   listFabricPickerPage,
   uniqueCatalogSlug,
   saveCatalog,
@@ -456,8 +456,7 @@ export async function saveFinishAction(item: Finish) {
 export async function removeFinishAction(id: string) {
   return catchQuota(async () => {
   await actor(isAdmin);
-  const db = await getDb();
-  if (db.fabrics.some((fabric) => fabric.finishId === id)) return { ok: false as const, error: "used" };
+  if (await isDictionaryItemUsed("finishes", id)) return { ok: false as const, error: "used" };
   await deleteFinish(id);
   touch("/admin/settings");
   return { ok: true as const };
@@ -479,14 +478,7 @@ export async function reorderFinishesAction(ids: string[]) {
 export async function removeDictionaryAction(kind: "collections" | "fabricTypes" | "productTypes", id: string) {
   return catchQuota(async () => {
   await actor(isAdmin);
-  const db = await getDb();
-  const used =
-    kind === "collections"
-      ? db.fabrics.some((fabric) => fabric.collectionId === id)
-      : kind === "fabricTypes"
-        ? db.fabrics.some((fabric) => fabric.fabricTypeId === id)
-        : db.fabrics.some((fabric) => fabric.productTypes.includes(id)) || db.templates.some((template) => template.productTypes.includes(id));
-  if (used) return { ok: false as const, error: "used" };
+  if (await isDictionaryItemUsed(kind, id)) return { ok: false as const, error: "used" };
   if (kind === "collections") {
     const { deleteCollection } = await import("@/lib/db");
     await deleteCollection(id);

@@ -21,11 +21,23 @@ function loadEnvLocal() {
 
 loadEnvLocal();
 
+const BATCH = 400;
+const DEFAULT_MAX = 15_000;
+
+function maxDeletes() {
+  const flag = process.argv.find((arg) => arg.startsWith("--max="));
+  const value = flag ? Number(flag.slice("--max=".length)) : DEFAULT_MAX;
+  if (!Number.isFinite(value) || value <= 0) throw new Error("--max must be a positive number");
+  return Math.floor(value);
+}
+
 async function main() {
   if (!process.argv.includes("--confirm-prod")) {
     console.error("Refusing to delete events. Pass --confirm-prod after the quota reset.");
+    console.error("Each run deletes at most --max=15000 (default). Spark limit is 20000 deletes/day.");
     process.exit(1);
   }
+  const max = maxDeletes();
   if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY) {
     throw new Error("Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY.");
   }
@@ -40,16 +52,18 @@ async function main() {
   }
   const db = getFirestore();
   let total = 0;
-  for (;;) {
-    const snap = await db.collection("events").limit(400).get();
+  while (total < max) {
+    const take = Math.min(BATCH, max - total);
+    const snap = await db.collection("events").select().limit(take).get();
     if (snap.empty) break;
     const batch = db.batch();
     for (const doc of snap.docs) batch.delete(doc.ref);
     await batch.commit();
     total += snap.size;
-    console.log(`deleted ${total}`);
+    console.log(`deleted ${total}/${max}`);
   }
-  console.log(`events collection cleared: ${total}`);
+  const left = await db.collection("events").count().get();
+  console.log(`done: deleted ${total} this run, ${left.data().count} events left`);
 }
 
 void main();

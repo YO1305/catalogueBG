@@ -63,7 +63,9 @@ function toRemote(value: unknown): unknown {
   return value;
 }
 
-const LOCAL_COLLECTION: Partial<Record<string, keyof Database>> = {
+type ReadableCollection = "catalogs" | "fabrics" | "collections" | "fabricTypes" | "finishes" | "productTypes" | "templates" | "leads" | "users";
+
+const LOCAL_COLLECTION: Record<ReadableCollection, keyof Database> = {
   catalogs: "catalogs",
   fabrics: "fabrics",
   collections: "collections",
@@ -72,9 +74,12 @@ const LOCAL_COLLECTION: Partial<Record<string, keyof Database>> = {
   productTypes: "productTypes",
   templates: "templates",
   leads: "leads",
-  events: "events",
   users: "users",
 };
+
+/** Hard cap so a runaway collection can never cost more than this many reads per call. */
+const COLLECTION_READ_CAP = 500;
+const QUERY_READ_CAP = 500;
 
 export class FirestoreUnavailableError extends Error {
   constructor(source: string, cause?: unknown) {
@@ -115,9 +120,8 @@ function firestore(): Firestore {
   return db;
 }
 
-function readLocalCollection<T>(name: string, idField?: keyof T): T[] {
+function readLocalCollection<T>(name: ReadableCollection, idField?: keyof T): T[] {
   const key = LOCAL_COLLECTION[name];
-  if (!key) return [];
   const db = readLocal();
   const rows = db[key];
   if (!Array.isArray(rows)) return [];
@@ -144,12 +148,13 @@ async function mutate(fn: (db: Database) => void) {
   });
 }
 
-async function readCollection<T>(name: string, idField?: keyof T): Promise<T[]> {
+async function readCollection<T>(name: ReadableCollection, idField?: keyof T): Promise<T[]> {
   if (!firebaseAdminConfigured()) return readLocalCollection<T>(name, idField);
   try {
     const db = requireFirestore(`collection:${name}`);
-    const snap = await fsOp(() => db.collection(name).get());
+    const snap = await fsOp(() => db.collection(name).limit(COLLECTION_READ_CAP).get());
     trackFirestoreRead(snap.size, `collection:${name}`);
+    if (snap.size === COLLECTION_READ_CAP) console.warn(`readCollection:${name} hit cap ${COLLECTION_READ_CAP}`);
     return snap.docs.map((doc) => {
       const data = fromRemote(doc.data()) as T;
       if (idField && !(data as Record<string, unknown>)[idField as string]) {
@@ -187,7 +192,7 @@ function forgetArtTakenCache(exceptId: string) {
 }
 
 async function readCollectionPage<T>(
-  name: string,
+  name: ReadableCollection,
   idField: keyof T | undefined,
   options: { limit: number; cursor?: string | null; orderBy: string },
 ): Promise<{ items: T[]; nextCursor: string | null }> {
@@ -408,7 +413,7 @@ export async function getCatalogListData(options?: { cursor?: string | null; pag
   return { catalogs: page.items, fabrics, cursor, nextCursor: page.nextCursor, hasMore: Boolean(page.nextCursor) };
 }
 
-async function readDoc<T>(name: string, id: string, idField: keyof T): Promise<T | null> {
+async function readDoc<T>(name: ReadableCollection, id: string, idField: keyof T): Promise<T | null> {
   if (!firebaseAdminConfigured()) {
     return readLocalCollection<T>(name, idField).find((item) => String((item as Record<string, unknown>)[idField as string]) === id) ?? null;
   }
@@ -481,8 +486,8 @@ export async function listCatalogsTouchingFabric(fabric: Fabric): Promise<Catalo
   }
   const db = firestore();
   const [manualSnap, rulesSnap] = await Promise.all([
-    fsOp(() => db.collection("catalogs").where("fabricIds", "array-contains", fabric.id).get()),
-    fsOp(() => db.collection("catalogs").where("mode", "==", "rules").get()),
+    fsOp(() => db.collection("catalogs").where("fabricIds", "array-contains", fabric.id).limit(QUERY_READ_CAP).get()),
+    fsOp(() => db.collection("catalogs").where("mode", "==", "rules").limit(QUERY_READ_CAP).get()),
   ]);
   trackFirestoreRead(manualSnap.size + rulesSnap.size, "catalogs:touching-fabric");
   const bySlug = new Map<string, Catalog>();
@@ -593,7 +598,7 @@ export async function listFabricsByTemplateId(templateId: string): Promise<Fabri
   }
   try {
     const db = requireFirestore("fabrics:byTemplate");
-    const snap = await fsOp(() => db.collection("fabrics").where("templateIds", "array-contains", templateId).get());
+    const snap = await fsOp(() => db.collection("fabrics").where("templateIds", "array-contains", templateId).limit(QUERY_READ_CAP).get());
     trackFirestoreRead(snap.size, "fabrics:byTemplate");
     return snap.docs.map((doc) => {
       const data = fromRemote(doc.data()) as Fabric;
@@ -611,7 +616,7 @@ export async function listLeadsByCatalog(slug: string): Promise<Lead[]> {
   if (!firebaseAdminConfigured()) return readLocal().leads.filter((lead) => lead.catalogSlug === slug);
   try {
     const db = requireFirestore("leads:byCatalog");
-    const snap = await fsOp(() => db.collection("leads").where("catalogSlug", "==", slug).get());
+    const snap = await fsOp(() => db.collection("leads").where("catalogSlug", "==", slug).limit(QUERY_READ_CAP).get());
     trackFirestoreRead(snap.size, "leads:byCatalog");
     return snap.docs.map((doc) => {
       const data = fromRemote(doc.data()) as Lead;
@@ -634,8 +639,44 @@ export async function getLeadsData() {
     const db = readLocal();
     return { leads: db.leads, fabrics: db.fabrics };
   }
-  const [leads, fabrics] = await Promise.all([readCollection<Lead>("leads", "id"), readCollection<Fabric>("fabrics", "id")]);
+  const leads = await readCollection<Lead>("leads", "id");
+  const fabrics = await getFabricsByIds(leads.flatMap((lead) => lead.fabricIds ?? []));
   return { leads, fabrics };
+}
+
+export async function getProductTypes(): Promise<ProductType[]> {
+  if (!firebaseAdminConfigured()) return readLocal().productTypes;
+  return readCollection<ProductType>("productTypes", "id");
+}
+
+export type DictionaryKind = "collections" | "fabricTypes" | "productTypes" | "finishes";
+
+/** One `where(...).limit(1)` per check instead of loading every fabric and template. */
+export async function isDictionaryItemUsed(kind: DictionaryKind, id: string): Promise<boolean> {
+  if (!firebaseAdminConfigured()) {
+    const local = readLocal();
+    if (kind === "collections") return local.fabrics.some((fabric) => fabric.collectionId === id);
+    if (kind === "fabricTypes") return local.fabrics.some((fabric) => fabric.fabricTypeId === id);
+    if (kind === "finishes") return local.fabrics.some((fabric) => fabric.finishId === id);
+    return (
+      local.fabrics.some((fabric) => fabric.productTypes.includes(id)) ||
+      local.templates.some((template) => template.productTypes.includes(id))
+    );
+  }
+  const db = requireFirestore(`used:${kind}`);
+  const exists = async (query: Query, source: string) => {
+    const snap = await fsOp(() => query.limit(1).select().get());
+    trackFirestoreRead(Math.max(snap.size, 1), source);
+    return !snap.empty;
+  };
+  if (kind === "collections") return exists(db.collection("fabrics").where("collectionId", "==", id), "used:collections");
+  if (kind === "fabricTypes") return exists(db.collection("fabrics").where("fabricTypeId", "==", id), "used:fabricTypes");
+  if (kind === "finishes") return exists(db.collection("fabrics").where("finishId", "==", id), "used:finishes");
+  const [inFabrics, inTemplates] = await Promise.all([
+    exists(db.collection("fabrics").where("productTypes", "array-contains", id), "used:productTypes:fabrics"),
+    exists(db.collection("templates").where("productTypes", "array-contains", id), "used:productTypes:templates"),
+  ]);
+  return inFabrics || inTemplates;
 }
 
 export async function getStatsData(input?: { slug?: string; from?: string; to?: string }) {
@@ -680,37 +721,6 @@ export async function getCatalogWorkspace(slug?: string) {
     collections: dictionaries.collections,
     fabricTypes: dictionaries.fabricTypes,
     productTypes: dictionaries.productTypes,
-  };
-}
-
-export async function getDb(): Promise<Database> {
-  if (!firebaseAdminConfigured()) return readLocal();
-  const fs = firestore();
-  const [collections, fabricTypes, productTypes, templates, fabrics, catalogs, leads, events, users, glossarySnap] = await Promise.all([
-    readCollection<Collection>("collections", "id"),
-    readCollection<FabricType>("fabricTypes", "id"),
-    readCollection<ProductType>("productTypes", "id"),
-    readCollection<Template>("templates", "id"),
-    readCollection<Fabric>("fabrics", "id"),
-    readCollection<Catalog>("catalogs", "slug"),
-    readCollection<Lead>("leads", "id"),
-    readCollection<AnalyticsEvent>("events", "id"),
-    readCollection<AppUser>("users", "id"),
-    fsOp(() => fs.doc("settings/glossary").get()),
-  ]);
-  trackFirestoreRead(glossarySnap.exists ? 1 : 0, "doc:settings/glossary");
-  const glossaryData = glossarySnap.exists ? (fromRemote(glossarySnap.data()) as { terms?: GlossaryTerm[] }) : undefined;
-  return {
-    collections,
-    fabricTypes,
-    productTypes,
-    templates,
-    fabrics,
-    catalogs,
-    leads,
-    events,
-    users,
-    glossary: glossaryData?.terms ?? [],
   };
 }
 

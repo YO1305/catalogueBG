@@ -15,6 +15,7 @@
     "seed": "tsx scripts/seed.ts",
     "reset:content": "tsx scripts/reset-content.ts",
     "reset:content:dry": "tsx scripts/reset-content.ts --dry-run",
+    "cleanup:events": "tsx scripts/cleanup-events.ts",
     "bootstrap-auth": "tsx scripts/bootstrap-auth.ts",
     "set-role": "tsx scripts/set-role.ts"
   },

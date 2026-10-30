@@ -24,10 +24,12 @@ loadEnvLocal();
 
 const seed = JSON.parse(readFileSync(path.join(process.cwd(), "data", "seed.json"), "utf8")) as Database;
 
-const WIPE = ["fabrics", "catalogs", "collections", "fabricTypes", "templates", "leads", "events"] as const;
+// `events` is cleared separately by `npm run cleanup:events` in daily portions.
+const WIPE = ["fabrics", "catalogs", "collections", "fabricTypes", "templates", "leads"] as const;
+const WIPE_CAP = 2_000;
 
 async function wipeCollection(db: Firestore, name: string) {
-  const snap = await db.collection(name).get();
+  const snap = await db.collection(name).select().limit(WIPE_CAP).get();
   if (snap.empty) {
     console.log(`  ${name}: 0`);
     return 0;
@@ -92,8 +94,8 @@ async function main() {
   console.log(dryRun ? "Dry run — nothing will change" : "Resetting catalogue content in Firestore…");
   if (dryRun) {
     for (const name of WIPE) {
-      const snap = await db.collection(name).get();
-      console.log(`  ${name}: ${snap.size} (would delete)`);
+      const count = await db.collection(name).count().get();
+      console.log(`  ${name}: ${count.data().count} (would delete)`);
     }
     return;
   }
