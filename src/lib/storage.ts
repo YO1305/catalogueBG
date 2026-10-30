@@ -1,7 +1,7 @@
 import "server-only";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { put } from "@vercel/blob";
+import { list, put } from "@vercel/blob";
 import { getStorage } from "firebase-admin/storage";
 import { firebaseAdminConfigured, getAdminApp } from "@/lib/firebaseAdmin";
 
@@ -82,4 +82,41 @@ export async function saveBuffer(relativePath: string, data: Buffer, contentType
   if (provider === "vercel-blob") return saveVercelBlob(relativePath, data, contentType);
   if (provider === "firebase") return saveFirebase(relativePath, data, contentType);
   return saveLocal(relativePath, data);
+}
+
+export async function readBuffer(relativePath: string): Promise<Buffer | null> {
+  const clean = relativePath.replace(/^\/+/, "");
+  const provider = storageProvider();
+  if (provider === "local") {
+    const full = path.join(process.cwd(), "public", clean);
+    if (!existsSync(full)) return null;
+    return readFileSync(full);
+  }
+  if (provider === "vercel-blob") {
+    if (!blobConfigured()) return null;
+    try {
+      const rw = process.env.BLOB_READ_WRITE_TOKEN?.trim();
+      const { blobs } = await list({
+        prefix: clean,
+        limit: 20,
+        ...(rw && rw.length > 20 ? { token: rw } : {}),
+      });
+      const hit = blobs.find((item) => item.pathname === clean || item.pathname.endsWith(`/${clean}`));
+      if (!hit) return null;
+      const response = await fetch(hit.url);
+      if (!response.ok) return null;
+      return Buffer.from(await response.arrayBuffer());
+    } catch {
+      return null;
+    }
+  }
+  const app = getAdminApp();
+  const bucketId = storageBucketName();
+  if (!app || !bucketId) return null;
+  try {
+    const [data] = await getStorage(app).bucket(bucketId).file(clean).download();
+    return data;
+  } catch {
+    return null;
+  }
 }

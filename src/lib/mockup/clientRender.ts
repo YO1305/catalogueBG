@@ -7,7 +7,7 @@ import type { Fabric, Mockup, Template } from "@/types";
 
 export type MockupSaveStep = "render" | "upload1" | "upload2" | "save";
 
-type Saved = { ok?: boolean; error?: string; mockup?: Mockup; fabrics?: { fabricId: string; mockups: Mockup[]; variants?: Fabric["variants"] }[] };
+type Saved = { ok?: boolean; error?: string; mockup?: Mockup };
 
 async function ensureFabricSaved(fabric: Fabric): Promise<Fabric> {
   if (fabric.persisted) return fabric;
@@ -41,7 +41,7 @@ export async function renderAndSave(
     const persisted = opts?.persisted?.persisted ? opts.persisted : await ensureFabricSaved(opts?.persisted ?? fabric);
     const variant = variantId ? persisted.variants?.find((item) => item.id === variantId) : undefined;
     if (variantId && !variant) throw new Error("Вариант цвета не найден");
-    if (template.engine !== "uvgrid" || !template.baked.jsonUrl) return renderOnServer(persisted, template, mockup, variantId, signal);
+    if (template.engine !== "uvgrid" || !template.baked.jsonUrl) throw new Error("Нужен uvgrid-шаблон с jsonUrl");
     const source = variant ? variantFabric(persisted, variant) : persisted;
     const plan = fillPlan(source);
     if (!plan) throw new Error("Нет рисунка или цвета ткани для макета");
@@ -79,26 +79,4 @@ export async function renderAndSave(
 
 function throwIfAborted(signal: AbortSignal) {
   if (signal.aborted) throw new DOMException("Aborted", "AbortError");
-}
-
-async function renderOnServer(
-  fabric: Fabric,
-  template: Template,
-  mockup: Mockup,
-  variantId: string | undefined,
-  signal: AbortSignal,
-): Promise<{ mockup: Mockup; fabric: Fabric }> {
-  const response = await fetch("/api/mockups/render", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ fabricId: fabric.id, templateId: template.id, variantId }),
-    signal,
-  });
-  const data = (await response.json().catch(() => ({}))) as Saved;
-  if (!response.ok || !data.ok) throw new Error(data.error ?? `Макет не сохранился: ${response.status}`);
-  const row = data.fabrics?.find((item) => item.fabricId === fabric.id);
-  const list = variantId ? row?.variants?.find((item) => item.id === variantId)?.mockups : row?.mockups;
-  const saved = list?.find((item) => item.templateId === template.id && item.productType === mockup.productType);
-  if (!saved) throw new Error("Макет не сохранился");
-  return { mockup: saved, fabric };
 }

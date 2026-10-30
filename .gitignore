@@ -16,3 +16,10 @@ public/mockups
 
 # uvgrid parity test output
 scripts/uvgrid/actual_*.png
+kit/expected/
+kit/test-designs/
+kit/*.zip
+kit/*.jpg
+samples/templates/fabric-*/
+scripts/uvgrid/expected/
+scripts/uvgrid/test-designs/

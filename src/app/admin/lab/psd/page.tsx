@@ -2,8 +2,23 @@
 
 import { useState } from "react";
 import { useI18n } from "@/components/i18n/I18n";
-import { makeCheckerboard, renderMockup } from "@/components/mockup/MockupRenderer";
 import { summarizePsd, type LayerNode } from "@/lib/psdSummary";
+
+function paintCheckerboard(width: number, height: number) {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+  const size = 40;
+  for (let y = 0; y < height; y += size) {
+    for (let x = 0; x < width; x += size) {
+      ctx.fillStyle = ((x / size + y / size) % 2 === 0) ? "#d9d4cc" : "#f4f1ea";
+      ctx.fillRect(x, y, size, size);
+    }
+  }
+  return canvas.toDataURL("image/webp");
+}
 
 export default function PsdLabPage() {
   const { t } = useI18n();
@@ -21,27 +36,7 @@ export default function PsdLabPage() {
     const summary = summarizePsd(psd);
     setTree(summary.tree);
     setWarnings(summary.warnings);
-    const canvas = document.createElement("canvas");
-    const area = summary.areas[0];
-    renderMockup(canvas, {
-      width: Math.max(summary.width, 800),
-      height: Math.max(summary.height, 600),
-      background: null,
-      pattern: makeCheckerboard(),
-      overlays: [],
-      areas: [{
-        id: "so",
-        transform: area && area.transform.length >= 8 ? area.transform : [40, 40, 520, 20, 560, 360, 20, 400],
-        soWidthPx: area?.width || 600,
-        soHeightPx: area?.height || 400,
-        pxPerCm: 8,
-        fill: true,
-      }],
-      settings: [{ areaId: "so", scale: 1, offsetX: 0, offsetY: 0, rotation: 0 }],
-      rapport: { widthCm: 32, heightCm: 32 },
-      sameForAllAreas: true,
-    });
-    setWebglUrl(canvas.toDataURL("image/webp"));
+    setWebglUrl(paintCheckerboard(Math.max(summary.width, 800), Math.max(summary.height, 600)));
     setTimes((current) => ({ ...current, webgl: Math.round(performance.now() - started) }));
     if (!summary.areas.length) setNote(t("lab.noSmart"));
     void runPhotopea(file);

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { loadImage, renderMockup } from "@/components/mockup/MockupRenderer";
 import { fillPlan, fillPlanKey, mockupOptions } from "@/lib/mockup/fill";
 import { renderPreview } from "@/lib/mockup/previewClient";
 import type { Fabric, Mockup, Template } from "@/types";
@@ -19,13 +18,17 @@ export function useMockupPreview(canvas: RefObject<HTMLCanvasElement | null>, fa
 
   useEffect(() => {
     const node = canvas.current;
+    if (!isUvgrid) {
+      setError(null);
+      setBusy(false);
+      return;
+    }
     if (!node || !plan) return;
     const ticket = latest.current + 1;
     latest.current = ticket;
     const timer = window.setTimeout(() => {
       setBusy(true);
-      const job = isUvgrid ? drawUvgrid(node, template, plan, mockup) : drawWebgl(node, fabric, template, mockup);
-      job
+      drawUvgrid(node, template, plan, mockup)
         .then(() => {
           if (latest.current === ticket) setError(null);
         })
@@ -50,24 +53,4 @@ async function drawUvgrid(node: HTMLCanvasElement, template: Template, plan: Non
   node.width = image.width;
   node.height = image.height;
   node.getContext("2d")?.putImageData(image, 0, 0);
-}
-
-async function drawWebgl(node: HTMLCanvasElement, fabric: Fabric, template: Template, mockup: Mockup) {
-  if (!fabric.design.webUrl) return;
-  const pattern = await loadImage(fabric.design.webUrl);
-  const background = template.baked.backgroundUrl ? await loadImage(template.baked.backgroundUrl).catch(() => null) : null;
-  const overlays = await Promise.all(template.baked.overlays.map(async (overlay) => ({ ...overlay, image: await loadImage(overlay.url) })));
-  const width = 1000;
-  const height = Math.max(200, Math.round((width * template.source.heightPx) / Math.max(template.source.widthPx, 1)));
-  renderMockup(node, {
-    width,
-    height,
-    background,
-    pattern,
-    overlays,
-    areas: template.areas,
-    settings: mockup.areas,
-    rapport: fabric.rapport,
-    sameForAllAreas: mockup.sameForAllAreas,
-  });
 }

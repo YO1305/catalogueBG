@@ -1,12 +1,14 @@
-import { readFile, mkdir, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb } from "pdf-lib";
 import sharp from "sharp";
 import { catalogCoverMockup } from "@/lib/catalog";
 import { loadCatalog } from "@/lib/loadCatalog";
+import { readBuffer, saveBuffer } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function GET(_request: Request, context: { params: Promise<{ slug: string }> }) {
   const { slug } = await context.params;
@@ -14,14 +16,9 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
   if (loaded.state === "unavailable") return new Response("Service Unavailable", { status: 503 });
   if (loaded.state !== "ready") return new Response("Not found", { status: 404 });
   const { catalog, fabrics, pages, fabricTypes } = loaded.model;
-  const cacheDir = path.join(process.cwd(), "data", "pdf-cache");
-  const cacheFile = path.join(cacheDir, `${slug}-${catalog.updatedAt.replace(/[:.]/g, "-")}.pdf`);
-  try {
-    const cached = await readFile(cacheFile);
-    return pdf(cached);
-  } catch {
-    // Build a fresh A4 file when the catalogue changed.
-  }
+  const cacheKey = `pdf/${slug}-${catalog.updatedAt.replace(/[:.]/g, "-")}.pdf`;
+  const cached = await readBuffer(cacheKey).catch(() => null);
+  if (cached) return pdf(cached);
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
   const sans = await pdfDoc.embedFont(await readFile(path.join(process.cwd(), "assets/fonts/DejaVuSans.ttf")));
@@ -60,8 +57,7 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
     sheet.drawText(String(page.index + 1), { x: 540, y: 28, size: 9, font: sans, color: rgb(0.4, 0.36, 0.3) });
   }
   const bytes = Buffer.from(await pdfDoc.save());
-  await mkdir(cacheDir, { recursive: true });
-  await writeFile(cacheFile, bytes);
+  await saveBuffer(cacheKey, bytes, "application/pdf").catch(() => undefined);
   return pdf(bytes);
 }
 
@@ -70,9 +66,15 @@ function pdf(bytes: Buffer) {
 }
 
 async function embed(pdfDoc: PDFDocument, url?: string) {
-  if (!url || !url.startsWith("/")) return null;
+  if (!url) return null;
   try {
-    const file = await readFile(path.join(process.cwd(), "public", url));
+    let file: Buffer;
+    if (url.startsWith("/")) file = await readFile(path.join(process.cwd(), "public", url));
+    else if (url.startsWith("https://")) {
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      file = Buffer.from(await response.arrayBuffer());
+    } else return null;
     const png = await sharp(file).png().toBuffer();
     return pdfDoc.embedPng(png);
   } catch {
