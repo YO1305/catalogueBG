@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
@@ -19,7 +20,6 @@ export function MockupAdjuster({
   template: Template;
   mockup: Mockup;
   onChange: (mockup: Mockup) => void;
-  /** Saves this mockup for the main picture (colourways rebuild on publish if needed). */
   onSave: () => Promise<number>;
 }) {
   const { t } = useI18n();
@@ -48,6 +48,23 @@ export function MockupAdjuster({
         mockup.areas.find((item) => item.areaId === area.id) ?? { areaId: area.id, scale: 1, offsetX: 0, offsetY: 0, rotation: 0 },
     );
     onChange({ ...mockup, sameForAllAreas: all, areas: merged });
+  }
+
+  async function saveWebp() {
+    if (saving) return;
+    setSaving(true);
+    setSaveError(null);
+    toast(t("designs.mockupSaving"));
+    try {
+      await onSave();
+      toast(t("designs.mockupSaved"));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      setSaveError(message);
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -139,24 +156,10 @@ export function MockupAdjuster({
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="outline" onClick={() => patch({ scale: 1, offsetX: 0, offsetY: 0, rotation: 0 })}>{t("wizard.resetReal")}</Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={saving}
-          onClick={() => {
-            setSaving(true);
-            setSaveError(null);
-            onSave()
-              .then(() => setSaveError(null))
-              .catch((error: unknown) => setSaveError(error instanceof Error ? error.message : String(error)))
-              .finally(() => setSaving(false));
-          }}
-        >
-          {saving ? t("common.loading") : t("templates.rebuildOne")}
+        <Button type="button" size="sm" disabled={saving} onClick={() => void saveWebp()}>
+          {saving ? t("designs.mockupSaving") : t("templates.rebuildOne")}
         </Button>
       </div>
-      {saving ? <p className="mt-2 text-xs text-ink/60">{t("designs.mockupsStay")}</p> : null}
     </div>
   );
 }

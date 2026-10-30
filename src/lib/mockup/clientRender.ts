@@ -34,21 +34,45 @@ export async function renderAndSave(
   if (template.engine !== "uvgrid" || !template.baked.jsonUrl) return renderOnServer(persisted, template, mockup, variantId);
   const plan = fillPlan(source);
   if (!plan) throw new Error("Нет рисунка или цвета ткани для макета");
-  const blob = await renderFinal({
-    jsonUrl: template.baked.jsonUrl,
-    backgroundUrl: template.baked.backgroundUrl,
-    plan,
-    opts: mockupOptions(mockup),
-  });
+  const blob = await withTimeout(
+    renderFinal({
+      jsonUrl: template.baked.jsonUrl,
+      backgroundUrl: template.baked.backgroundUrl,
+      plan,
+      opts: mockupOptions(mockup),
+    }),
+    45_000,
+    "Рендер макета занял больше 45 секунд — нажмите ещё раз",
+  );
   const body = new FormData();
   body.append("file", blob, "mockup.jpg");
   body.append("fabricId", persisted.id);
   if (variantId) body.append("variantId", variantId);
   body.append("mockup", JSON.stringify(mockup));
-  const response = await fetch("/api/mockups/save", { method: "POST", body });
+  const response = await withTimeout(
+    fetch("/api/mockups/save", { method: "POST", body }),
+    45_000,
+    "Сервер слишком долго сохраняет WebP — нажмите ещё раз",
+  );
   const data = (await response.json().catch(() => ({}))) as Saved;
   if (!response.ok || !data.ok || !data.mockup) throw new Error(data.error ?? `Макет не сохранился: ${response.status}`);
   return { mockup: data.mockup, fabric: persisted };
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
 
 async function renderOnServer(fabric: Fabric, template: Template, mockup: Mockup, variantId?: string): Promise<{ mockup: Mockup; fabric: Fabric }> {

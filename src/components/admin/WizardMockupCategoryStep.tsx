@@ -69,7 +69,7 @@ export function WizardMockupCategoryStep({
                 template={template}
                 mockup={selected}
                 onChange={(mockup: Mockup) => onChange({ mockups: fabric.mockups.map((item) => (item.templateId === template.id ? mockup : item)) })}
-                onSave={() => onSaveMockup(selected)}
+                onSave={() => onSaveMockup({ templateId: template.id, productType: selected.productType })}
               />
             ) : null}
           </div>

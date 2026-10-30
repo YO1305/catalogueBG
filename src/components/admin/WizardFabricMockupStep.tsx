@@ -69,7 +69,7 @@ export function WizardFabricMockupStep({
                       ),
                     })
                   }
-                  onSave={() => onSaveMockup(selected)}
+                  onSave={() => onSaveMockup({ templateId: template.id, productType: FABRIC_PRODUCT })}
                 />
               </>
             ) : null}
