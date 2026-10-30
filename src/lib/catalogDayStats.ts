@@ -1,12 +1,9 @@
 import "server-only";
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
-import { firebaseAdminConfigured, getAdminApp } from "@/lib/firebaseAdmin";
-import { withFirestoreGuard } from "@/lib/firestoreGuard";
 import type { CatalogStats } from "@/lib/analytics";
-import { trackFirestoreRead, trackFirestoreWrite } from "@/lib/firestoreMetrics";
+import { isWriteBrakeOn, shouldFlushTelemetry, takeTelemetryWriteSlot, writeBrakeActive } from "@/lib/telemetryBudget";
+import { readJsonBlob, writeJsonBlob } from "@/lib/telemetryBlob";
 import type { AnalyticsEvent } from "@/types";
 
-const FLUSH_MS = 5 * 60 * 1000;
 const RANGE_CAP = 62;
 
 export type CatalogDayStat = {
@@ -19,6 +16,18 @@ export type CatalogDayStat = {
   fabric_open?: number;
   fabrics?: Record<string, number>;
 };
+
+type DayFile = Record<string, CatalogDayStat>;
+
+type Pending = {
+  counts: Partial<Record<AnalyticsEvent["type"], number>>;
+  fabrics: Record<string, number>;
+  sessions: Set<string>;
+};
+
+const pending = new Map<string, Pending>();
+let lastFlushAt = Date.now();
+let flushInFlight: Promise<void> | null = null;
 
 export function defaultStatsRange(from?: string, to?: string): { from: string; to: string } {
   const iso = (value?: string) => (value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "");
@@ -73,39 +82,17 @@ export function summarizeDayStats(days: CatalogDayStat[], leadCount: number): Ca
   };
 }
 
-export async function listCatalogDayStats(slug: string, from: string, to: string): Promise<CatalogDayStat[]> {
-  if (!firebaseAdminConfigured()) return [];
-  const app = getAdminApp();
-  if (!app) return [];
-  const db = getFirestore(app);
-  const refs = eachDayInclusive(from, to).map((day) => db.collection("stats").doc(`${slug}_${day}`));
-  if (!refs.length) return [];
-  const chunks: Array<typeof refs> = [];
-  for (let i = 0; i < refs.length; i += 100) chunks.push(refs.slice(i, i + 100));
-  const snaps = (await Promise.all(chunks.map((chunk) => withFirestoreGuard(() => db.getAll(...chunk))))).flat();
-  trackFirestoreRead(snaps.length, "stats:days");
-  return snaps.flatMap((snap) => {
-    if (!snap.exists) return [];
-    const data = snap.data() as CatalogDayStat;
-    const underscore = snap.id.lastIndexOf("_");
-    return [
-      {
-        ...data,
-        catalogSlug: data.catalogSlug ?? slug,
-        day: data.day ?? snap.id.slice(underscore + 1),
-      },
-    ];
-  });
+function statsBlobPath(day: string) {
+  return `telemetry/stats-${day}.json`;
 }
 
-type Pending = {
-  counts: Partial<Record<AnalyticsEvent["type"], number>>;
-  fabrics: Record<string, number>;
-  sessions: Set<string>;
-};
-
-const pending = new Map<string, Pending>();
-const lastFlushAt = new Map<string, number>();
+function pendingEventCount() {
+  let total = 0;
+  for (const row of pending.values()) {
+    for (const count of Object.values(row.counts)) total += count ?? 0;
+  }
+  return total;
+}
 
 function statsKey(slug: string, ts: string) {
   const day = ts.slice(0, 10) || new Date().toISOString().slice(0, 10);
@@ -126,41 +113,77 @@ function merge(items: AnalyticsEvent[]) {
   }
 }
 
-async function writeKey(key: string) {
-  const row = pending.get(key);
-  if (!row) return;
-  pending.delete(key);
-  lastFlushAt.set(key, Date.now());
-  if (!firebaseAdminConfigured()) return;
-  const app = getAdminApp();
-  if (!app) return;
-  const underscore = key.lastIndexOf("_");
-  const slug = key.slice(0, underscore);
-  const day = key.slice(underscore + 1);
-  const payload: Record<string, unknown> = {
-    catalogSlug: slug,
-    day,
-    updatedAt: new Date().toISOString(),
-  };
-  if (row.sessions.size) payload.unique = FieldValue.increment(row.sessions.size);
-  for (const [type, count] of Object.entries(row.counts)) {
-    if (count) payload[type] = FieldValue.increment(count);
-  }
-  const fabrics: Record<string, ReturnType<typeof FieldValue.increment>> = {};
+function applyRow(target: CatalogDayStat, row: Pending): CatalogDayStat {
+  const fabrics = { ...(target.fabrics ?? {}) };
   for (const [id, count] of Object.entries(row.fabrics)) {
-    if (count) fabrics[id] = FieldValue.increment(count);
+    fabrics[id] = (fabrics[id] ?? 0) + count;
   }
-  if (Object.keys(fabrics).length) payload.fabrics = fabrics;
-  await withFirestoreGuard(() => getFirestore(app).collection("stats").doc(key).set(payload, { merge: true }));
-  trackFirestoreWrite(1, "stats:day");
+  return {
+    catalogSlug: target.catalogSlug,
+    day: target.day,
+    open: (target.open ?? 0) + (row.counts.open ?? 0),
+    page: (target.page ?? 0) + (row.counts.page ?? 0),
+    zoom: (target.zoom ?? 0) + (row.counts.zoom ?? 0),
+    unique: (target.unique ?? 0) + row.sessions.size,
+    fabric_open: (target.fabric_open ?? 0) + (row.counts.fabric_open ?? 0),
+    fabrics,
+  };
+}
+
+async function flushPendingToBlob() {
+  if (flushInFlight) return flushInFlight;
+  if (await writeBrakeActive()) {
+    pending.clear();
+    return;
+  }
+  if (!takeTelemetryWriteSlot()) return;
+  const snapshot = new Map(pending);
+  pending.clear();
+  lastFlushAt = Date.now();
+  const byDay = new Map<string, Map<string, Pending>>();
+  for (const [key, row] of snapshot) {
+    const underscore = key.lastIndexOf("_");
+    const slug = key.slice(0, underscore);
+    const day = key.slice(underscore + 1);
+    const dayMap = byDay.get(day) ?? new Map();
+    dayMap.set(slug, row);
+    byDay.set(day, dayMap);
+  }
+  flushInFlight = (async () => {
+    try {
+      for (const [day, rows] of byDay) {
+        const file = (await readJsonBlob<DayFile>(statsBlobPath(day))) ?? {};
+        for (const [slug, row] of rows) {
+          const current = file[slug] ?? { catalogSlug: slug, day };
+          file[slug] = applyRow(current, row);
+        }
+        await writeJsonBlob(statsBlobPath(day), file);
+      }
+      console.info(`[stats-blob] flushed ${snapshot.size} catalog-days`);
+    } catch (error) {
+      console.error("stats blob flush", error);
+      for (const [key, row] of snapshot) pending.set(key, row);
+    } finally {
+      flushInFlight = null;
+    }
+  })();
+  return flushInFlight;
+}
+
+export async function listCatalogDayStats(slug: string, from: string, to: string): Promise<CatalogDayStat[]> {
+  const days = eachDayInclusive(from, to);
+  const files = await Promise.all(days.map((day) => readJsonBlob<DayFile>(statsBlobPath(day))));
+  return files.flatMap((file, index) => {
+    const row = file?.[slug];
+    if (!row) return [];
+    const day = days[index] ?? row.day;
+    return [{ ...row, catalogSlug: slug, day }];
+  });
 }
 
 export async function recordCatalogDayStats(items: AnalyticsEvent[]) {
-  if (!items.length) return;
+  if (!items.length || isWriteBrakeOn()) return;
   merge(items);
-  const now = Date.now();
-  for (const key of [...pending.keys()]) {
-    if (now - (lastFlushAt.get(key) ?? 0) < FLUSH_MS) continue;
-    await writeKey(key);
-  }
+  if (!shouldFlushTelemetry(pendingEventCount(), lastFlushAt)) return;
+  await flushPendingToBlob();
 }

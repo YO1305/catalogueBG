@@ -42,8 +42,18 @@ export async function withFirestoreGuard<T>(start: () => Promise<T>): Promise<T>
     ]);
     return result;
   } catch (error) {
-    if (error instanceof FirestoreQuotaError || error instanceof FirestoreTimeoutError) throw error;
-    if (isFirestoreQuotaError(error)) throw new FirestoreQuotaError();
+    if (error instanceof FirestoreQuotaError || error instanceof FirestoreTimeoutError) {
+      if (error instanceof FirestoreQuotaError) {
+        const { tripWriteBrake } = await import("@/lib/telemetryBudget");
+        tripWriteBrake();
+      }
+      throw error;
+    }
+    if (isFirestoreQuotaError(error)) {
+      const { tripWriteBrake } = await import("@/lib/telemetryBudget");
+      tripWriteBrake();
+      throw new FirestoreQuotaError();
+    }
     throw error;
   } finally {
     if (timer) clearTimeout(timer);

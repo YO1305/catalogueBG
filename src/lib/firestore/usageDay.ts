@@ -1,9 +1,20 @@
 import "server-only";
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 import { firebaseAdminConfigured, getAdminApp } from "@/lib/firebaseAdmin";
 import { FirestoreQuotaError, isFirestoreQuotaError, withFirestoreGuard } from "@/lib/firestoreGuard";
+import {
+  isWriteBrakeOn,
+  pacificDayKey,
+  pacificHourKey,
+  shouldFlushTelemetry,
+  takeTelemetryWriteSlot,
+  tripWriteBrake,
+  WRITE_BRAKE_LIMIT,
+  writeBrakeActive,
+} from "@/lib/telemetryBudget";
+import { readJsonBlob, writeJsonBlob } from "@/lib/telemetryBlob";
 
-const FLUSH_MS = 5 * 60 * 1000;
+export { pacificDayKey, pacificHourKey };
 
 export type SourceUsageRow = { reads: number; writes: number; deletes: number };
 
@@ -24,30 +35,11 @@ type PendingDelta = {
 };
 
 let pending: PendingDelta = { reads: 0, writes: 0, deletes: 0, bySource: new Map() };
-/** Start the clock on boot so the first admin write is not blocked by a usage transaction. */
 let lastFlushAt = Date.now();
 let flushInFlight: Promise<void> | null = null;
 
-export function pacificDayKey(date = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Los_Angeles",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-}
-
-function pacificHourKey(date = new Date()): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Los_Angeles",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    hour12: false,
-  }).formatToParts(date);
-  const pick = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
-  return `${pick("year")}-${pick("month")}-${pick("day")}T${pick("hour")}`;
+function emptyRow(): SourceUsageRow {
+  return { reads: 0, writes: 0, deletes: 0 };
 }
 
 function mergeSourceRow(target: SourceUsageRow, delta: SourceUsageRow) {
@@ -56,27 +48,31 @@ function mergeSourceRow(target: SourceUsageRow, delta: SourceUsageRow) {
   target.deletes += delta.deletes;
 }
 
-function mergeSourceMap(target: Record<string, SourceUsageRow>, from: Map<string, SourceUsageRow>) {
-  for (const [key, delta] of from) {
-    const row = target[key] ?? { reads: 0, writes: 0, deletes: 0 };
+function mergeSourceMap(target: Record<string, SourceUsageRow>, from: Map<string, SourceUsageRow> | Record<string, SourceUsageRow>) {
+  const entries = from instanceof Map ? from.entries() : Object.entries(from);
+  for (const [key, delta] of entries) {
+    const row = target[key] ?? emptyRow();
     mergeSourceRow(row, delta);
     target[key] = row;
   }
+}
+
+function pendingTotal() {
+  return pending.reads + pending.writes + pending.deletes;
 }
 
 export function enqueueUsageDelta(input: { reads: number; writes: number; deletes: number; source: string }) {
   pending.reads += input.reads;
   pending.writes += input.writes;
   pending.deletes += input.deletes;
-  const row = pending.bySource.get(input.source) ?? { reads: 0, writes: 0, deletes: 0 };
-  row.reads += input.reads;
-  row.writes += input.writes;
-  row.deletes += input.deletes;
+  const row = pending.bySource.get(input.source) ?? emptyRow();
+  mergeSourceRow(row, { reads: input.reads, writes: input.writes, deletes: input.deletes });
   pending.bySource.set(input.source, row);
+  if (pending.writes >= WRITE_BRAKE_LIMIT) tripWriteBrake();
 }
 
-function usageDocId(dayKey: string) {
-  return `usage-${dayKey}`;
+function blobPath(dayKey: string) {
+  return `telemetry/usage-${dayKey}.json`;
 }
 
 function firestoreOrNull() {
@@ -89,58 +85,59 @@ function firestoreOrNull() {
 export async function maybeFlushUsageToFirestore(force = false) {
   if (process.env.NODE_ENV !== "production") return;
   const now = Date.now();
-  if (!force && now - lastFlushAt < FLUSH_MS) return;
-  if (pending.reads === 0 && pending.writes === 0 && pending.deletes === 0) return;
+  if (!force && !shouldFlushTelemetry(pendingTotal(), lastFlushAt, now)) return;
+  if (force && pendingTotal() === 0) return;
+  if (isWriteBrakeOn() || (await writeBrakeActive())) return;
   if (flushInFlight) return flushInFlight;
+  if (!takeTelemetryWriteSlot()) return;
 
   const batch = pending;
   pending = { reads: 0, writes: 0, deletes: 0, bySource: new Map() };
   lastFlushAt = now;
+  const dayKey = pacificDayKey();
+  const hourKey = pacificHourKey();
 
   flushInFlight = (async () => {
-    const db = firestoreOrNull();
-    if (!db) return;
-    const dayKey = pacificDayKey();
-    const hourKey = pacificHourKey();
-    const ref = db.collection("meta").doc(usageDocId(dayKey));
     try {
-      await withFirestoreGuard(() =>
-        db.runTransaction(async (tx) => {
-          const snap = await tx.get(ref);
-          const current = snap.exists ? (snap.data() as FirestoreUsageDayDoc) : undefined;
-          const sources: Record<string, SourceUsageRow> = { ...(current?.sources ?? {}) };
-          const hourly: Record<string, SourceUsageRow> = { ...(current?.hourly ?? {}) };
-          mergeSourceMap(sources, batch.bySource);
-          const hourRow = hourly[hourKey] ?? { reads: 0, writes: 0, deletes: 0 };
-          hourRow.reads += batch.reads;
-          hourRow.writes += batch.writes;
-          hourRow.deletes += batch.deletes;
-          hourly[hourKey] = hourRow;
-          tx.set(
-            ref,
-            {
-              reads: FieldValue.increment(batch.reads),
-              writes: FieldValue.increment(batch.writes),
-              deletes: FieldValue.increment(batch.deletes),
-              sources,
-              hourly,
-              updatedAt: new Date().toISOString(),
-            },
-            { merge: true },
-          );
-        }),
+      const current = (await readJsonBlob<FirestoreUsageDayDoc>(blobPath(dayKey))) ?? {
+        reads: 0,
+        writes: 0,
+        deletes: 0,
+        sources: {},
+        hourly: {},
+      };
+      const sources = { ...current.sources };
+      mergeSourceMap(sources, batch.bySource);
+      const hourly = { ...current.hourly };
+      const hourRow = hourly[hourKey] ?? emptyRow();
+      hourRow.reads += batch.reads;
+      hourRow.writes += batch.writes;
+      hourRow.deletes += batch.deletes;
+      hourly[hourKey] = hourRow;
+      const next: FirestoreUsageDayDoc = {
+        reads: current.reads + batch.reads,
+        writes: current.writes + batch.writes,
+        deletes: current.deletes + batch.deletes,
+        sources,
+        hourly,
+        updatedAt: new Date().toISOString(),
+      };
+      if (next.writes >= WRITE_BRAKE_LIMIT) tripWriteBrake(dayKey);
+      await writeJsonBlob(blobPath(dayKey), next);
+      console.info(
+        `[usage-blob] ${dayKey} r${next.reads} w${next.writes} d${next.deletes} +r${batch.reads}/+w${batch.writes}`,
       );
     } catch (error) {
       if (error instanceof FirestoreQuotaError || isFirestoreQuotaError(error)) {
-        console.error("firestore usage flush quota");
+        tripWriteBrake(dayKey);
         return;
       }
-      console.error("firestore usage flush", error);
+      console.error("usage blob flush", error);
       pending.reads += batch.reads;
       pending.writes += batch.writes;
       pending.deletes += batch.deletes;
       for (const [key, delta] of batch.bySource) {
-        const row = pending.bySource.get(key) ?? { reads: 0, writes: 0, deletes: 0 };
+        const row = pending.bySource.get(key) ?? emptyRow();
         mergeSourceRow(row, delta);
         pending.bySource.set(key, row);
       }
@@ -152,11 +149,11 @@ export async function maybeFlushUsageToFirestore(force = false) {
   return flushInFlight;
 }
 
-export async function getFirestoreUsageDay(dayKey = pacificDayKey()): Promise<FirestoreUsageDayDoc | null> {
+async function readLegacyUsageDoc(dayKey: string): Promise<FirestoreUsageDayDoc | null> {
   const db = firestoreOrNull();
   if (!db) return null;
   try {
-    const snap = await withFirestoreGuard(() => db.collection("meta").doc(usageDocId(dayKey)).get());
+    const snap = await withFirestoreGuard(() => db.collection("meta").doc(`usage-${dayKey}`).get());
     if (!snap.exists) return null;
     const data = snap.data() as FirestoreUsageDayDoc;
     return {
@@ -168,10 +165,20 @@ export async function getFirestoreUsageDay(dayKey = pacificDayKey()): Promise<Fi
       updatedAt: data.updatedAt,
     };
   } catch (error) {
-    if (error instanceof FirestoreQuotaError || isFirestoreQuotaError(error)) throw error;
+    if (error instanceof FirestoreQuotaError || isFirestoreQuotaError(error)) {
+      tripWriteBrake(dayKey);
+      throw error;
+    }
     console.error("getFirestoreUsageDay", error);
     return null;
   }
+}
+
+export async function getFirestoreUsageDay(dayKey = pacificDayKey()): Promise<FirestoreUsageDayDoc | null> {
+  const fromBlob = await readJsonBlob<FirestoreUsageDayDoc>(blobPath(dayKey));
+  if (fromBlob) return fromBlob;
+  if (isWriteBrakeOn(dayKey) || (await writeBrakeActive())) return null;
+  return readLegacyUsageDoc(dayKey);
 }
 
 export function topSourcesFromDoc(doc: FirestoreUsageDayDoc | null, limit: number) {

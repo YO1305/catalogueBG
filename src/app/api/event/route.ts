@@ -1,10 +1,12 @@
 import { saveEvents } from "@/lib/db";
+import { isBotRequest } from "@/lib/isBotRequest";
 import { rateLimit } from "@/lib/rateLimit";
 import type { AnalyticsEvent } from "@/types";
 
 const TYPES = new Set(["open", "page", "fabric_open", "zoom", "share", "pdf", "lead"]);
 
 export async function POST(request: Request) {
+  if (isBotRequest(request)) return Response.json({ ok: true });
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
   if (!rateLimit(`event:${ip}`, 60)) return Response.json({ ok: true });
   const body = (await request.json()) as { events?: Array<Partial<AnalyticsEvent>> };
@@ -20,6 +22,7 @@ export async function POST(request: Request) {
       sessionId: String(event.sessionId).slice(0, 80),
     }];
   });
-  if (events.length) await saveEvents(events);
+  if (!events.length) return Response.json({ ok: true });
+  await saveEvents(events);
   return Response.json({ ok: true });
 }
