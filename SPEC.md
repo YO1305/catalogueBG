@@ -78,6 +78,7 @@
   variants?: Array<{ id: string; name: string; tone?: "light" | "dark"; design: Design; mockups: Mockup[]; weaveColor?: string }>;
   realPhotos: Photo[];         // необязательно: фото реальной ткани/изделия
   mockups: Mockup[];           // сгенерированные макеты (см. 5)
+  templateIds?: string[];      // id шаблонов из mockups + variants, для пересборки where array-contains
   status: "draft" | "published" | "archived";
   isNew: boolean;
   priceVisible?: { uzs?: number; usd?: number };         // показывается только в каталогах с включёнными ценами
@@ -162,10 +163,11 @@ finishes/{id}     = { name: {ru,en,uz}; order: number; active: boolean }  // т�
 }
 ```
 
-### `leads/{id}`, `events/{id}`
+### `leads/{id}`, `events/{id}`, `stats/{slug}_{YYYY-MM-DD}`
 ```ts
 lead  = { catalogSlug, fabricId?, name, contact, message?, lang, createdAt, status: "new"|"in_work"|"done" }
 event = { catalogSlug, type: "open"|"page"|"fabric_open"|"zoom"|"share"|"pdf"|"lead", fabricId?, page?, ts, sessionId, country? }
+stats = { catalogSlug, day, open, page, zoom, unique, fabrics: Record<fabricId, number> } // increment раз в 5 мин; админка читает stats, не events
 ```
 
 ### Правила доступа (Firestore Rules)
@@ -180,7 +182,7 @@ event = { catalogSlug, type: "open"|"page"|"fabric_open"|"zoom"|"share"|"pdf"|"l
 > **Обновлено по решению заказчика:** тексты каталога (название, подзаголовок) и дизайна (название, состав, отделка, описание) дизайнер заполняет **сам на каждом языке** через переключатель RU / EN / UZ в начале формы. Автоперевод при публикации дизайна и при создании каталога отключён, чтобы не перезаписывать ручной текст. Если EN или UZ не заполнен, журнал показывает русский текст. Автоперевод ниже остаётся только для справочников (коллекции, типы ткани, изделия), запасной словарный перевод сохраняет заглавную букву.
 
 **Когда:** при сохранении карточки ткани или каталога и по кнопке «Перевести заново».
-**Как:** серверная функция `POST /api/translate`. На вход идут поля RU, на выходе JSON `{en:{...}, uz:{...}}`.
+**Как:** серверная функция `translateFields` из `src/lib/actions.ts` (не отдельный публичный `/api/translate`). На вход идут поля RU, на выходе `{en:{...}, uz:{...}}`.
 
 **Системный промпт (зашить в код):**
 ```
@@ -442,7 +444,7 @@ Return ONLY valid JSON matching the input keys.
 - **Телефон (портрет)**: одна страница, свайп. Панель сворачивается в 4 кнопки (миниатюры, страницы, язык, ещё…).
 - **Глубокие ссылки**: `/c/{slug}#p12` открывает 12-ю страницу, `/c/{slug}/d/{art}` открывает окно дизайна.
 - **Превью ссылки** в Telegram/WhatsApp/Instagram: обложка 1200×630 + название + «N дизайнов» (Next.js `generateMetadata` + OG-картинка).
-- **Скорость**: первая страница видна < 1.5 с на 4G. Картинки WebP через `srcset` (600/1200/2000), подгрузка ±2 разворотов вокруг текущего, остальное лениво.
+- **Скорость**: первая страница видна < 1.5 с на 4G. Картинки — прямые URL Vercel Blob `srcset` 600/1200 (без `/_next/image` и без `/api/p` для новых файлов), подгрузка ±2 разворотов вокруг текущего, остальное лениво. Публичный live-каталог кэшируется 600 с (`unstable_cache` + ISR, без `getSession`/`cookies`).
 - **Корзина образцов** (по желанию в v1.1): «♡ в заявку» на дизайне, внизу счётчик, одна заявка на несколько дизайнов.
 - `prefers-reduced-motion` отключает анимацию листания (обычная смена страниц).
 - Доступность: фокус виден, Esc закрывает окно, у картинок `alt` = название + изделие.
@@ -540,11 +542,11 @@ src/
     c/[slug]/page.tsx            # журнал (SSR метаданных + клиентский viewer)
     c/[slug]/d/[art]/page.tsx
     admin/(fabrics|catalogs|leads|stats|templates|settings)/...
-    api/(translate|lead|event|og|images)/route.ts
+    api/(lead|event|og|images)/route.ts
   components/
     flipbook/  FlipbookViewer.tsx  PageCover.tsx  PageToc.tsx  PageSection.tsx  PageDesigns.tsx  PageBack.tsx  Toolbar.tsx  ThumbGrid.tsx
     fabric/    FabricModal.tsx  ZoomViewer.tsx  TilePreview.tsx  SpecsTable.tsx
-    mockup/    MockupRenderer.ts (WebGL)  MeshEditor.tsx  TemplateEditor.tsx
+    mockup/    MeshEditor.tsx  TemplateEditor.tsx  (рендер: lib/mockup/uvgridRender.ts)
     admin/     FabricWizard/*  CatalogBuilder/*  LeadsTable.tsx
   lib/  firebase.ts  firebaseAdmin.ts  catalog.ts (правила → список тканей → страницы)  i18n.ts  glossary.ts  telegram.ts  analytics.ts
   types/  index.ts
@@ -634,6 +636,19 @@ MockupRenderer: заливка холста SO плиткой рисунка (р
 - Мобильная версия обязательна: проверяй 375px.
 - После каждого этапа: npm run build без ошибок и короткий чек-лист проверки.
 ```
+
+---
+
+## Нагрузка и производительность
+
+- Публичный журнал: `React.cache` + `unstable_cache` 600 с, тег `catalog:{slug}`; `getSession` только для pin/draft.
+- Фото: прямые Blob URL, `srcset` 600/1200 WebP. Имена файлов без слова `fabric` (adblock).
+- Автосохранение ткани: 30 с, хеш без `updatedAt`/`persisted`; ползунки макета — `silent` до pointerup.
+- `isFabricArtTaken` кэш 30 с; списки админки — `startAfter`, по 50; `templateIds` для пересборки.
+- Статистика: `stats/{slug}_{day}` за период; не читать коллекцию `events`.
+- Счётчик Firestore: `meta/usage-{YYYY-MM-DD}` раз в 5 минут.
+- Пересборка макетов: клиент, очереди по 3, uvgrid + `/api/mockups/save`. PDF: `pdf/{slug}-{updatedAt}.pdf` в Blob, картинки по https.
+- Оригиналы рисунка — клиентский upload в Blob, не server action 60mb.
 
 ---
 
