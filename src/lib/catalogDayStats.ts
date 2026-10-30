@@ -1,6 +1,7 @@
 import "server-only";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { firebaseAdminConfigured, getAdminApp } from "@/lib/firebaseAdmin";
+import { withFirestoreGuard } from "@/lib/firestoreGuard";
 import type { CatalogStats } from "@/lib/analytics";
 import { trackFirestoreRead, trackFirestoreWrite } from "@/lib/firestoreMetrics";
 import type { AnalyticsEvent } from "@/types";
@@ -81,7 +82,7 @@ export async function listCatalogDayStats(slug: string, from: string, to: string
   if (!refs.length) return [];
   const chunks: Array<typeof refs> = [];
   for (let i = 0; i < refs.length; i += 100) chunks.push(refs.slice(i, i + 100));
-  const snaps = (await Promise.all(chunks.map((chunk) => db.getAll(...chunk)))).flat();
+  const snaps = (await Promise.all(chunks.map((chunk) => withFirestoreGuard(() => db.getAll(...chunk))))).flat();
   trackFirestoreRead(snaps.length, "stats:days");
   return snaps.flatMap((snap) => {
     if (!snap.exists) return [];
@@ -150,7 +151,7 @@ async function writeKey(key: string) {
     if (count) fabrics[id] = FieldValue.increment(count);
   }
   if (Object.keys(fabrics).length) payload.fabrics = fabrics;
-  await getFirestore(app).collection("stats").doc(key).set(payload, { merge: true });
+  await withFirestoreGuard(() => getFirestore(app).collection("stats").doc(key).set(payload, { merge: true }));
   trackFirestoreWrite(1, "stats:day");
 }
 

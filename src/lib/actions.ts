@@ -37,6 +37,7 @@ import { uniqueSlug } from "@/lib/ids";
 import { hashPassword, hashPin } from "@/lib/password";
 import { presetCatalog } from "@/lib/presets";
 import { canEditCatalogs, canEditDictionaries, canEditFabrics, canReadLeads, isAdmin } from "@/lib/roles";
+import { actionErrorFromUnknown, catchQuota } from "@/lib/firestoreGuard";
 import { translateFields } from "@/lib/translate";
 import type { AdminSection, AppUser, Catalog, Collection, Fabric, FabricType, Finish, GlossaryTerm, Lead, ProductType, Role, Template } from "@/types";
 
@@ -60,37 +61,53 @@ function touch(path: string) {
 }
 
 export async function listFabricPickerPageAction(query: string, cursor: string | null) {
-  const gate = await catalogActor();
-  if (!gate.ok) return { items: [], cursor: null };
-  return listFabricPickerPage({ query, cursor });
+  try {
+    const gate = await catalogActor();
+    if (!gate.ok) return { items: [], cursor: null };
+    return listFabricPickerPage({ query, cursor });
+  } catch (error) {
+    const code = actionErrorFromUnknown(error);
+    if (code === "quota" || code === "timeout") return { items: [], cursor: null, error: code };
+    throw error;
+  }
 }
 
 export async function getFabricForCatalogAction(id: string) {
-  const gate = await catalogActor();
-  if (!gate.ok) return null;
-  return getFabric(id);
+  try {
+    const gate = await catalogActor();
+    if (!gate.ok) return null;
+    return getFabric(id);
+  } catch (error) {
+    const code = actionErrorFromUnknown(error);
+    if (code === "quota" || code === "timeout") return { error: code };
+    throw error;
+  }
 }
 
 export async function saveFabricAction(fabric: Fabric) {
-  const session = await actor(canEditFabrics);
-  const saved = await persistFabric(session, fabric);
-  if (saved.ok) touch("/admin/fabrics");
-  return saved;
+  return catchQuota(async () => {
+    const session = await actor(canEditFabrics);
+    const saved = await persistFabric(session, fabric);
+    if (saved.ok) touch("/admin/fabrics");
+    return saved;
+  });
 }
 
 export async function publishFabricAction(fabric: Fabric) {
-  const session = await actor(canEditFabrics);
-  const saved = await persistFabric(session, { ...fabric, status: "published" });
-  if (!saved.ok) return saved;
-  // Rules catalogs pick fabrics on read — no need to rewrite every matching catalog doc.
-  const names = matchingCatalogs(saved.fabric, await getCatalogs());
-  touch("/admin/fabrics");
-  touch("/admin/catalogs");
-  for (const catalog of names) touch(`/c/${catalog.slug}`);
-  return { ok: true as const, catalogs: names.map((catalog) => catalog.title.ru) };
+  return catchQuota(async () => {
+    const session = await actor(canEditFabrics);
+    const saved = await persistFabric(session, { ...fabric, status: "published" });
+    if (!saved.ok) return saved;
+    const names = matchingCatalogs(saved.fabric, await getCatalogs());
+    touch("/admin/fabrics");
+    touch("/admin/catalogs");
+    for (const catalog of names) touch(`/c/${catalog.slug}`);
+    return { ok: true as const, catalogs: names.map((catalog) => catalog.title.ru) };
+  });
 }
 
 export async function setFabricStatusAction(ids: string[], status: Fabric["status"]) {
+  return catchQuota(async () => {
   const session = await actor((role) => canEditFabrics(role) || (status === "archived" && isAdmin(role)));
   if (status !== "archived" && !canEditFabrics(session.role)) throw new Error("forbidden");
   const [fabrics, catalogs] = await Promise.all([Promise.all(ids.map((id) => getFabric(id))), status === "published" ? getCatalogs() : Promise.resolve([])]);
@@ -103,13 +120,16 @@ export async function setFabricStatusAction(ids: string[], status: Fabric["statu
   }
   touch("/admin/fabrics");
   return { ok: true as const, catalogs: [...new Set(titles)] };
+  });
 }
 
 export async function deleteFabricAction(id: string) {
-  await actor(isAdmin);
-  await deleteFabric(id);
-  touch("/admin/fabrics");
-  return { ok: true as const };
+  return catchQuota(async () => {
+    await actor(isAdmin);
+    await deleteFabric(id);
+    touch("/admin/fabrics");
+    return { ok: true as const };
+  });
 }
 
 export async function addCatalogDesignEntryAction(input: {
@@ -119,6 +139,7 @@ export async function addCatalogDesignEntryAction(input: {
   design: Fabric["design"];
   sectionId?: string;
 }) {
+  return catchQuota(async () => {
   const gate = await catalogActor();
   if (!gate.ok) return gate;
   const { session } = gate;
@@ -165,17 +186,20 @@ export async function addCatalogDesignEntryAction(input: {
     fabricIds: ordered,
     catalogSections,
   };
+  });
 }
 
 export async function addFabricsToCatalogAction(ids: string[], slug: string) {
-  await actor(canEditCatalogs);
-  const catalog = await getCatalog(slug);
-  if (!catalog) return { ok: false as const, error: "missing" };
-  const fabricIds = [...new Set([...(catalog.fabricIds ?? []), ...ids])];
-  await saveCatalog({ ...catalog, mode: "manual", fabricIds, updatedAt: new Date().toISOString() });
-  touch(`/admin/catalogs/${slug}`);
-  touch(`/c/${slug}`);
-  return { ok: true as const };
+  return catchQuota(async () => {
+    await actor(canEditCatalogs);
+    const catalog = await getCatalog(slug);
+    if (!catalog) return { ok: false as const, error: "missing" };
+    const fabricIds = [...new Set([...(catalog.fabricIds ?? []), ...ids])];
+    await saveCatalog({ ...catalog, mode: "manual", fabricIds, updatedAt: new Date().toISOString() });
+    touch(`/admin/catalogs/${slug}`);
+    touch(`/c/${slug}`);
+    return { ok: true as const };
+  });
 }
 
 export async function createCatalogAction(catalog: Catalog, pin?: string) {
@@ -216,15 +240,17 @@ export async function createCatalogAction(catalog: Catalog, pin?: string) {
     return { ok: true as const, slug };
   } catch (error) {
     console.error("createCatalogAction", error);
-    return { ok: false as const, error: "server" as const };
+    return { ok: false as const, error: actionErrorFromUnknown(error) };
   }
 }
 
 export async function deleteCatalogAction(slug: string) {
-  await actor(canEditCatalogs);
-  await deleteCatalog(slug);
-  touch("/admin/catalogs");
-  return { ok: true as const };
+  return catchQuota(async () => {
+    await actor(canEditCatalogs);
+    await deleteCatalog(slug);
+    touch("/admin/catalogs");
+    return { ok: true as const };
+  });
 }
 
 export async function saveCatalogAction(catalog: Catalog, pin?: string) {
@@ -253,11 +279,12 @@ export async function saveCatalogAction(catalog: Catalog, pin?: string) {
     return { ok: true as const };
   } catch (error) {
     console.error("saveCatalogAction", error);
-    return { ok: false as const, error: "server" as const };
+    return { ok: false as const, error: actionErrorFromUnknown(error) };
   }
 }
 
 export async function quickCatalogAction(title: string) {
+  return catchQuota(async () => {
   const session = await actor(canEditCatalogs);
   const db = await getDictionaries();
   const slug = await uniqueCatalogSlug(title);
@@ -284,18 +311,22 @@ export async function quickCatalogAction(title: string) {
   await saveCatalog(catalog);
   touch("/admin/catalogs");
   return { ok: true as const, slug };
+  });
 }
 
 export async function presetCatalogAction(preset: string) {
-  const session = await actor(canEditCatalogs);
-  const db = await getDictionaries();
-  const draft = presetCatalog(preset, "tmp", session.uid, db.productTypes);
-  const slug = await uniqueCatalogSlug(draft.title.ru);
-  await saveCatalog({ ...draft, slug });
-  return { ok: true as const, slug };
+  return catchQuota(async () => {
+    const session = await actor(canEditCatalogs);
+    const db = await getDictionaries();
+    const draft = presetCatalog(preset, "tmp", session.uid, db.productTypes);
+    const slug = await uniqueCatalogSlug(draft.title.ru);
+    await saveCatalog({ ...draft, slug });
+    return { ok: true as const, slug };
+  });
 }
 
 export async function createCollectionAction(input: { nameRu: string; autoCatalog: boolean }) {
+  return catchQuota(async () => {
   const session = await actor(canEditDictionaries);
   const db = await getDictionaries();
   const id = uniqueSlug(input.nameRu, db.collections.map((item) => item.id));
@@ -332,15 +363,19 @@ export async function createCollectionAction(input: { nameRu: string; autoCatalo
   await saveCollection(item);
   touch("/admin/settings");
   return { ok: true as const, item };
+  });
 }
 
 export async function saveCollectionAction(item: Collection) {
-  await actor(canEditDictionaries);
-  await saveCollection(item);
-  return { ok: true as const };
+  return catchQuota(async () => {
+    await actor(canEditDictionaries);
+    await saveCollection(item);
+    return { ok: true as const };
+  });
 }
 
 export async function createFabricTypeAction(input: { nameRu: string; suggestedProductTypes: string[] }) {
+  return catchQuota(async () => {
   await actor(canEditDictionaries);
   const db = await getDictionaries();
   const id = uniqueSlug(input.nameRu, db.fabricTypes.map((item) => item.id));
@@ -354,15 +389,19 @@ export async function createFabricTypeAction(input: { nameRu: string; suggestedP
   };
   await saveFabricType(item);
   return { ok: true as const, item };
+  });
 }
 
 export async function saveFabricTypeAction(item: FabricType) {
-  await actor(canEditDictionaries);
-  await saveFabricType(item);
-  return { ok: true as const };
+  return catchQuota(async () => {
+    await actor(canEditDictionaries);
+    await saveFabricType(item);
+    return { ok: true as const };
+  });
 }
 
 export async function createProductTypeAction(input: { nameRu: string; suggestedFor: string[] }) {
+  return catchQuota(async () => {
   await actor(canEditDictionaries);
   const db = await getDictionaries();
   const id = uniqueSlug(input.nameRu, db.productTypes.map((item) => item.id));
@@ -376,15 +415,19 @@ export async function createProductTypeAction(input: { nameRu: string; suggested
   };
   await saveProductType(item);
   return { ok: true as const, item };
+  });
 }
 
 export async function saveProductTypeAction(item: ProductType) {
-  await actor(canEditDictionaries);
-  await saveProductType(item);
-  return { ok: true as const };
+  return catchQuota(async () => {
+    await actor(canEditDictionaries);
+    await saveProductType(item);
+    return { ok: true as const };
+  });
 }
 
 export async function createFinishAction(input: { nameRu: string }) {
+  return catchQuota(async () => {
   await actor(canEditDictionaries);
   const db = await getDictionaries();
   const id = uniqueSlug(input.nameRu, db.finishes.map((item) => item.id));
@@ -398,25 +441,31 @@ export async function createFinishAction(input: { nameRu: string }) {
   await saveFinish(item);
   touch("/admin/settings");
   return { ok: true as const, item };
+  });
 }
 
 export async function saveFinishAction(item: Finish) {
-  await actor(canEditDictionaries);
-  await saveFinish(item);
-  touch("/admin/settings");
-  return { ok: true as const };
+  return catchQuota(async () => {
+    await actor(canEditDictionaries);
+    await saveFinish(item);
+    touch("/admin/settings");
+    return { ok: true as const };
+  });
 }
 
 export async function removeFinishAction(id: string) {
+  return catchQuota(async () => {
   await actor(isAdmin);
   const db = await getDb();
   if (db.fabrics.some((fabric) => fabric.finishId === id)) return { ok: false as const, error: "used" };
   await deleteFinish(id);
   touch("/admin/settings");
   return { ok: true as const };
+  });
 }
 
 export async function reorderFinishesAction(ids: string[]) {
+  return catchQuota(async () => {
   await actor(canEditDictionaries);
   const db = await getDictionaries();
   for (const [index, id] of ids.entries()) {
@@ -424,9 +473,11 @@ export async function reorderFinishesAction(ids: string[]) {
     if (item) await saveFinish({ ...item, order: index + 1 });
   }
   return { ok: true as const };
+  });
 }
 
 export async function removeDictionaryAction(kind: "collections" | "fabricTypes" | "productTypes", id: string) {
+  return catchQuota(async () => {
   await actor(isAdmin);
   const db = await getDb();
   const used =
@@ -447,38 +498,48 @@ export async function removeDictionaryAction(kind: "collections" | "fabricTypes"
     await deleteProductType(id);
   }
   return { ok: true as const };
+  });
 }
 
 export async function saveGlossaryAction(terms: GlossaryTerm[]) {
-  await actor(isAdmin);
-  await saveGlossary(terms);
-  return { ok: true as const };
+  return catchQuota(async () => {
+    await actor(isAdmin);
+    await saveGlossary(terms);
+    return { ok: true as const };
+  });
 }
 
 export async function saveTemplateAction(template: Template) {
-  await actor(isAdmin);
-  await saveTemplate(template);
-  touch("/admin/templates");
-  return { ok: true as const };
+  return catchQuota(async () => {
+    await actor(isAdmin);
+    await saveTemplate(template);
+    touch("/admin/templates");
+    return { ok: true as const };
+  });
 }
 
 export async function deleteTemplateAction(id: string) {
-  await actor(isAdmin);
-  await deleteTemplate(id);
-  touch("/admin/templates");
-  return { ok: true as const };
+  return catchQuota(async () => {
+    await actor(isAdmin);
+    await deleteTemplate(id);
+    touch("/admin/templates");
+    return { ok: true as const };
+  });
 }
 
 export async function updateLeadAction(id: string, status: Lead["status"]) {
+  return catchQuota(async () => {
   await actor(canReadLeads);
   const { getLead } = await import("@/lib/db");
   const lead = await getLead(id);
   if (!lead) return { ok: false as const };
   await saveLead({ ...lead, status });
   return { ok: true as const };
+  });
 }
 
 export async function createUserAction(input: { email: string; name: string; role: Role; password: string; sections?: AdminSection[] }) {
+  return catchQuota(async () => {
   await actor(isAdmin);
   const users = await getUsers();
   if (users.some((user) => user.email.toLowerCase() === input.email.toLowerCase())) return { ok: false as const, error: "exists" };
@@ -493,9 +554,11 @@ export async function createUserAction(input: { email: string; name: string; rol
   await saveUser(user);
   revalidatePath("/admin/settings");
   return { ok: true as const };
+  });
 }
 
 export async function updateUserAccessAction(input: { id: string; role: Role; sections: AdminSection[] | null }) {
+  return catchQuota(async () => {
   await actor(isAdmin);
   const users = await getUsers();
   const user = users.find((item) => item.id === input.id);
@@ -508,16 +571,20 @@ export async function updateUserAccessAction(input: { id: string; role: Role; se
   await saveUser(next);
   revalidatePath("/admin/settings");
   return { ok: true as const };
+  });
 }
 
 export async function deleteUserAction(id: string) {
-  const session = await actor(isAdmin);
-  if (session.uid === id) return { ok: false as const, error: "self" };
-  await deleteUser(id);
-  return { ok: true as const };
+  return catchQuota(async () => {
+    const session = await actor(isAdmin);
+    if (session.uid === id) return { ok: false as const, error: "self" };
+    await deleteUser(id);
+    return { ok: true as const };
+  });
 }
 
 export async function reorderAction(kind: "collections" | "fabricTypes" | "productTypes", ids: string[]) {
+  return catchQuota(async () => {
   await actor(canEditDictionaries);
   const db = await getDictionaries();
   if (kind === "collections") {
@@ -537,4 +604,5 @@ export async function reorderAction(kind: "collections" | "fabricTypes" | "produ
     }
   }
   return { ok: true as const };
+  });
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { saveFabricAction } from "@/lib/actions";
+import { withActionTimeout } from "@/lib/runAdminAction";
 import { renderAndSave, type MockupSaveStep } from "@/lib/mockup/clientRender";
 import { abortRenderers } from "@/lib/mockup/previewClient";
 import { placeMockup } from "@/lib/variants";
@@ -68,8 +69,8 @@ export function useMockupJobs(fabricRef: MutableRefObject<Fabric>, setFabric: Di
         setProgress({ done: 0, total: jobs.length });
         if (!snapshot.persisted) {
           const status = snapshot.status === "published" ? "published" : "draft";
-          const savedOnce = await saveFabricAction({ ...fabricRef.current, status });
-          if (!savedOnce.ok) throw new Error("Сохраните черновик перед сохранением макетов");
+          const savedOnce = await withActionTimeout(saveFabricAction({ ...fabricRef.current, status }));
+          if (!savedOnce.ok) throw new Error(savedOnce.error === "quota" ? "quota" : "Сохраните черновик перед сохранением макетов");
           fabricRef.current = { ...savedOnce.fabric, persisted: true };
         }
         for (const [index, job] of jobs.entries()) {

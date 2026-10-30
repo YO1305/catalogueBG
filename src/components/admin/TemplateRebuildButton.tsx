@@ -25,8 +25,13 @@ export function TemplateRebuildButton({ template }: { template: Template }) {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ templateId: template.id }),
+        signal: AbortSignal.timeout(20_000),
       });
       const data = (await response.json()) as { fabrics?: Fabric[]; error?: string };
+      if (data.error === "quota" || response.status === 429) {
+        toast(t("error.quota"));
+        return;
+      }
       if (!response.ok) throw new Error(data.error ?? String(response.status));
       const queue = [...(data.fabrics ?? [])];
       setTotal(queue.length);
@@ -52,6 +57,10 @@ export function TemplateRebuildButton({ template }: { template: Template }) {
       await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
       toast(t("templates.rebuildDone", { count }));
     } catch (error: unknown) {
+      if (error instanceof DOMException && (error.name === "TimeoutError" || error.name === "AbortError")) {
+        toast(t("error.timeout"));
+        return;
+      }
       toast.error(error instanceof Error ? error.message : String(error));
     } finally {
       setBusy(false);

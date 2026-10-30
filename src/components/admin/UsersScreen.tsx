@@ -6,12 +6,14 @@ import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
 import { createUserAction, deleteUserAction } from "@/lib/actions";
+import { isQuotaFail, runAdminAction } from "@/lib/runAdminAction";
 import type { PublicUser, Role } from "@/types";
 
 export function UsersScreen({ users }: { users: PublicUser[] }) {
   const { t } = useI18n();
   const router = useRouter();
   const [form, setForm] = useState({ email: "", name: "", password: "", role: "designer" as Role });
+  const [busy, setBusy] = useState(false);
   return (
     <div>
       <h1 className="font-display text-4xl">{t("users.title")}</h1>
@@ -21,7 +23,16 @@ export function UsersScreen({ users }: { users: PublicUser[] }) {
             <span>
               {user.name} · {user.email} · {t(`users.${user.role}`)}
             </span>
-            <button type="button" onClick={async () => { await deleteUserAction(user.id); router.refresh(); }}>
+            <button type="button" disabled={busy} onClick={async () => {
+              setBusy(true);
+              try {
+                const result = await runAdminAction(t, () => deleteUserAction(user.id));
+                if (!result || isQuotaFail(result) || !result.ok) return;
+                router.refresh();
+              } finally {
+                setBusy(false);
+              }
+            }}>
               {t("common.delete")}
             </button>
           </li>
@@ -31,8 +42,14 @@ export function UsersScreen({ users }: { users: PublicUser[] }) {
         className="mt-6 grid max-w-lg gap-3 bg-white p-4"
         onSubmit={async (event) => {
           event.preventDefault();
-          await createUserAction(form);
-          router.refresh();
+          setBusy(true);
+          try {
+            const result = await runAdminAction(t, () => createUserAction(form));
+            if (!result || isQuotaFail(result) || !result.ok) return;
+            router.refresh();
+          } finally {
+            setBusy(false);
+          }
         }}
       >
         <h2 className="font-display text-2xl">{t("users.create")}</h2>
@@ -48,7 +65,7 @@ export function UsersScreen({ users }: { users: PublicUser[] }) {
           <option value="designer">{t("users.designer")}</option>
           <option value="manager">{t("users.manager")}</option>
         </select>
-        <Button type="submit">{t("common.create")}</Button>
+        <Button type="submit" disabled={busy}>{t("common.create")}</Button>
       </form>
     </div>
   );

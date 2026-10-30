@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
 import { ADMIN_SECTIONS, defaultSectionsForRole, sectionLabelKey } from "@/lib/adminAccess";
 import { createUserAction, deleteUserAction, updateUserAccessAction } from "@/lib/actions";
+import { isQuotaFail, runAdminAction } from "@/lib/runAdminAction";
 import type { AdminSection, PublicUser, Role } from "@/types";
 
 const EDITABLE_SECTIONS = ADMIN_SECTIONS.filter((item) => item !== "access");
@@ -17,6 +18,7 @@ function UserAccessRow({ user, selfId }: { user: PublicUser; selfId?: string }) 
   const [role, setRole] = useState<Role>(user.role);
   const [sections, setSections] = useState<AdminSection[]>(user.sections?.length ? user.sections : defaultSectionsForRole(user.role));
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const toggle = (section: AdminSection) => {
     setSections((prev) => (prev.includes(section) ? prev.filter((item) => item !== section) : [...prev, section]));
@@ -35,9 +37,16 @@ function UserAccessRow({ user, selfId }: { user: PublicUser; selfId?: string }) 
           <button
             type="button"
             className="text-xs text-red-700 underline"
+            disabled={busy}
             onClick={async () => {
-              await deleteUserAction(user.id);
-              router.refresh();
+              setBusy(true);
+              try {
+                const result = await runAdminAction(t, () => deleteUserAction(user.id));
+                if (!result || isQuotaFail(result) || !result.ok) return;
+                router.refresh();
+              } finally {
+                setBusy(false);
+              }
             }}
           >
             {t("common.delete")}
@@ -77,9 +86,16 @@ function UserAccessRow({ user, selfId }: { user: PublicUser; selfId?: string }) 
           )}
           <Button
             type="button"
+            disabled={busy}
             onClick={async () => {
-              await updateUserAccessAction({ id: user.id, role, sections: role === "admin" ? null : sections });
-              router.refresh();
+              setBusy(true);
+              try {
+                const result = await runAdminAction(t, () => updateUserAccessAction({ id: user.id, role, sections: role === "admin" ? null : sections }));
+                if (!result || isQuotaFail(result) || !result.ok) return;
+                router.refresh();
+              } finally {
+                setBusy(false);
+              }
             }}
           >
             {t("common.save")}
@@ -95,6 +111,7 @@ export function AccessScreen({ users, selfId }: { users: PublicUser[]; selfId?: 
   const router = useRouter();
   const [form, setForm] = useState({ email: "", name: "", password: "", role: "designer" as Role });
   const [sections, setSections] = useState<AdminSection[]>(() => defaultSectionsForRole("designer"));
+  const [busy, setBusy] = useState(false);
   const preset = useMemo(() => defaultSectionsForRole(form.role), [form.role]);
 
   return (
@@ -109,10 +126,16 @@ export function AccessScreen({ users, selfId }: { users: PublicUser[]; selfId?: 
         className="grid max-w-lg gap-3 rounded-xl border border-ink/10 bg-white p-4"
         onSubmit={async (event) => {
           event.preventDefault();
-          await createUserAction({ ...form, sections: form.role === "admin" ? undefined : sections });
-          setForm({ email: "", name: "", password: "", role: "designer" });
-          setSections(defaultSectionsForRole("designer"));
-          router.refresh();
+          setBusy(true);
+          try {
+            const result = await runAdminAction(t, () => createUserAction({ ...form, sections: form.role === "admin" ? undefined : sections }));
+            if (!result || isQuotaFail(result) || !result.ok) return;
+            setForm({ email: "", name: "", password: "", role: "designer" });
+            setSections(defaultSectionsForRole("designer"));
+            router.refresh();
+          } finally {
+            setBusy(false);
+          }
         }}
       >
         <h2 className="font-display text-2xl">{t("users.create")}</h2>
@@ -151,7 +174,7 @@ export function AccessScreen({ users, selfId }: { users: PublicUser[]; selfId?: 
             ))}
           </fieldset>
         ) : null}
-        <Button type="submit">{t("common.create")}</Button>
+        <Button type="submit" disabled={busy}>{t("common.create")}</Button>
         {form.role !== "admin" ? (
           <button type="button" className="text-left text-xs text-ink/55 underline" onClick={() => setSections(preset)}>
             {t("access.resetPreset")}

@@ -10,6 +10,7 @@ import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { deleteTemplateAction, saveTemplateAction } from "@/lib/actions";
+import { isQuotaFail, runAdminAction } from "@/lib/runAdminAction";
 import { MOCKUP_CATEGORIES, mockupCategoryLabelKey } from "@/lib/mockupCategories";
 import { sortTemplatesForWizard } from "@/lib/templateSort";
 import { isAdmin } from "@/lib/roles";
@@ -30,13 +31,15 @@ export function TemplateBoard({ templates, products, role }: { templates: Templa
 
   async function remove(template: Template) {
     if (!window.confirm(t("mockups.deleteConfirm", { name: template.name }))) return;
-    await deleteTemplateAction(template.id);
+    const result = await runAdminAction(t, () => deleteTemplateAction(template.id));
+    if (!result || isQuotaFail(result) || !result.ok) return;
     toast(t("mockups.deleted"));
     router.refresh();
   }
 
   async function changeCategory(template: Template, category: MockupCategory) {
-    await saveTemplateAction({ ...template, category });
+    const result = await runAdminAction(t, () => saveTemplateAction({ ...template, category }));
+    if (!result || isQuotaFail(result) || !result.ok) return;
     router.refresh();
   }
 

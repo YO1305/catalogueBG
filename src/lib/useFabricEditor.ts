@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createCollectionAction, createFabricTypeAction, createFinishAction, createProductTypeAction, publishFabricAction, saveFabricAction } from "@/lib/actions";
+import { isQuotaFail, runAdminAction, withActionTimeout } from "@/lib/runAdminAction";
 import { fabricAutosaveHash } from "@/lib/fabricAutosaveHash";
 import { autoFabricColor } from "@/lib/mockup/fabricColor";
 import { FABRIC_PRODUCT } from "@/lib/mockup/constants";
@@ -75,6 +76,7 @@ export function useFabricEditor(
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(fabricRef.current),
+        signal: AbortSignal.timeout(20_000),
       })
         .then((response) => {
           if (!response.ok) throw new Error("autosave");
@@ -195,8 +197,8 @@ export function useFabricEditor(
   }
 
   async function saveDraft() {
-    const result = await saveFabricAction({ ...fabricRef.current, status: "draft" });
-    if (!result.ok) return { ok: false as const, reason: "art" as const };
+    const result = await withActionTimeout(saveFabricAction({ ...fabricRef.current, status: "draft" }));
+    if (!result.ok) return result;
     dirty.current = false;
     fabricRef.current = { ...result.fabric, persisted: true };
     lastSavedHash.current = fabricAutosaveHash(fabricRef.current);
@@ -208,8 +210,8 @@ export function useFabricEditor(
     const payload: Fabric = { ...fabricRef.current, status: "published" };
     fabricRef.current = payload;
     setFabric(payload);
-    const result = await publishFabricAction(payload);
-    if (!result.ok) return { ok: false as const, reason: "art" as const };
+    const result = await withActionTimeout(publishFabricAction(payload));
+    if (!result.ok) return result;
     dirty.current = false;
     fabricRef.current = { ...fabricRef.current, persisted: true };
     lastSavedHash.current = fabricAutosaveHash(fabricRef.current);
@@ -225,8 +227,13 @@ export function useFabricEditor(
       .then((count) => {
         if (count) toast(t("designs.mockupsReady"));
       })
-      .catch((error: unknown) => toast(`${t("designs.mockupRenderFailed")}: ${error instanceof Error ? error.message : String(error)}`));
-    return { ok: true as const, catalogs: result.catalogs };
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message === "quota") toast(t("error.quota"));
+        else if (message === "timeout") toast(t("error.timeout"));
+        else toast(`${t("designs.mockupRenderFailed")}: ${message}`);
+      });
+    return { ok: true as const, id: payload.id };
   }
 
   return {
@@ -248,26 +255,26 @@ export function useFabricEditor(
     mockupJobs,
     templates,
     onCreateCollection: async (name: string, extra?: { auto?: boolean }) => {
-      const result = await createCollectionAction({ nameRu: name, autoCatalog: Boolean(extra?.auto) });
-      if (!result.ok) return null;
+      const result = await runAdminAction(t, () => createCollectionAction({ nameRu: name, autoCatalog: Boolean(extra?.auto) }));
+      if (!result || isQuotaFail(result) || !result.ok) return null;
       setLists((current) => ({ ...current, collections: [...current.collections, result.item] }));
       return result.item;
     },
     onCreateFabricType: async (name: string, extra?: { ids?: string[] }) => {
-      const result = await createFabricTypeAction({ nameRu: name, suggestedProductTypes: extra?.ids ?? [] });
-      if (!result.ok) return null;
+      const result = await runAdminAction(t, () => createFabricTypeAction({ nameRu: name, suggestedProductTypes: extra?.ids ?? [] }));
+      if (!result || isQuotaFail(result) || !result.ok) return null;
       setLists((current) => ({ ...current, fabricTypes: [...current.fabricTypes, result.item] }));
       return result.item;
     },
     onCreateFinish: async (name: string) => {
-      const result = await createFinishAction({ nameRu: name });
-      if (!result.ok) return null;
+      const result = await runAdminAction(t, () => createFinishAction({ nameRu: name }));
+      if (!result || isQuotaFail(result) || !result.ok) return null;
       setLists((current) => ({ ...current, finishes: [...current.finishes, result.item] }));
       return result.item;
     },
     onCreateProduct: async (name: string, extra?: { ids: string[] }) => {
-      const result = await createProductTypeAction({ nameRu: name, suggestedFor: extra?.ids ?? [] });
-      if (!result.ok) return null;
+      const result = await runAdminAction(t, () => createProductTypeAction({ nameRu: name, suggestedFor: extra?.ids ?? [] }));
+      if (!result || isQuotaFail(result) || !result.ok) return null;
       setLists((current) => ({ ...current, productTypes: [...current.productTypes, result.item] }));
       update({ productTypes: [...fabricRef.current.productTypes, result.item.id] });
       return result.item;

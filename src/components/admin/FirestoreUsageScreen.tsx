@@ -8,6 +8,7 @@ type SourceRow = { name: string; reads: number; writes: number; deletes: number;
 type Payload = {
   configured: boolean;
   dayKey: string;
+  exhausted?: boolean;
   limits: { reads: number; writes: number };
   usage: { reads: number; writes: number; deletes: number };
   topSources: SourceRow[];
@@ -74,6 +75,11 @@ export function FirestoreUsageScreen() {
     <div className="space-y-6">
       <p className="text-sm text-ink/70">{t("firestoreUsage.intro")}</p>
       <p className="text-xs text-ink/50">{t("firestoreUsage.dayKey", { day: data.dayKey })}</p>
+      {data.exhausted ? (
+        <p className="rounded-lg bg-red-600 px-3 py-3 text-sm font-medium text-white" role="alert">
+          {t("firestoreUsage.quotaBanner")}
+        </p>
+      ) : null}
       {!data.configured ? <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">{t("firestoreUsage.localMode")}</p> : null}
       <ul className="space-y-4">
         <UsageBar label={t("firestoreUsage.reads")} used={data.usage.reads} limit={data.limits.reads} />

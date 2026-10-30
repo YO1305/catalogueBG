@@ -9,6 +9,7 @@ import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Input, Label } from "@/components/ui/field";
 import { saveTemplateAction } from "@/lib/actions";
+import { isQuotaFail, runAdminAction } from "@/lib/runAdminAction";
 import { summarizePsd, type LayerNode } from "@/lib/psdSummary";
 import type { ProductType, Template, TemplateArea } from "@/types";
 
@@ -119,6 +120,8 @@ export function TemplateWizard({ products }: { products: ProductType[] }) {
       {step === 4 ? (
         <form className="mt-4 space-y-3 bg-white p-4" onSubmit={async (event) => {
           event.preventDefault();
+          const submit = event.currentTarget.querySelector("button[type=submit]");
+          if (submit instanceof HTMLButtonElement) submit.disabled = true;
           const id = crypto.randomUUID();
           const template: Template = {
             id,
@@ -133,9 +136,14 @@ export function TemplateWizard({ products }: { products: ProductType[] }) {
             isDefault,
             order: 100,
           };
-          await saveTemplateAction(template);
-          router.push("/admin/templates");
-          router.refresh();
+          try {
+            const result = await runAdminAction(t, () => saveTemplateAction(template));
+            if (!result || isQuotaFail(result) || !result.ok) return;
+            router.push("/admin/templates");
+            router.refresh();
+          } finally {
+            if (submit instanceof HTMLButtonElement) submit.disabled = false;
+          }
         }}>
           <Label>{t("common.name")}</Label>
           <Input value={name} onChange={(event) => setName(event.target.value)} required />

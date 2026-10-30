@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "@/components/i18n/I18n";
 import { listFabricPickerPageAction } from "@/lib/actions";
+import { isQuotaFail, runAdminAction } from "@/lib/runAdminAction";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import type { FabricPickerRow } from "@/types";
 
@@ -23,27 +24,34 @@ export function CatalogFabricPicker({
   useEffect(() => {
     let cancelled = false;
     setBusy(true);
-    void listFabricPickerPageAction(debouncedQuery, null).then((page) => {
-      if (cancelled) return;
-      setItems(page.items);
-      setCursor(page.cursor);
-      setBusy(false);
-    });
+    void runAdminAction(t, () => listFabricPickerPageAction(debouncedQuery, null))
+      .then((page) => {
+        if (cancelled || !page || isQuotaFail(page)) return;
+        setItems(page.items);
+        setCursor(page.cursor);
+      })
+      .finally(() => {
+        if (!cancelled) setBusy(false);
+      });
     return () => {
       cancelled = true;
     };
-  }, [debouncedQuery]);
+  }, [debouncedQuery, t]);
 
   async function loadMore() {
     if (!cursor || busy) return;
     setBusy(true);
-    const page = await listFabricPickerPageAction(debouncedQuery, cursor);
-    setItems((current) => {
-      const seen = new Set(current.map((item) => item.id));
-      return [...current, ...page.items.filter((item) => !seen.has(item.id))];
-    });
-    setCursor(page.cursor);
-    setBusy(false);
+    try {
+      const page = await runAdminAction(t, () => listFabricPickerPageAction(debouncedQuery, cursor));
+      if (!page || isQuotaFail(page)) return;
+      setItems((current) => {
+        const seen = new Set(current.map((item) => item.id));
+        return [...current, ...page.items.filter((item) => !seen.has(item.id))];
+      });
+      setCursor(page.cursor);
+    } finally {
+      setBusy(false);
+    }
   }
 
   const visible = items.filter((item) => !excludeIds.includes(item.id));

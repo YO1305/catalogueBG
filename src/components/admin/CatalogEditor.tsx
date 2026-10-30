@@ -15,6 +15,7 @@ import { Input, Label, Select, Textarea } from "@/components/ui/field";
 import { LangTabs } from "@/components/ui/lang-tabs";
 import { CatalogContentsPanel } from "@/components/admin/CatalogContentsPanel";
 import { createCatalogAction, saveCatalogAction } from "@/lib/actions";
+import { isHandledActionFail, runAdminAction } from "@/lib/runAdminAction";
 import { catalogFabricIdOrder } from "@/lib/catalogSections";
 import { isDesignCatalog } from "@/lib/catalogKind";
 import { addressField, setAddress } from "@/lib/localize";
@@ -53,27 +54,32 @@ export function CatalogEditor({
       return;
     }
     setBusy(true);
-    const payload: Catalog = {
-      ...catalog,
-      status: live ? "live" : isNew ? "draft" : catalog.status,
-      expiresAt: undefined,
-      cover: { ...catalog.cover },
-      fabricIds: catalogFabricIdOrder(catalog),
-      layout: { ...catalog.layout, sectionBy: "none" },
-    };
-    const result = isNew
-      ? await createCatalogAction(payload, pin || undefined)
-      : await saveCatalogAction(payload, pin || undefined);
-    setBusy(false);
-    if (!result.ok) {
-      if (result.error === "title") toast(t("catalogs.errorTitle"));
-      else if (result.error === "auth") toast(t("error.forbidden"));
-      else if (result.error === "role") toast(t("catalogs.errorRole"));
-      else toast(t("catalogs.errorSave"));
-      return;
+    try {
+      const payload: Catalog = {
+        ...catalog,
+        status: live ? "live" : isNew ? "draft" : catalog.status,
+        expiresAt: undefined,
+        cover: { ...catalog.cover },
+        fabricIds: catalogFabricIdOrder(catalog),
+        layout: { ...catalog.layout, sectionBy: "none" },
+      };
+      const result = await runAdminAction(t, () =>
+        isNew ? createCatalogAction(payload, pin || undefined) : saveCatalogAction(payload, pin || undefined),
+      );
+      if (!result) return;
+      if (!result.ok) {
+        if (isHandledActionFail(result)) return;
+        if (result.error === "title") toast(t("catalogs.errorTitle"));
+        else if (result.error === "auth") toast(t("error.forbidden"));
+        else if (result.error === "role") toast(t("catalogs.errorRole"));
+        else toast(t("catalogs.errorSave"));
+        return;
+      }
+      toast(live ? t("catalogs.saveAndPublish") : t("common.save"));
+      if (isNew && "slug" in result) router.replace(`/admin/catalogs/${result.slug}`);
+    } finally {
+      setBusy(false);
     }
-    toast(live ? t("catalogs.saveAndPublish") : t("common.save"));
-    if (isNew && "slug" in result) router.replace(`/admin/catalogs/${result.slug}`);
   }
 
   return (

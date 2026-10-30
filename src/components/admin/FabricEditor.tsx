@@ -13,6 +13,7 @@ import { WizardMockupCategoryStep } from "@/components/admin/WizardMockupCategor
 import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { addFabricsToCatalogAction } from "@/lib/actions";
+import { isHandledActionFail, runAdminAction } from "@/lib/runAdminAction";
 import type { MockupSaveStep } from "@/lib/mockup/clientRender";
 import { fabricKind, kindReady } from "@/lib/fabricKind";
 import { useFabricEditor } from "@/lib/useFabricEditor";
@@ -62,21 +63,22 @@ export function FabricEditor({
   async function finish(saveLive: boolean) {
     setBusy(true);
     try {
-      const result = saveLive ? await publish() : await saveDraft();
+      const result = await runAdminAction(t, async () => (saveLive ? await publish() : await saveDraft()));
+      if (!result) return;
       if (!result.ok) {
+        if (isHandledActionFail(result)) return;
         toast(t("wizard.artTaken"));
         return;
       }
       const id = fabric.id;
       if (catalogSlugs.length) {
-        await Promise.all(catalogSlugs.map((slug) => addFabricsToCatalogAction([id], slug)));
+        const linked = await Promise.all(catalogSlugs.map((slug) => runAdminAction(t, () => addFabricsToCatalogAction([id], slug))));
+        if (linked.some((item) => !item || isHandledActionFail(item) || !item.ok)) return;
       } else if (saveLive) {
         toast(t("designs.pickCatalogToPublish"));
       }
       toast(saveLive ? t("designs.savedPublished") : t("wizard.saved"));
       if (isNew) router.push(`/admin/fabrics?kind=${kind}`);
-    } catch {
-      toast(t("designs.saveFailed"));
     } finally {
       setBusy(false);
     }

@@ -7,6 +7,7 @@ import { CatalogFabricPicker } from "@/components/admin/CatalogFabricPicker";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
 import { getFabricForCatalogAction } from "@/lib/actions";
+import { isQuotaFail, runAdminAction } from "@/lib/runAdminAction";
 import { catalogFabricIdOrder, catalogHasManualSections } from "@/lib/catalogSections";
 import { isDesignCatalog } from "@/lib/catalogKind";
 import type { Catalog, CatalogSection, Fabric, Lang } from "@/types";
@@ -60,8 +61,8 @@ export function CatalogContentsPanel({
       patch({ fabricIds: [...new Set([...(catalog.fabricIds ?? []), id])] });
     }
     if (byId.has(id)) return;
-    void getFabricForCatalogAction(id).then((fabric) => {
-      if (!fabric) return;
+    void runAdminAction(t, () => getFabricForCatalogAction(id)).then((fabric) => {
+      if (!fabric || isQuotaFail(fabric) || !("id" in fabric)) return;
       onFabricsChange((current) => (current.some((item) => item.id === fabric.id) ? current : [...current, fabric]));
     });
   }

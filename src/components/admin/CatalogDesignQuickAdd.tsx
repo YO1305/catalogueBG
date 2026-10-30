@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/components/i18n/I18n";
 import { Input, Label } from "@/components/ui/field";
 import { addCatalogDesignEntryAction } from "@/lib/actions";
+import { isHandledActionFail, runAdminAction } from "@/lib/runAdminAction";
 import { processDesignUpload } from "@/lib/processDesignUpload";
 import type { CatalogSection, Fabric } from "@/types";
 
@@ -36,21 +37,25 @@ export function CatalogDesignQuickAdd({
         toast(t("catalogs.designEntryUploadError"));
         return;
       }
-      const result = await addCatalogDesignEntryAction({
-        catalogSlug: slug,
-        art: art.trim(),
-        nameRu: name.trim(),
-        sectionId,
-        design: {
-          originalUrl: processed.originalUrl,
-          webUrl: processed.webUrl,
-          thumbUrl: processed.thumbUrl,
-          widthPx: processed.widthPx,
-          heightPx: processed.heightPx,
-          seamless: true,
-        },
-      });
+      const result = await runAdminAction(t, () =>
+        addCatalogDesignEntryAction({
+          catalogSlug: slug,
+          art: art.trim(),
+          nameRu: name.trim(),
+          sectionId,
+          design: {
+            originalUrl: processed.originalUrl,
+            webUrl: processed.webUrl,
+            thumbUrl: processed.thumbUrl,
+            widthPx: processed.widthPx,
+            heightPx: processed.heightPx,
+            seamless: true,
+          },
+        }),
+      );
+      if (!result) return;
       if (!result.ok) {
+        if (isHandledActionFail(result)) return;
         if ("error" in result && result.error === "art_taken") toast(t("fabrics.errorArt"));
         else toast(t("catalogs.designEntrySaveError"));
         return;

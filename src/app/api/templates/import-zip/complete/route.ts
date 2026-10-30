@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { saveTemplate } from "@/lib/db";
+import { firestoreFailJson } from "@/lib/firestoreGuard";
 import { isAdmin } from "@/lib/roles";
 import { finalizeZipTemplateImport } from "@/lib/templateZip/finalizeImport";
 import { validateZipTemplateJson } from "@/lib/templateZip/validate";
@@ -74,6 +75,8 @@ export async function POST(request: Request) {
     revalidatePath("/admin/templates");
     return Response.json({ ok: true, id: result.template.id });
   } catch (error) {
+    const fail = firestoreFailJson(error);
+    if (fail) return fail;
     console.error("templates/import-zip/complete", error);
     const message = error instanceof Error ? error.message : String(error);
     return Response.json({ ok: false, errors: [`Ошибка сохранения: ${message}`] }, { status: 500 });

@@ -77,9 +77,12 @@ export async function completeTemplateZipImport(body: {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(20_000),
   });
   if (!response.ok) {
-    return { ok: false, errors: await readResponseErrors(response) };
+    const errors = await readResponseErrors(response);
+    if (errors.includes("quota") || response.status === 429) return { ok: false, errors: ["quota"] };
+    return { ok: false, errors };
   }
   const data = (await response.json()) as { ok: boolean; id?: string };
   if (!data.ok || !data.id) return { ok: false, errors: ["Не удалось сохранить шаблон"] };

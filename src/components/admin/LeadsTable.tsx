@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useI18n } from "@/components/i18n/I18n";
 import { updateLeadAction } from "@/lib/actions";
+import { isQuotaFail, runAdminAction } from "@/lib/runAdminAction";
 import type { Fabric, Lead } from "@/types";
 
 export function LeadsTable({ initial, fabrics }: { initial: Lead[]; fabrics: Fabric[] }) {
@@ -35,7 +36,12 @@ export function LeadsTable({ initial, fabrics }: { initial: Lead[]; fabrics: Fab
                 <td className="p-3">
                   <select value={lead.status} onChange={async (event) => {
                     const status = event.target.value as Lead["status"];
-                    await updateLeadAction(lead.id, status);
+                    const previous = lead.status;
+                    const result = await runAdminAction(t, () => updateLeadAction(lead.id, status));
+                    if (!result || isQuotaFail(result) || !result.ok) {
+                      event.target.value = previous;
+                      return;
+                    }
                     setLeads((items) => items.map((item) => (item.id === lead.id ? { ...item, status } : item)));
                   }}>
                     <option value="new">{t("leads.statusNew")}</option>

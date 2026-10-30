@@ -11,6 +11,7 @@ import { useI18n } from "@/components/i18n/I18n";
 import { Badge, SearchInput, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { deleteFabricAction } from "@/lib/actions";
+import { isQuotaFail, runAdminAction } from "@/lib/runAdminAction";
 import { FABRIC_KINDS, fabricKind } from "@/lib/fabricKind";
 import { filterFabrics } from "@/lib/filterFabrics";
 import { statusKey } from "@/lib/i18n";
@@ -55,7 +56,8 @@ export function FabricBoard({
 
   async function remove(fabric: Fabric) {
     if (!window.confirm(t("designs.deleteConfirm", { name: fabric.name.ru || fabric.art }))) return;
-    await deleteFabricAction(fabric.id);
+    const result = await runAdminAction(t, () => deleteFabricAction(fabric.id));
+    if (!result || isQuotaFail(result) || !result.ok) return;
     toast(t("designs.deleted"));
     router.refresh();
   }

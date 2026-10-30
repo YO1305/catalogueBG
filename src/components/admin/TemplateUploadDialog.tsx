@@ -117,6 +117,10 @@ export function TemplateUploadDialog({
         zipSizeMb: Math.round((zipFile.size / (1024 * 1024)) * 10) / 10,
       });
       if (!finished.ok) {
+        if (finished.errors.includes("quota")) {
+          toast(t("error.quota"));
+          return;
+        }
         setErrors(finished.errors);
         return;
       }
@@ -124,6 +128,10 @@ export function TemplateUploadDialog({
       onOpenChange(false);
       onSaved();
     } catch (error) {
+      if (error instanceof DOMException && (error.name === "TimeoutError" || error.name === "AbortError")) {
+        toast(t("error.timeout"));
+        return;
+      }
       const message = error instanceof Error ? error.message : t("catalogs.errorSave");
       setErrors([message]);
     } finally {

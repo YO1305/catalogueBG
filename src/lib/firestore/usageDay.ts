@@ -1,6 +1,7 @@
 import "server-only";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { firebaseAdminConfigured, getAdminApp } from "@/lib/firebaseAdmin";
+import { FirestoreQuotaError, isFirestoreQuotaError, withFirestoreGuard } from "@/lib/firestoreGuard";
 
 const FLUSH_MS = 5 * 60 * 1000;
 
@@ -103,31 +104,37 @@ export async function maybeFlushUsageToFirestore(force = false) {
     const hourKey = pacificHourKey();
     const ref = db.collection("meta").doc(usageDocId(dayKey));
     try {
-      await db.runTransaction(async (tx) => {
-        const snap = await tx.get(ref);
-        const current = snap.exists ? (snap.data() as FirestoreUsageDayDoc) : undefined;
-        const sources: Record<string, SourceUsageRow> = { ...(current?.sources ?? {}) };
-        const hourly: Record<string, SourceUsageRow> = { ...(current?.hourly ?? {}) };
-        mergeSourceMap(sources, batch.bySource);
-        const hourRow = hourly[hourKey] ?? { reads: 0, writes: 0, deletes: 0 };
-        hourRow.reads += batch.reads;
-        hourRow.writes += batch.writes;
-        hourRow.deletes += batch.deletes;
-        hourly[hourKey] = hourRow;
-        tx.set(
-          ref,
-          {
-            reads: FieldValue.increment(batch.reads),
-            writes: FieldValue.increment(batch.writes),
-            deletes: FieldValue.increment(batch.deletes),
-            sources,
-            hourly,
-            updatedAt: new Date().toISOString(),
-          },
-          { merge: true },
-        );
-      });
+      await withFirestoreGuard(() =>
+        db.runTransaction(async (tx) => {
+          const snap = await tx.get(ref);
+          const current = snap.exists ? (snap.data() as FirestoreUsageDayDoc) : undefined;
+          const sources: Record<string, SourceUsageRow> = { ...(current?.sources ?? {}) };
+          const hourly: Record<string, SourceUsageRow> = { ...(current?.hourly ?? {}) };
+          mergeSourceMap(sources, batch.bySource);
+          const hourRow = hourly[hourKey] ?? { reads: 0, writes: 0, deletes: 0 };
+          hourRow.reads += batch.reads;
+          hourRow.writes += batch.writes;
+          hourRow.deletes += batch.deletes;
+          hourly[hourKey] = hourRow;
+          tx.set(
+            ref,
+            {
+              reads: FieldValue.increment(batch.reads),
+              writes: FieldValue.increment(batch.writes),
+              deletes: FieldValue.increment(batch.deletes),
+              sources,
+              hourly,
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true },
+          );
+        }),
+      );
     } catch (error) {
+      if (error instanceof FirestoreQuotaError || isFirestoreQuotaError(error)) {
+        console.error("firestore usage flush quota");
+        return;
+      }
       console.error("firestore usage flush", error);
       pending.reads += batch.reads;
       pending.writes += batch.writes;
@@ -149,7 +156,7 @@ export async function getFirestoreUsageDay(dayKey = pacificDayKey()): Promise<Fi
   const db = firestoreOrNull();
   if (!db) return null;
   try {
-    const snap = await db.collection("meta").doc(usageDocId(dayKey)).get();
+    const snap = await withFirestoreGuard(() => db.collection("meta").doc(usageDocId(dayKey)).get());
     if (!snap.exists) return null;
     const data = snap.data() as FirestoreUsageDayDoc;
     return {
@@ -161,6 +168,7 @@ export async function getFirestoreUsageDay(dayKey = pacificDayKey()): Promise<Fi
       updatedAt: data.updatedAt,
     };
   } catch (error) {
+    if (error instanceof FirestoreQuotaError || isFirestoreQuotaError(error)) throw error;
     console.error("getFirestoreUsageDay", error);
     return null;
   }

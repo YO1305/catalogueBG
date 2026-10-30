@@ -6,6 +6,7 @@ import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { createCollectionAction, createFabricTypeAction, createFinishAction, createProductTypeAction, removeDictionaryAction, removeFinishAction, reorderAction, reorderFinishesAction, saveCollectionAction, saveFabricTypeAction, saveFinishAction, saveGlossaryAction, saveProductTypeAction } from "@/lib/actions";
+import { isHandledActionFail, isQuotaFail, runAdminAction } from "@/lib/runAdminAction";
 import { isWovenType } from "@/lib/mockup/weave";
 import type { Collection, FabricType, Finish, GlossaryTerm, ProductType, Role } from "@/types";
 
@@ -61,6 +62,18 @@ function Rows({ role, kind, rows, flagLabel, onFlag, onHide, onDelete, onReorder
   const router = useRouter();
   const [name, setName] = useState("");
   const [items, setItems] = useState(rows);
+  const [busy, setBusy] = useState(false);
+  async function run(start: () => Promise<unknown>) {
+    setBusy(true);
+    try {
+      const result = await runAdminAction(t, start);
+      if (!result || isHandledActionFail(result)) return false;
+      if (typeof result === "object" && "ok" in result && (result as { ok?: boolean }).ok === false) return false;
+      return true;
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <div className="mt-4 space-y-2">
       {items.map((row, index) => (
@@ -71,24 +84,24 @@ function Rows({ role, kind, rows, flagLabel, onFlag, onHide, onDelete, onReorder
           if (!moved) return;
           next.splice(index, 0, moved);
           setItems(next);
-          await onReorder(next.map((item) => item.id));
+          if (!(await run(() => onReorder(next.map((item) => item.id))))) setItems(items);
         }}>
           <span>{row.name}{row.active ? "" : ` · ${t("common.hidden")}`}</span>
           <span className="flex flex-wrap items-center justify-end gap-2 text-sm">
             {onFlag && flagLabel ? (
               <label className="flex items-center gap-1 text-xs text-ink/70">
-                <input type="checkbox" checked={Boolean(row.flag)} onChange={async () => { setItems(items.map((item) => (item.id === row.id ? { ...item, flag: !item.flag } : item))); await onFlag(row); router.refresh(); }} />
+                <input type="checkbox" checked={Boolean(row.flag)} disabled={busy} onChange={async () => { if (!onFlag) return; if (await run(() => onFlag(row))) router.refresh(); }} />
                 {flagLabel}
               </label>
             ) : null}
-            <button type="button" onClick={async () => { await onHide(row); router.refresh(); }}>{row.active ? t("common.hide") : t("common.add")}</button>
-            {role === "admin" ? <button type="button" onClick={async () => { const result = await onDelete(row.id); if (!result.ok) return; router.refresh(); }}>{t("common.delete")}</button> : null}
+            <button type="button" disabled={busy} onClick={async () => { if (await run(() => onHide(row))) router.refresh(); }}>{row.active ? t("common.hide") : t("common.add")}</button>
+            {role === "admin" ? <button type="button" disabled={busy} onClick={async () => { const result = await run(() => onDelete(row.id)); if (!result) return; router.refresh(); }}>{t("common.delete")}</button> : null}
           </span>
         </div>
       ))}
-      <form className="flex gap-2" onSubmit={async (event) => { event.preventDefault(); await onCreate(name); setName(""); router.refresh(); }}>
-        <Input value={name} onChange={(event) => setName(event.target.value)} aria-label={kind} required />
-        <Button type="submit">{t("common.add")}</Button>
+      <form className="flex gap-2" onSubmit={async (event) => { event.preventDefault(); if (await run(() => onCreate(name))) { setName(""); router.refresh(); } }}>
+        <Input value={name} onChange={(event) => setName(event.target.value)} aria-label={kind} required disabled={busy} />
+        <Button type="submit" disabled={busy}>{t("common.add")}</Button>
       </form>
       <p className="text-xs text-ink/50">{t("settings.used")}</p>
     </div>
@@ -99,6 +112,7 @@ function GlossaryEditor({ role, initial }: { role: Role; initial: GlossaryTerm[]
   const { t } = useI18n();
   const [terms, setTerms] = useState(initial);
   const [draft, setDraft] = useState({ ru: "", en: "", uz: "" });
+  const [busy, setBusy] = useState(false);
   return (
     <div className="mt-4 space-y-2">
       {terms.map((term) => (
@@ -110,14 +124,20 @@ function GlossaryEditor({ role, initial }: { role: Role; initial: GlossaryTerm[]
         <form className="grid gap-2 md:grid-cols-4" onSubmit={async (event) => {
           event.preventDefault();
           const next = [...terms, { id: crypto.randomUUID(), ...draft }];
-          setTerms(next);
-          await saveGlossaryAction(next);
-          setDraft({ ru: "", en: "", uz: "" });
+          setBusy(true);
+          try {
+            const result = await runAdminAction(t, () => saveGlossaryAction(next));
+            if (!result || isQuotaFail(result) || !result.ok) return;
+            setTerms(next);
+            setDraft({ ru: "", en: "", uz: "" });
+          } finally {
+            setBusy(false);
+          }
         }}>
           <Input placeholder={t("settings.ru")} value={draft.ru} onChange={(event) => setDraft({ ...draft, ru: event.target.value })} required />
           <Input placeholder="EN" value={draft.en} onChange={(event) => setDraft({ ...draft, en: event.target.value })} required />
           <Input placeholder="UZ" value={draft.uz} onChange={(event) => setDraft({ ...draft, uz: event.target.value })} required />
-          <Button type="submit">{t("settings.addTerm")}</Button>
+          <Button type="submit" disabled={busy}>{t("settings.addTerm")}</Button>
         </form>
       ) : null}
     </div>

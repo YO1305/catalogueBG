@@ -8,6 +8,7 @@ import { useI18n } from "@/components/i18n/I18n";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Input, Label, Textarea } from "@/components/ui/field";
 import { saveCatalogAction } from "@/lib/actions";
+import { isHandledActionFail, runAdminAction } from "@/lib/runAdminAction";
 import { buildPages, resolveFabrics } from "@/lib/catalog";
 import type { Catalog, Collection, Fabric, FabricType, ProductType } from "@/types";
 
@@ -18,6 +19,7 @@ export function CatalogBuilder({ initial, fabrics, collections, fabricTypes, pro
   const router = useRouter();
   const [catalog, setCatalog] = useState(initial);
   const [pin, setPin] = useState("");
+  const [busy, setBusy] = useState(false);
   const resolved = useMemo(() => resolveFabrics(catalog, fabrics), [catalog, fabrics]);
   const pages = useMemo(() => buildPages(catalog, resolved), [catalog, resolved]);
   function patch(partial: Partial<Catalog>) {
@@ -25,7 +27,21 @@ export function CatalogBuilder({ initial, fabrics, collections, fabricTypes, pro
   }
   return (
     <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
-      <form className="space-y-3 bg-white p-4" onSubmit={async (event) => { event.preventDefault(); await saveCatalogAction(catalog, pin || undefined); toast(t("common.save")); router.refresh(); }}>
+      <form className="space-y-3 bg-white p-4" onSubmit={async (event) => {
+        event.preventDefault();
+        setBusy(true);
+        try {
+          const result = await runAdminAction(t, () => saveCatalogAction(catalog, pin || undefined));
+          if (!result || !result.ok) {
+            if (result && !isHandledActionFail(result)) toast(t("catalogs.errorSave"));
+            return;
+          }
+          toast(t("common.save"));
+          router.refresh();
+        } finally {
+          setBusy(false);
+        }
+      }}>
         <Label>{t("common.name")}</Label>
         <Input value={catalog.title.ru} onChange={(event) => patch({ title: { ...catalog.title, ru: event.target.value } })} />
         <Label>{t("catalogs.subtitle")}</Label>
@@ -92,8 +108,20 @@ export function CatalogBuilder({ initial, fabrics, collections, fabricTypes, pro
         <Label>{t("catalogs.expires")}</Label>
         <Input type="date" value={catalog.expiresAt?.slice(0, 10) ?? ""} onChange={(event) => patch({ expiresAt: event.target.value ? new Date(event.target.value).toISOString() : undefined })} />
         <div className="flex flex-wrap gap-2">
-          <Button type="submit">{t("common.save")}</Button>
-          <Button type="button" onClick={async () => { await saveCatalogAction({ ...catalog, status: "live" }, pin || undefined); toast(t("common.live")); }}>{t("common.publish")}</Button>
+          <Button type="submit" disabled={busy}>{t("common.save")}</Button>
+          <Button type="button" disabled={busy} onClick={async () => {
+            setBusy(true);
+            try {
+              const result = await runAdminAction(t, () => saveCatalogAction({ ...catalog, status: "live" }, pin || undefined));
+              if (!result || !result.ok) {
+                if (result && !isHandledActionFail(result)) toast(t("catalogs.errorSave"));
+                return;
+              }
+              toast(t("common.live"));
+            } finally {
+              setBusy(false);
+            }
+          }}>{t("common.publish")}</Button>
           <Button type="button" variant="outline" onClick={() => void navigator.clipboard.writeText(`${location.origin}/c/${catalog.slug}`)}>{t("catalogs.copy")}</Button>
           <a className="inline-flex h-10 items-center px-3 text-sm underline" href={`/api/qr?text=${encodeURIComponent(`${typeof location === "undefined" ? "" : location.origin}/c/${catalog.slug}`)}`}>{t("catalogs.qr")}</a>
           <a className="inline-flex h-10 items-center px-3 text-sm underline" href={`/c/${catalog.slug}/pdf`}>{t("catalogs.pdf")}</a>

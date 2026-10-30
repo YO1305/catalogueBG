@@ -4,6 +4,7 @@ import path from "node:path";
 import { getFirestore, type DocumentData, type Firestore, type Query, Timestamp } from "firebase-admin/firestore";
 import { firebaseAdminConfigured, getAdminApp } from "@/lib/firebaseAdmin";
 import { defaultStatsRange, listCatalogDayStats, recordCatalogDayStats, summarizeDayStats } from "@/lib/catalogDayStats";
+import { FirestoreQuotaError, FirestoreTimeoutError, isFirestoreQuotaError, withFirestoreGuard } from "@/lib/firestoreGuard";
 import { trackFirestoreDelete, trackFirestoreRead, trackFirestoreWrite } from "@/lib/firestoreMetrics";
 import { fabricMatchesRules } from "@/lib/catalog";
 import { emptyCatalogStats, summarizeCatalog } from "@/lib/analytics";
@@ -96,8 +97,16 @@ function requireFirestore(source: string): Firestore {
 }
 
 function abortFirestoreRead(source: string, error: unknown): never {
+  if (error instanceof FirestoreQuotaError || error instanceof FirestoreTimeoutError || error instanceof FirestoreUnavailableError) {
+    throw error;
+  }
+  if (isFirestoreQuotaError(error)) throw new FirestoreQuotaError();
   console.error(source, error);
   throw new FirestoreUnavailableError(source, error);
+}
+
+async function fsOp<T>(start: () => Promise<T>): Promise<T> {
+  return withFirestoreGuard(start);
 }
 
 function firestore(): Firestore {
@@ -139,7 +148,7 @@ async function readCollection<T>(name: string, idField?: keyof T): Promise<T[]> 
   if (!firebaseAdminConfigured()) return readLocalCollection<T>(name, idField);
   try {
     const db = requireFirestore(`collection:${name}`);
-    const snap = await db.collection(name).get();
+    const snap = await fsOp(() => db.collection(name).get());
     trackFirestoreRead(snap.size, `collection:${name}`);
     return snap.docs.map((doc) => {
       const data = fromRemote(doc.data()) as T;
@@ -195,7 +204,7 @@ async function readCollectionPage<T>(
     const db = requireFirestore(`collectionPage:${name}`);
     let query = db.collection(name).orderBy(options.orderBy);
     if (cursor) query = query.startAfter(startAfterCursor(options.orderBy, cursor));
-    const snap = await query.limit(limit).get();
+    const snap = await fsOp(() => query.limit(limit).get());
     trackFirestoreRead(snap.size, `collectionPage:${name}`);
     const items = snap.docs.map((doc) => {
       const data = fromRemote(doc.data()) as T;
@@ -225,7 +234,7 @@ export async function getFabricsByIds(ids: string[]): Promise<Fabric[]> {
   try {
     const db = requireFirestore("fabrics:getAll");
     const refs = unique.map((id) => db.collection("fabrics").doc(id));
-    const snaps = await db.getAll(...refs);
+    const snaps = await fsOp(() => db.getAll(...refs));
     trackFirestoreRead(snaps.length, "fabrics:getAll");
     return snaps.flatMap((snap) => {
       if (!snap.exists) return [];
@@ -295,7 +304,7 @@ async function runFabricPickerQuery(
   } else if (cursor) {
     ref = ref.startAfter(cursor);
   }
-  const snap = await ref.limit(limit).select("art", "artKey", "name", "status", "collectionId", "fabricTypeId", "design").get();
+  const snap = await fsOp(() => ref.limit(limit).select("art", "artKey", "name", "status", "collectionId", "fabricTypeId", "design").get());
   trackFirestoreRead(snap.size, label);
   const rows = snap.docs.flatMap((doc) => {
     const data = fromRemote(doc.data()) as Fabric;
@@ -327,11 +336,12 @@ export async function listFabricPickerPage(input: {
     if (page.items.length || !query) return page;
     return await runFabricPickerQuery(db, "artKey", query, cursor, limit, "fabrics:picker-artKey");
   } catch (error) {
+    if (error instanceof FirestoreQuotaError || error instanceof FirestoreTimeoutError) throw error;
     console.error("listFabricPickerPage", error);
     try {
       let ref: Query = db.collection("fabrics").orderBy("art");
       if (cursor) ref = ref.startAfter(cursor);
-      const snap = await ref.limit(limit).get();
+      const snap = await fsOp(() => ref.limit(limit).get());
       trackFirestoreRead(snap.size, "fabrics:picker-fallback");
       const rows = snap.docs.flatMap((doc) => {
         const data = fromRemote(doc.data()) as Fabric;
@@ -345,6 +355,7 @@ export async function listFabricPickerPage(input: {
         cursor: snap.size === limit && last ? last.art : null,
       };
     } catch (fallbackError) {
+      if (fallbackError instanceof FirestoreQuotaError || fallbackError instanceof FirestoreTimeoutError) throw fallbackError;
       console.error("listFabricPickerPage fallback", fallbackError);
       return { items: [], cursor: null };
     }
@@ -360,7 +371,7 @@ export async function findStaffUser(email: string) {
   if (!normalized) return null;
   if (firebaseAdminConfigured()) {
     try {
-      const snap = await firestore().collection("users").where("email", "==", normalized).limit(1).get();
+      const snap = await fsOp(() => firestore().collection("users").where("email", "==", normalized).limit(1).get());
       trackFirestoreRead(snap.size, "users:email");
       const doc = snap.docs[0];
       if (!doc) return null;
@@ -368,6 +379,7 @@ export async function findStaffUser(email: string) {
       if (!user.id) user.id = doc.id;
       return user;
     } catch (error) {
+      if (error instanceof FirestoreQuotaError || error instanceof FirestoreTimeoutError) throw error;
       console.error("findStaffUser", error);
       return null;
     }
@@ -402,7 +414,7 @@ async function readDoc<T>(name: string, id: string, idField: keyof T): Promise<T
   }
   try {
     const db = requireFirestore(`doc:${name}`);
-    const snap = await db.collection(name).doc(id).get();
+    const snap = await fsOp(() => db.collection(name).doc(id).get());
     trackFirestoreRead(snap.exists ? 1 : 0, `doc:${name}`);
     if (!snap.exists) return null;
     const data = fromRemote(snap.data()) as T;
@@ -418,7 +430,7 @@ async function readGlossary(): Promise<GlossaryTerm[]> {
   if (!firebaseAdminConfigured()) return readLocal().glossary;
   try {
     const db = requireFirestore("doc:settings/glossary");
-    const snap = await db.doc("settings/glossary").get();
+    const snap = await fsOp(() => db.doc("settings/glossary").get());
     trackFirestoreRead(1, "doc:settings/glossary");
     const data = snap.exists ? (fromRemote(snap.data()) as { terms?: GlossaryTerm[] }) : undefined;
     return data?.terms ?? [];
@@ -469,8 +481,8 @@ export async function listCatalogsTouchingFabric(fabric: Fabric): Promise<Catalo
   }
   const db = firestore();
   const [manualSnap, rulesSnap] = await Promise.all([
-    db.collection("catalogs").where("fabricIds", "array-contains", fabric.id).get(),
-    db.collection("catalogs").where("mode", "==", "rules").get(),
+    fsOp(() => db.collection("catalogs").where("fabricIds", "array-contains", fabric.id).get()),
+    fsOp(() => db.collection("catalogs").where("mode", "==", "rules").get()),
   ]);
   trackFirestoreRead(manualSnap.size + rulesSnap.size, "catalogs:touching-fabric");
   const bySlug = new Map<string, Catalog>();
@@ -525,13 +537,14 @@ async function queryFabricArtTaken(wanted: string, raw: string, exceptId: string
     return readLocal().fabrics.some((item) => item.id !== exceptId && item.art.toLowerCase() === wanted);
   }
   try {
-    const snap = await db.collection("fabrics").where("artKey", "==", wanted).limit(4).get();
+    const snap = await fsOp(() => db.collection("fabrics").where("artKey", "==", wanted).limit(4).get());
     trackFirestoreRead(snap.size, "fabrics:artKeyQuery");
     if (snap.size) return snap.docs.some((doc) => doc.id !== exceptId);
-    const legacy = await db.collection("fabrics").where("art", "==", raw).limit(4).get();
+    const legacy = await fsOp(() => db.collection("fabrics").where("art", "==", raw).limit(4).get());
     trackFirestoreRead(legacy.size, "fabrics:artLegacyQuery");
     return legacy.docs.some((doc) => doc.id !== exceptId);
   } catch (error) {
+    if (error instanceof FirestoreQuotaError || error instanceof FirestoreTimeoutError) throw error;
     console.error("isFabricArtTaken", error);
     return readLocal().fabrics.some((item) => item.id !== exceptId && item.art.toLowerCase() === wanted);
   }
@@ -580,7 +593,7 @@ export async function listFabricsByTemplateId(templateId: string): Promise<Fabri
   }
   try {
     const db = requireFirestore("fabrics:byTemplate");
-    const snap = await db.collection("fabrics").where("templateIds", "array-contains", templateId).get();
+    const snap = await fsOp(() => db.collection("fabrics").where("templateIds", "array-contains", templateId).get());
     trackFirestoreRead(snap.size, "fabrics:byTemplate");
     return snap.docs.map((doc) => {
       const data = fromRemote(doc.data()) as Fabric;
@@ -598,7 +611,7 @@ export async function listLeadsByCatalog(slug: string): Promise<Lead[]> {
   if (!firebaseAdminConfigured()) return readLocal().leads.filter((lead) => lead.catalogSlug === slug);
   try {
     const db = requireFirestore("leads:byCatalog");
-    const snap = await db.collection("leads").where("catalogSlug", "==", slug).get();
+    const snap = await fsOp(() => db.collection("leads").where("catalogSlug", "==", slug).get());
     trackFirestoreRead(snap.size, "leads:byCatalog");
     return snap.docs.map((doc) => {
       const data = fromRemote(doc.data()) as Lead;
@@ -683,7 +696,7 @@ export async function getDb(): Promise<Database> {
     readCollection<Lead>("leads", "id"),
     readCollection<AnalyticsEvent>("events", "id"),
     readCollection<AppUser>("users", "id"),
-    fs.doc("settings/glossary").get(),
+    fsOp(() => fs.doc("settings/glossary").get()),
   ]);
   trackFirestoreRead(glossarySnap.exists ? 1 : 0, "doc:settings/glossary");
   const glossaryData = glossarySnap.exists ? (fromRemote(glossarySnap.data()) as { terms?: GlossaryTerm[] }) : undefined;
@@ -717,7 +730,7 @@ function omitUndefined(value: unknown): unknown {
 }
 
 async function upsert(collection: string, id: string, value: object) {
-  await firestore().collection(collection).doc(id).set(toRemote(omitUndefined(value)) as DocumentData);
+  await fsOp(() => firestore().collection(collection).doc(id).set(toRemote(omitUndefined(value)) as DocumentData));
   trackFirestoreWrite(1, `upsert:${collection}`);
 }
 
@@ -735,7 +748,7 @@ export async function saveFabric(fabric: Fabric) {
 
 export async function deleteFabric(id: string) {
   if (firebaseAdminConfigured()) {
-    await firestore().collection("fabrics").doc(id).delete();
+    await fsOp(() => firestore().collection("fabrics").doc(id).delete());
     trackFirestoreDelete(1, "delete:fabrics");
     return;
   }
@@ -755,7 +768,7 @@ export async function saveCatalog(catalog: Catalog) {
 
 export async function deleteCatalog(slug: string) {
   if (firebaseAdminConfigured()) {
-    await firestore().collection("catalogs").doc(slug).delete();
+    await fsOp(() => firestore().collection("catalogs").doc(slug).delete());
     trackFirestoreDelete(1, "delete:catalogs");
     return;
   }
@@ -775,7 +788,7 @@ export async function saveCollection(item: Collection) {
 
 export async function deleteCollection(id: string) {
   if (firebaseAdminConfigured()) {
-    await firestore().collection("collections").doc(id).delete();
+    await fsOp(() => firestore().collection("collections").doc(id).delete());
     trackFirestoreDelete(1, "delete:collections");
     return;
   }
@@ -810,7 +823,7 @@ export async function deleteFinish(id: string) {
   const rows = (await getDictionaries()).finishes.filter((item) => item.id !== id);
   if (firebaseAdminConfigured()) {
     await Promise.all(rows.map((row) => upsert("finishes", row.id, row)));
-    await firestore().collection("finishes").doc(id).delete();
+    await fsOp(() => firestore().collection("finishes").doc(id).delete());
     trackFirestoreDelete(1, "delete:finishes");
     return;
   }
@@ -821,7 +834,7 @@ export async function deleteFinish(id: string) {
 
 export async function deleteFabricType(id: string) {
   if (firebaseAdminConfigured()) {
-    await firestore().collection("fabricTypes").doc(id).delete();
+    await fsOp(() => firestore().collection("fabricTypes").doc(id).delete());
     trackFirestoreDelete(1, "delete:fabricTypes");
     return;
   }
@@ -841,7 +854,7 @@ export async function saveProductType(item: ProductType) {
 
 export async function deleteProductType(id: string) {
   if (firebaseAdminConfigured()) {
-    await firestore().collection("productTypes").doc(id).delete();
+    await fsOp(() => firestore().collection("productTypes").doc(id).delete());
     trackFirestoreDelete(1, "delete:productTypes");
     return;
   }
@@ -861,7 +874,7 @@ export async function saveTemplate(item: Template) {
 
 export async function deleteTemplate(id: string) {
   if (firebaseAdminConfigured()) {
-    await firestore().collection("templates").doc(id).delete();
+    await fsOp(() => firestore().collection("templates").doc(id).delete());
     trackFirestoreDelete(1, "delete:templates");
     return;
   }
@@ -918,7 +931,7 @@ export async function saveEvents(items: AnalyticsEvent[]) {
 
 export async function saveGlossary(terms: GlossaryTerm[]) {
   if (firebaseAdminConfigured()) {
-    await firestore().doc("settings/glossary").set({ terms: toRemote(terms) as DocumentData[] });
+    await fsOp(() => firestore().doc("settings/glossary").set({ terms: toRemote(terms) as DocumentData[] }));
     trackFirestoreWrite(1, "doc:settings/glossary");
     return;
   }
@@ -938,7 +951,7 @@ export async function saveUser(user: AppUser) {
 
 export async function deleteUser(id: string) {
   if (firebaseAdminConfigured()) {
-    await firestore().collection("users").doc(id).delete();
+    await fsOp(() => firestore().collection("users").doc(id).delete());
     trackFirestoreDelete(1, "delete:users");
     return;
   }

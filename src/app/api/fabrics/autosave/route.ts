@@ -11,6 +11,10 @@ export async function POST(request: Request) {
   const fabric = (await request.json()) as Fabric;
   if (!fabric?.id) return Response.json({ error: "fabric" }, { status: 400 });
   const result = await persistFabric(session, fabric);
-  if (!result.ok) return Response.json({ ok: false, error: result.error }, { status: 409 });
+  if (!result.ok) {
+    if (result.error === "quota") return Response.json({ ok: false, error: "quota" }, { status: 429 });
+    if (result.error === "timeout") return Response.json({ ok: false, error: "timeout" }, { status: 504 });
+    return Response.json({ ok: false, error: result.error }, { status: 409 });
+  }
   return Response.json({ ok: true, updatedAt: result.fabric.updatedAt });
 }

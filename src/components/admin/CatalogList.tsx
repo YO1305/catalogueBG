@@ -9,6 +9,7 @@ import { useI18n } from "@/components/i18n/I18n";
 import { Badge } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { deleteCatalogAction } from "@/lib/actions";
+import { isQuotaFail, runAdminAction } from "@/lib/runAdminAction";
 import { canEditCatalogs } from "@/lib/roles";
 import type { Catalog, Fabric, Role } from "@/types";
 
@@ -42,7 +43,8 @@ export function CatalogList({
 
   async function remove(slug: string, title: string) {
     if (!window.confirm(t("catalogs.deleteConfirm", { name: title }))) return;
-    await deleteCatalogAction(slug);
+    const result = await runAdminAction(t, () => deleteCatalogAction(slug));
+    if (!result || isQuotaFail(result) || !result.ok) return;
     toast(t("catalogs.deleted"));
     router.refresh();
   }

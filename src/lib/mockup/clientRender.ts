@@ -1,4 +1,5 @@
 import { saveFabricAction } from "@/lib/actions";
+import { withActionTimeout } from "@/lib/runAdminAction";
 import { uploadPublicBlob } from "@/lib/blob/clientUpload";
 import { fillPlan, mockupOptions } from "@/lib/mockup/fill";
 import { abortRenderers, renderFinal } from "@/lib/mockup/previewClient";
@@ -12,8 +13,10 @@ type Saved = { ok?: boolean; error?: string; mockup?: Mockup };
 async function ensureFabricSaved(fabric: Fabric): Promise<Fabric> {
   if (fabric.persisted) return fabric;
   const status = fabric.status === "published" ? "published" : "draft";
-  const result = await saveFabricAction({ ...fabric, status });
+  const result = await withActionTimeout(saveFabricAction({ ...fabric, status }));
   if (!result.ok) {
+    if (result.error === "quota") throw new Error("quota");
+    if (result.error === "timeout") throw new Error("timeout");
     if (result.error === "art_taken") throw new Error("Артикул уже занят — измените артикул и сохраните черновик");
     throw new Error("Сохраните черновик перед сохранением макета");
   }
@@ -69,6 +72,7 @@ export async function renderAndSave(
       signal,
     });
     const data = (await response.json().catch(() => ({}))) as Saved;
+    if (data.error === "quota" || response.status === 429) throw new Error("quota");
     if (!response.ok || !data.ok || !data.mockup) throw new Error(data.error ?? `Макет не сохранился: ${response.status}`);
     return { mockup: data.mockup, fabric: persisted };
   } finally {
