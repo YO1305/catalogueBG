@@ -6,7 +6,7 @@ import { abortRenderers, renderFinal } from "@/lib/mockup/previewClient";
 import { variantFabric } from "@/lib/variants";
 import type { Fabric, Mockup, Template } from "@/types";
 
-export type MockupSaveStep = "render" | "upload1" | "upload2" | "save";
+export type MockupSaveStep = "fabric" | "render" | "upload1" | "upload2" | "save";
 
 type Saved = { ok?: boolean; error?: string; mockup?: Mockup };
 
@@ -41,7 +41,9 @@ export async function renderAndSave(
   const timer = window.setTimeout(onAbort, 60_000);
   const signal = controller.signal;
   try {
-    const persisted = opts?.persisted?.persisted ? opts.persisted : await ensureFabricSaved(opts?.persisted ?? fabric);
+    const incoming = opts?.persisted ?? fabric;
+    if (!incoming.persisted) opts?.onProgress?.("fabric");
+    const persisted = incoming.persisted ? incoming : await ensureFabricSaved(incoming);
     const variant = variantId ? persisted.variants?.find((item) => item.id === variantId) : undefined;
     if (variantId && !variant) throw new Error("Вариант цвета не найден");
     if (template.engine !== "uvgrid" || !template.baked.jsonUrl) throw new Error("Нужен uvgrid-шаблон с jsonUrl");

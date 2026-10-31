@@ -31,6 +31,7 @@ import {
 } from "@/lib/db";
 import { emptyFabric } from "@/lib/fabricDraft";
 import { persistFabric } from "@/lib/fabricSave";
+import { catalogWithFabrics, catalogWithoutFabric } from "@/lib/catalogMembership";
 import { catalogFabricIdOrder, catalogHasManualSections } from "@/lib/catalogSections";
 import { fallbackTranslate } from "@/lib/glossary";
 import { uniqueSlug } from "@/lib/ids";
@@ -102,7 +103,7 @@ export async function publishFabricAction(fabric: Fabric) {
     touch("/admin/fabrics");
     touch("/admin/catalogs");
     for (const catalog of names) touch(`/c/${catalog.slug}`);
-    return { ok: true as const, catalogs: names.map((catalog) => catalog.title.ru) };
+    return { ok: true as const, catalogs: names.map((catalog) => catalog.title.ru), updatedAt: saved.fabric.updatedAt };
   });
 }
 
@@ -189,15 +190,50 @@ export async function addCatalogDesignEntryAction(input: {
   });
 }
 
+function touchCatalog(slug: string) {
+  touch(`/admin/catalogs/${slug}`);
+  touch(`/c/${slug}`);
+}
+
 export async function addFabricsToCatalogAction(ids: string[], slug: string) {
   return catchQuota(async () => {
     await actor(canEditCatalogs);
     const catalog = await getCatalog(slug);
     if (!catalog) return { ok: false as const, error: "missing" };
-    const fabricIds = [...new Set([...(catalog.fabricIds ?? []), ...ids])];
-    await saveCatalog({ ...catalog, mode: "manual", fabricIds, updatedAt: new Date().toISOString() });
-    touch(`/admin/catalogs/${slug}`);
-    touch(`/c/${slug}`);
+    await saveCatalog({ ...catalogWithFabrics(catalog, ids), updatedAt: new Date().toISOString() });
+    touchCatalog(slug);
+    return { ok: true as const };
+  });
+}
+
+export async function removeFabricFromCatalogAction(fabricId: string, slug: string) {
+  return catchQuota(async () => {
+    await actor(canEditCatalogs);
+    const catalog = await getCatalog(slug);
+    if (!catalog) return { ok: false as const, error: "missing" as const };
+    await saveCatalog({ ...catalogWithoutFabric(catalog, fabricId), updatedAt: new Date().toISOString() });
+    touchCatalog(slug);
+    return { ok: true as const };
+  });
+}
+
+/** One read and one write per catalogue that actually changed. */
+export async function syncFabricCatalogsAction(fabricId: string, add: string[], remove: string[]) {
+  return catchQuota(async () => {
+    await actor(canEditCatalogs);
+    const addSet = new Set(add);
+    const slugs = [...new Set([...add, ...remove])].filter(Boolean);
+    if (!fabricId || !slugs.length) return { ok: true as const };
+    const loaded = await Promise.all(slugs.map(async (slug) => ({ slug, catalog: await getCatalog(slug) })));
+    if (loaded.some((item) => !item.catalog)) return { ok: false as const, error: "missing" as const };
+    const now = new Date().toISOString();
+    for (const item of loaded) {
+      const catalog = item.catalog;
+      if (!catalog) continue;
+      const next = addSet.has(item.slug) ? catalogWithFabrics(catalog, [fabricId]) : catalogWithoutFabric(catalog, fabricId);
+      await saveCatalog({ ...next, updatedAt: now });
+      touchCatalog(item.slug);
+    }
     return { ok: true as const };
   });
 }

@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "lint:firestore": "node scripts/check-firestore-imports.mjs",
-    "test": "tsx --test src/lib/parseSpecs.test.ts src/lib/catalog.test.ts src/lib/publicMedia.test.ts src/lib/password.test.ts",
+    "test": "tsx --test src/lib/parseSpecs.test.ts src/lib/catalog.test.ts src/lib/catalogMembership.test.ts src/lib/publicMedia.test.ts src/lib/password.test.ts",
     "generate": "tsx scripts/generate.ts",
     "test:uvgrid-parity": "tsx scripts/uvgrid/parity-test.mjs",
     "seed": "tsx scripts/seed.ts",

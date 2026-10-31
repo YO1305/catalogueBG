@@ -200,10 +200,11 @@ export function useFabricEditor(
     const result = await withActionTimeout(saveFabricAction({ ...fabricRef.current, status: "draft" }));
     if (!result.ok) return result;
     dirty.current = false;
-    fabricRef.current = { ...result.fabric, persisted: true };
-    lastSavedHash.current = fabricAutosaveHash(fabricRef.current);
-    setFabric((current) => ({ ...current, persisted: true }));
-    return { ok: true as const, id: fabricRef.current.id };
+    const saved: Fabric = { ...result.fabric, persisted: true };
+    fabricRef.current = saved;
+    lastSavedHash.current = fabricAutosaveHash(saved);
+    setFabric((current) => ({ ...current, status: saved.status, updatedAt: saved.updatedAt, persisted: true }));
+    return { ok: true as const, id: saved.id, updatedAt: result.fabric.updatedAt, status: "draft" as const };
   }
 
   async function publish() {
@@ -213,9 +214,9 @@ export function useFabricEditor(
     const result = await withActionTimeout(publishFabricAction(payload));
     if (!result.ok) return result;
     dirty.current = false;
-    fabricRef.current = { ...fabricRef.current, persisted: true };
+    fabricRef.current = { ...fabricRef.current, status: "published", updatedAt: result.updatedAt, persisted: true };
     lastSavedHash.current = fabricAutosaveHash(fabricRef.current);
-    setFabric((current) => ({ ...current, persisted: true }));
+    setFabric((current) => ({ ...current, status: "published", updatedAt: result.updatedAt, persisted: true }));
     void mockupJobs
       .run(undefined, {
         onPersisted: (persisted) => {
@@ -233,7 +234,7 @@ export function useFabricEditor(
         else if (message === "timeout") toast(t("error.timeout"));
         else toast(`${t("designs.mockupRenderFailed")}: ${message}`);
       });
-    return { ok: true as const, id: payload.id };
+    return { ok: true as const, id: payload.id, updatedAt: result.updatedAt, status: "published" as const };
   }
 
   return {

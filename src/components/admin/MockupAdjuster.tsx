@@ -13,6 +13,7 @@ import type { Fabric, Mockup, Template } from "@/types";
 
 function stepLabel(t: (key: string, vars?: Record<string, string | number>) => string, step: MockupSaveStep | null, saving: boolean) {
   if (!saving) return t("templates.rebuildOne");
+  if (step === "fabric") return t("designs.saveFabric");
   if (step === "render") return t("designs.mockupStepRender");
   if (step === "upload1") return t("designs.mockupStepUpload", { n: 1 });
   if (step === "upload2") return t("designs.mockupStepUpload", { n: 2 });
