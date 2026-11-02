@@ -3,7 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { catalogCacheTag } from "@/lib/catalogMeta";
 import { getSession } from "@/lib/auth";
-import { matchingCatalogs } from "@/lib/catalog";
+import { hasSavedCatalogMockup, matchingCatalogs } from "@/lib/catalog";
 import {
   deleteCatalog,
   deleteFabric,
@@ -13,6 +13,7 @@ import {
   getCatalogs,
   getDictionaries,
   getFabric,
+  getTemplatesListData,
   getUsers,
   isDictionaryItemUsed,
   listFabricPickerPage,
@@ -158,7 +159,7 @@ export async function addCatalogDesignEntryAction(input: {
     width,
     design: { ...input.design, seamless: input.design.seamless ?? true },
     designCatalogEntry: true,
-    status: "published",
+    status: "draft",
   };
   const saved = await persistFabric(session, fabric);
   if (!saved.ok) return saved;
@@ -190,6 +191,31 @@ export async function addCatalogDesignEntryAction(input: {
     fabricIds: ordered,
     catalogSections,
   };
+  });
+}
+
+export async function listMockupTemplatesAction() {
+  return catchQuota(async () => {
+    await actor(canEditCatalogs);
+    return { ok: true as const, templates: await getTemplatesListData() };
+  });
+}
+
+/** Publish a design-catalog entry only after a mockup WebP is stored. */
+export async function publishCatalogDesignEntryAction(fabricId: string, catalogSlug: string) {
+  return catchQuota(async () => {
+    const gate = await catalogActor();
+    if (!gate.ok) return gate;
+    const { session } = gate;
+    const fabric = await getFabric(fabricId);
+    if (!fabric) return { ok: false as const, error: "missing" as const };
+    if (!hasSavedCatalogMockup(fabric)) return { ok: false as const, error: "no_mockup" as const };
+    const saved = await persistFabric(session, { ...fabric, status: "published" });
+    if (!saved.ok) return saved;
+    touch(`/admin/catalogs/${catalogSlug}`);
+    touch(`/c/${catalogSlug}`);
+    touch("/admin/fabrics");
+    return { ok: true as const, fabric: saved.fabric };
   });
 }
 

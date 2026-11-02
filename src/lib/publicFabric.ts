@@ -1,36 +1,20 @@
-import { isDesignCatalog } from "@/lib/catalogKind";
-import { designCatalogPublicDesign } from "@/lib/designCatalog";
-import { fabricKind } from "@/lib/fabricKind";
 import type { Catalog, Fabric, FabricDesign } from "@/types";
 
 function stripDesign(design: FabricDesign): FabricDesign {
   return { ...design, webUrl: "", thumbUrl: "", originalUrl: "", viewUrl: "" };
 }
 
-/** Убирает URL плоского рисунка из данных, уходящих на публичную страницу каталога (SPEC 5.8.5). */
-export function sanitizePublicFabric(fabric: Fabric, catalog: Catalog): Fabric {
-  if (isDesignCatalog(catalog) || fabric.designCatalogEntry) {
-    return {
-      ...fabric,
-      design: designCatalogPublicDesign(fabric.design),
-      variants: fabric.variants?.map((variant) => ({ ...variant, design: designCatalogPublicDesign(variant.design) })),
-    };
-  }
-  if (catalog.showFlatDesign) return fabric;
-  const kind = fabricKind(fabric);
-  if (kind === "printed") {
-    return {
-      ...fabric,
-      design: stripDesign(fabric.design),
-      variants: fabric.variants?.map((variant) => ({ ...variant, design: stripDesign(variant.design) })),
-    };
-  }
-  if (kind === "woven") {
-    return {
-      ...fabric,
-      design: stripDesign(fabric.design),
-      variants: fabric.variants?.map((variant) => ({ ...variant, design: stripDesign(variant.design) })),
-    };
-  }
-  return fabric;
+/** SPEC 5.8.5: плоский рисунок только в PIN-каталоге с showFlatDesign. */
+export function publicFlatDesignAllowed(catalog: Pick<Catalog, "access" | "showFlatDesign">) {
+  return catalog.access === "pin" && Boolean(catalog.showFlatDesign);
+}
+
+/** Убирает URL плоского рисунка из данных публичной страницы, JSON, PDF и OG. */
+export function sanitizePublicFabric(fabric: Fabric, catalog: Pick<Catalog, "access" | "showFlatDesign">): Fabric {
+  if (publicFlatDesignAllowed(catalog)) return fabric;
+  return {
+    ...fabric,
+    design: stripDesign(fabric.design),
+    variants: fabric.variants?.map((variant) => ({ ...variant, design: stripDesign(variant.design) })),
+  };
 }

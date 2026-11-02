@@ -3,11 +3,11 @@
 import { CatalogImage, PageHeader } from "@/components/flipbook/PageHeader";
 import { PageFooter } from "@/components/flipbook/PageFooter";
 import { useI18n } from "@/components/i18n/I18n";
-import { catalogCoverMockup, catalogDesignPreviewSrc } from "@/lib/catalog";
+import { savedMockups } from "@/lib/catalog";
 import { isDesignCatalog } from "@/lib/catalogKind";
 import { designNumber, designWidthCm } from "@/lib/designCatalog";
 import { shieldFlipPointer } from "@/lib/flipbook/shieldFlip";
-import { fabricKind } from "@/lib/fabricKind";
+import { renderedMockupSrc } from "@/lib/publicMedia";
 import type { Catalog, Fabric, FabricType } from "@/types";
 
 type OpenFabric = (id: string, variantId?: string) => void;
@@ -65,10 +65,8 @@ function DesignRow({
 }) {
   const { lang, t } = useI18n();
   const designOnly = isDesignCatalog(catalog) || fabric.designCatalogEntry;
-  const previewSrc = catalogDesignPreviewSrc(fabric, catalog, catalog.showProductTypes);
-  const mockup = catalogCoverMockup(fabric, catalog.showProductTypes);
-  const kind = fabricKind(fabric);
-  const fallbackSrc = kind === "printed" ? fabric.design.webUrl || fabric.design.thumbUrl || undefined : undefined;
+  const tile = savedMockups(fabric)[0];
+  const previewSrc = renderedMockupSrc(tile);
   const typeName = fabricTypes.find((item) => item.id === fabric.fabricTypeId)?.name[lang] ?? "";
   const widthCm = designWidthCm(fabric);
   const specs = designOnly ? "" : [typeName, fabric.density && `${fabric.density} ${t("common.gm2")}`, fabric.width && `${fabric.width} ${t("common.cm")}`].filter(Boolean).join(" · ");
@@ -82,10 +80,9 @@ function DesignRow({
         onClick={() => onOpen(fabric.id)}
       >
         <CatalogImage
-          src={designOnly ? previewSrc : previewSrc || mockup?.url || mockup?.webUrl || ""}
-          thumbUrl={designOnly ? fabric.design.thumbUrl || previewSrc : mockup?.thumbUrl || fabric.design.thumbUrl}
-          webUrl={designOnly ? fabric.design.webUrl || previewSrc : mockup?.webUrl || fabric.design.webUrl}
-          fallbackSrc={designOnly ? fabric.design.webUrl || previewSrc : fallbackSrc}
+          src={previewSrc}
+          thumbUrl={tile?.thumbUrl}
+          webUrl={tile?.webUrl || previewSrc}
           alt={`${title} — ${typeName}`}
           active={active}
         />

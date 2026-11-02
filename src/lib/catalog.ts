@@ -1,4 +1,3 @@
-import { isDesignCatalog } from "@/lib/catalogKind";
 import { catalogFabricIdOrder, catalogHasManualSections } from "@/lib/catalogSections";
 import { fabricKind } from "@/lib/fabricKind";
 import { FABRIC_PRODUCT } from "@/lib/mockup/constants";
@@ -77,14 +76,17 @@ export function catalogProductCoverMockup(fabric: Fabric, showProductTypes: stri
   );
 }
 
-/** Обложка строки в журнале: всегда готовое изделие на мокапе, если сохранено. */
-/** Превью в списке страниц каталога. */
-export function catalogDesignPreviewSrc(fabric: Fabric, catalog: Catalog, showProductTypes: string[]): string {
-  if (isDesignCatalog(catalog) || fabric.designCatalogEntry) {
-    return fabric.design.thumbUrl || fabric.design.webUrl || "";
-  }
-  const mockup = catalogCoverMockup(fabric, showProductTypes);
-  return renderedMockupSrc(mockup) || fabric.design.webUrl || fabric.design.thumbUrl || "";
+/** Сохранённые мокапы: отмеченный «Главный», иначе первый сохранённый. */
+export function savedMockups(fabric: Fabric): Mockup[] {
+  const saved = fabric.mockups.filter((mockup) => mockupIsSaved(mockup));
+  const primary = saved.find((mockup) => mockup.isPrimary);
+  if (!primary) return saved;
+  return [primary, ...saved.filter((mockup) => mockup !== primary)];
+}
+
+/** Превью плитки в журнале — только мокап, никогда плоский рисунок. */
+export function catalogDesignPreviewSrc(fabric: Fabric, _catalog: Catalog, _showProductTypes: string[]): string {
+  return renderedMockupSrc(savedMockups(fabric)[0]);
 }
 
 export function catalogCoverMockup(fabric: Fabric, showProductTypes: string[]): Mockup | undefined {
@@ -97,18 +99,8 @@ export function catalogCoverMockup(fabric: Fabric, showProductTypes: string[]): 
 
 export type ModalFabricView = { src: string; thumb: string; seamless: boolean };
 
-/** Крупное фото в карточке ткани: мокап ткани или (для печати) рисунок. */
-export function modalFabricView(fabric: Fabric, showFlatDesign: boolean, catalog?: Pick<Catalog, "catalogKind">): ModalFabricView | null {
-  if (fabric.designCatalogEntry || (catalog && isDesignCatalog(catalog))) {
-    if (fabric.design.webUrl) {
-      return {
-        src: fabric.design.webUrl,
-        thumb: fabric.design.thumbUrl || fabric.design.webUrl,
-        seamless: fabric.design.seamless,
-      };
-    }
-    return null;
-  }
+/** Плоский рисунок в окне — только если вызывающий код уже проверил PIN и showFlatDesign. */
+export function modalFabricView(fabric: Fabric, showFlatDesign: boolean, _catalog?: Pick<Catalog, "catalogKind">): ModalFabricView | null {
   const kind = fabricKind(fabric);
   const primary = primaryFabricMockup(fabric);
   const primarySrc = renderedMockupSrc(primary);

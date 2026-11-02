@@ -34,17 +34,16 @@ async function processDesignBuffer(original: Buffer, fileName: string, id: strin
   } catch {
     return Response.json({ error: "file" }, { status: 400 });
   }
-  const [web, thumb, mid, small, view] = await Promise.all([
+  const [web, thumb, mid, small] = await Promise.all([
     image.clone().resize({ width: 4000, height: 4000, fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
     image.clone().resize({ width: 400, height: 400, fit: "cover" }).webp({ quality: 78 }).toBuffer(),
     image.clone().resize({ width: 1200, height: 1200, fit: "inside", withoutEnlargement: true }).webp({ quality: 80 }).toBuffer(),
     image.clone().resize({ width: 600, height: 600, fit: "inside", withoutEnlargement: true }).webp({ quality: 78 }).toBuffer(),
-    image.clone().resize({ width: 2000, height: 2000, fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
   ]);
   try {
     const skipOriginal = storageProvider() === "vercel-blob";
     const type = mimeFromName(fileName);
-    const [webUrl, thumbUrl, , , extraOriginal, viewUrl] = await Promise.all([
+    const [webUrl, thumbUrl, , , extraOriginal] = await Promise.all([
       saveBuffer(`private/designs/${id}/web.webp`, web, "image/webp"),
       saveBuffer(`private/designs/${id}/thumb.webp`, thumb, "image/webp"),
       saveBuffer(`private/designs/${id}/web-1200.webp`, mid, "image/webp"),
@@ -52,11 +51,10 @@ async function processDesignBuffer(original: Buffer, fileName: string, id: strin
       skipOriginal
         ? Promise.resolve(null)
         : saveBuffer(`fabrics/${id}/original${ext(fileName)}`, original, type || "application/octet-stream"),
-      saveBuffer(`designs/${id}/view-2000.webp`, view, "image/webp"),
     ]);
     const originalUrl = extraOriginal ?? webUrl;
     const colors = await dominantColors(web);
-    return Response.json({ originalUrl, webUrl, thumbUrl, viewUrl, widthPx: meta.width ?? 0, heightPx: meta.height ?? 0, colors });
+    return Response.json({ originalUrl, webUrl, thumbUrl, widthPx: meta.width ?? 0, heightPx: meta.height ?? 0, colors });
   } catch (error) {
     console.error("images/process storage", error);
     const message = error instanceof Error ? error.message : "";

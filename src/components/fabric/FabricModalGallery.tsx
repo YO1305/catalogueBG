@@ -5,6 +5,8 @@ import { ZoomViewer } from "@/components/fabric/ZoomViewer";
 import { fabricModalScaleFactor, fabricModalTileStyle } from "@/lib/fabricModalLayout";
 import { publicMediaSrc } from "@/lib/publicMedia";
 
+export type ModalTile = { src: string; label: string; seamless?: boolean };
+
 function MediaTile({ label, tileStyle, children }: { label: string; tileStyle: CSSProperties; children: React.ReactNode }) {
   return (
     <figure className="mx-auto flex min-h-0 min-w-0 flex-col gap-1.5" style={tileStyle}>
@@ -17,44 +19,35 @@ function MediaTile({ label, tileStyle, children }: { label: string; tileStyle: C
 }
 
 export function FabricModalGallery({
-  fabricLabel,
-  fabricSrc,
-  fabricSeamless,
+  tiles,
   rapportCm,
-  productLabel,
-  productSrc,
   modalScale,
   onZoomed,
   maxZoom = 4,
 }: {
-  fabricLabel: string;
-  fabricSrc: string;
-  fabricSeamless: boolean;
+  tiles: ModalTile[];
   rapportCm: number;
-  productLabel: string;
-  productSrc: string;
   modalScale?: number;
   onZoomed?: () => void;
   maxZoom?: number;
 }) {
-  const two = Boolean(fabricSrc && productSrc);
+  const many = tiles.length > 1;
   const factor = fabricModalScaleFactor({ fabricModalScale: modalScale });
-  const tileStyle = fabricModalTileStyle(factor, two);
+  const tileStyle = fabricModalTileStyle(factor, many);
 
   return (
-    <div className={`flex min-h-0 w-full flex-1 items-center justify-center ${two ? "px-0" : ""}`}>
-      <div className={`grid w-full max-h-full gap-4 ${two ? "grid-cols-2" : "grid-cols-1 place-items-center"}`}>
-        {fabricSrc ? (
-          <MediaTile label={fabricLabel} tileStyle={tileStyle}>
-            <ZoomViewer src={fabricSrc} alt={fabricLabel} rapportCm={rapportCm} seamless={fabricSeamless} onZoomed={onZoomed} chrome="minimal" maxZoom={maxZoom} />
+    <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+      <div className={`grid w-full max-h-full gap-4 ${many ? "grid-cols-2" : "grid-cols-1 place-items-center"}`}>
+        {tiles.map((tile, index) => (
+          <MediaTile key={`${tile.src}-${index}`} label={tile.label} tileStyle={tileStyle}>
+            {index === 0 ? (
+              <ZoomViewer src={tile.src} alt={tile.label} rapportCm={rapportCm} seamless={Boolean(tile.seamless)} onZoomed={onZoomed} chrome="minimal" maxZoom={maxZoom} />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={publicMediaSrc(tile.src)} alt={tile.label} className="h-full w-full object-contain" />
+            )}
           </MediaTile>
-        ) : null}
-        {productSrc ? (
-          <MediaTile label={productLabel} tileStyle={tileStyle}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={publicMediaSrc(productSrc, 1200)} alt={productLabel} className="h-full w-full object-contain" />
-          </MediaTile>
-        ) : null}
+        ))}
       </div>
     </div>
   );

@@ -3,11 +3,13 @@
 import { useMemo, type Dispatch, type SetStateAction } from "react";
 import { useI18n } from "@/components/i18n/I18n";
 import { CatalogDesignQuickAdd } from "@/components/admin/CatalogDesignQuickAdd";
+import { CatalogMissingMockups } from "@/components/admin/CatalogMissingMockups";
 import { CatalogFabricPicker } from "@/components/admin/CatalogFabricPicker";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
 import { getFabricForCatalogAction } from "@/lib/actions";
 import { isQuotaFail, runAdminAction } from "@/lib/runAdminAction";
+import { hasSavedCatalogMockup } from "@/lib/catalog";
 import { catalogFabricIdOrder, catalogHasManualSections } from "@/lib/catalogSections";
 import { isDesignCatalog } from "@/lib/catalogKind";
 import type { Catalog, CatalogSection, Fabric, Lang } from "@/types";
@@ -39,6 +41,17 @@ export function CatalogContentsPanel({
 
   function patch(partial: Partial<Catalog>) {
     onChange({ ...catalog, ...partial });
+  }
+
+  function rememberDesign(payload: { fabric: Fabric; fabricIds?: string[]; catalogSections?: CatalogSection[] }) {
+    onFabricsChange((current) =>
+      current.some((item) => item.id === payload.fabric.id)
+        ? current.map((item) => (item.id === payload.fabric.id ? payload.fabric : item))
+        : [...current, payload.fabric],
+    );
+    if (payload.fabricIds?.length) {
+      onChange({ ...catalog, fabricIds: payload.fabricIds, catalogSections: payload.catalogSections ?? catalog.catalogSections });
+    }
   }
 
   function setSections(next: CatalogSection[]) {
@@ -79,6 +92,7 @@ export function CatalogContentsPanel({
               <>
                 <span className="font-mono text-xs">{fabric.art}</span>
                 {fabric.width.trim() ? ` · ${fabric.width.trim()} ${t("common.cm")}` : null}
+                {hasSavedCatalogMockup(fabric) ? null : ` · ${t("catalogs.noMockup")}`}
               </>
             ) : (
               <>
@@ -97,6 +111,10 @@ export function CatalogContentsPanel({
   }
 
   const orderedIds = catalogFabricIdOrder(catalog);
+  const missingMockups = orderedIds.flatMap((id) => {
+    const fabric = byId.get(id);
+    return fabric && !hasSavedCatalogMockup(fabric) ? [fabric] : [];
+  });
 
   return (
     <div className="space-y-4 rounded-sm border border-black/10 bg-white/80 p-3">
@@ -136,12 +154,7 @@ export function CatalogContentsPanel({
                       sections={sections}
                       sectionId={section.id}
                       disabled={isNew}
-                      onAdded={(payload) => {
-                        onFabricsChange((current) =>
-                          current.some((item) => item.id === payload.fabric.id) ? current : [...current, payload.fabric],
-                        );
-                        onChange({ ...catalog, fabricIds: payload.fabricIds, catalogSections: payload.catalogSections ?? catalog.catalogSections });
-                      }}
+                      onAdded={(payload) => rememberDesign(payload)}
                     />
                   </div>
                 ) : (
@@ -161,12 +174,7 @@ export function CatalogContentsPanel({
           slug={catalog.slug}
           sections={sections}
           disabled={isNew}
-          onAdded={(payload) => {
-            onFabricsChange((current) =>
-              current.some((item) => item.id === payload.fabric.id) ? current : [...current, payload.fabric],
-            );
-            onChange({ ...catalog, fabricIds: payload.fabricIds, catalogSections: payload.catalogSections ?? catalog.catalogSections });
-          }}
+          onAdded={rememberDesign}
         />
       ) : null}
 
@@ -178,6 +186,7 @@ export function CatalogContentsPanel({
         </div>
       ) : null}
 
+      <CatalogMissingMockups fabrics={missingMockups} />
       {!hasSections ? (
         <div className="space-y-1">
           {orderedIds.map((id) => renderFabricRow(id))}

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/components/i18n/I18n";
 import { CatalogSectionField } from "@/components/admin/CatalogSectionField";
 import { Input, Label } from "@/components/ui/field";
+import { CatalogDesignMockups } from "@/components/admin/CatalogDesignMockups";
 import { addCatalogDesignEntryAction } from "@/lib/actions";
 import { isHandledActionFail, runAdminAction } from "@/lib/runAdminAction";
 import { processDesignUpload } from "@/lib/processDesignUpload";
@@ -21,13 +22,14 @@ export function CatalogDesignQuickAdd({
   sections?: CatalogSection[];
   sectionId?: string;
   disabled?: boolean;
-  onAdded: (payload: { fabric: Fabric; fabricIds: string[]; catalogSections?: CatalogSection[] }) => void;
+  onAdded: (payload: { fabric: Fabric; fabricIds?: string[]; catalogSections?: CatalogSection[] }) => void;
 }) {
   const { t } = useI18n();
   const [art, setArt] = useState("");
   const [width, setWidth] = useState("");
   const [sectionId, setSectionId] = useState<string | null>(sectionProp ?? sections[0]?.id ?? null);
   const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<Fabric | null>(null);
 
   async function onPick(file: File) {
     if (!slug || !art.trim()) {
@@ -68,8 +70,10 @@ export function CatalogDesignQuickAdd({
       toast(t("catalogs.designEntryDone"));
       setArt("");
       setWidth("");
+      const saved = { ...result.fabric, persisted: true };
+      setPending(saved);
       onAdded({
-        fabric: result.fabric,
+        fabric: saved,
         fabricIds: result.fabricIds,
         catalogSections: result.catalogSections,
       });
@@ -100,6 +104,18 @@ export function CatalogDesignQuickAdd({
       </div>
       {busy ? <p className="mt-2 text-xs text-ink/50">{t("common.loading")}</p> : null}
       {!slug ? <p className="mt-2 text-xs text-ink/50">{t("catalogs.coverUploadNeedSlug")}</p> : null}
+      {pending ? (
+        <div className="mt-3">
+          <CatalogDesignMockups
+            slug={slug}
+            fabric={pending}
+              onChange={(next) => {
+              setPending(next);
+              onAdded({ fabric: next });
+            }}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

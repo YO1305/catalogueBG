@@ -2,15 +2,17 @@
 
 import { ChevronLeft, ChevronRight, Heart, Share2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { FabricModalGallery } from "@/components/fabric/FabricModalGallery";
+import { FabricModalGallery, type ModalTile } from "@/components/fabric/FabricModalGallery";
 import { SpecsTable } from "@/components/fabric/SpecsTable";
 import { useI18n } from "@/components/i18n/I18n";
 import { VariantDots } from "@/components/flipbook/VariantDots";
-import { catalogProductCoverMockup, modalFabricView } from "@/lib/catalog";
+import { savedMockups } from "@/lib/catalog";
 import { isDesignCatalog } from "@/lib/catalogKind";
 import { designNumber, designWidthCm } from "@/lib/designCatalog";
 import { fabricModalShellStyle } from "@/lib/fabricModalLayout";
 import { fabricKind } from "@/lib/fabricKind";
+import { publicFlatDesignAllowed } from "@/lib/publicFabric";
+import { renderedMockupSrc } from "@/lib/publicMedia";
 import { ToneSwitch } from "@/components/fabric/ToneSwitch";
 import { WovenVariantSwitch } from "@/components/fabric/WovenVariantSwitch";
 import { BASE_VARIANT, colorOptions, withVariant } from "@/lib/variants";
@@ -54,18 +56,18 @@ export function FabricModal({
   useEffect(() => setVariant(variantId ?? BASE_VARIANT), [base, variantId]);
   const fabric = withVariant(base, variant);
   const kind = fabricKind(fabric);
-  const showFlat = catalog.showFlatDesign || kind === "printed";
-  const fabricView = modalFabricView(fabric, showFlat, catalog);
   const designOnly = Boolean(base.designCatalogEntry) || isDesignCatalog(catalog);
   const widthCm = designWidthCm(base);
-  const productMockup = catalogProductCoverMockup(fabric, catalog.showProductTypes);
-  const fabricSrc = fabricView?.src ?? "";
-  const productRaw = productMockup?.webUrl || productMockup?.url || "";
-  const productSrc = !designOnly && productRaw && productRaw !== fabricSrc ? productRaw : "";
-  const productLabel =
-    productTypes.find((item) => item.id === productMockup?.productType)?.name[lang] ??
-    productMockup?.productType ??
-    t("admin.product");
+  const showFlat = publicFlatDesignAllowed(catalog);
+  const tiles: ModalTile[] = savedMockups(fabric).flatMap((mockup) => {
+    const src = renderedMockupSrc(mockup);
+    if (!src) return [];
+    const label = productTypes.find((item) => item.id === mockup.productType)?.name[lang] ?? mockup.productType;
+    return [{ src, label }];
+  });
+  if (showFlat && fabric.design.webUrl) {
+    tiles.push({ src: fabric.design.webUrl, label: t("catalog.designTab"), seamless: fabric.design.seamless });
+  }
   const index = fabrics.findIndex((item) => item.id === fabric.id);
   const typeName = fabricTypes.find((item) => item.id === fabric.fabricTypeId)?.name[lang] ?? "";
   const onCloseRef = useRef(onClose);
@@ -103,17 +105,7 @@ export function FabricModal({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex min-h-0 min-w-0 flex-[1.45] flex-col gap-3 p-4 md:min-h-[min(78vh,580px)] md:p-6">
-          <FabricModalGallery
-            fabricLabel={t("catalog.fabricMockupTab")}
-            fabricSrc={fabricSrc}
-            fabricSeamless={Boolean(fabricView?.seamless)}
-            rapportCm={fabric.rapport.widthCm}
-            productLabel={productLabel}
-            productSrc={productSrc}
-            modalScale={catalog.layout.fabricModalScale}
-            onZoomed={onZoomed}
-            maxZoom={designOnly ? 2 : 4}
-          />
+          <FabricModalGallery tiles={tiles} rapportCm={fabric.rapport.widthCm} modalScale={catalog.layout.fabricModalScale} onZoomed={onZoomed} />
           {options.length > 1 ? (
             <div className="shrink-0 pt-1">
               {base.toned ? (
