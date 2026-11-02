@@ -42,16 +42,18 @@ export function CatalogContentsPanel({
   }
 
   function setSections(next: CatalogSection[]) {
-    const fabricIds = next.flatMap((s) => s.fabricIds);
-    patch({ catalogSections: next, fabricIds: [...new Set([...fabricIds])] });
+    const previousPlaced = new Set(sections.flatMap((section) => section.fabricIds));
+    const loose = (catalog.fabricIds ?? []).filter((id) => id && !previousPlaced.has(id));
+    const fabricIds = [...new Set([...next.flatMap((section) => section.fabricIds), ...loose])];
+    patch({ catalogSections: next, fabricIds });
   }
 
   function removeFabric(id: string) {
-    if (hasSections) {
-      setSections(sections.map((s) => ({ ...s, fabricIds: s.fabricIds.filter((x) => x !== id) })));
-    } else {
-      patch({ fabricIds: (catalog.fabricIds ?? []).filter((x) => x !== id) });
-    }
+    const nextSections = sections.map((section) => ({ ...section, fabricIds: section.fabricIds.filter((item) => item !== id) }));
+    patch({
+      catalogSections: sections.length ? nextSections : catalog.catalogSections,
+      fabricIds: (catalog.fabricIds ?? []).filter((item) => item !== id),
+    });
   }
 
   function addExisting(id: string, sectionId?: string) {
@@ -73,9 +75,16 @@ export function CatalogContentsPanel({
       <div key={id} className="flex items-center justify-between gap-2 rounded-md bg-ink/[0.03] px-2 py-1.5 text-sm">
         <span className="min-w-0 truncate">
           {fabric ? (
-            <>
-              <span className="font-mono text-xs">{fabric.art}</span> · {fabric.name.ru || fabric.name[editLang]}
-            </>
+            designCatalog ? (
+              <>
+                <span className="font-mono text-xs">{fabric.art}</span>
+                {fabric.width.trim() ? ` · ${fabric.width.trim()} ${t("common.cm")}` : null}
+              </>
+            ) : (
+              <>
+                <span className="font-mono text-xs">{fabric.art}</span> · {fabric.name.ru || fabric.name[editLang]}
+              </>
+            )
           ) : (
             <span className="font-mono text-xs">{id}</span>
           )}
@@ -124,6 +133,7 @@ export function CatalogContentsPanel({
                   <div className="mt-2">
                     <CatalogDesignQuickAdd
                       slug={catalog.slug}
+                      sections={sections}
                       sectionId={section.id}
                       disabled={isNew}
                       onAdded={(payload) => {
@@ -149,6 +159,7 @@ export function CatalogContentsPanel({
       {designCatalog && !hasSections ? (
         <CatalogDesignQuickAdd
           slug={catalog.slug}
+          sections={sections}
           disabled={isNew}
           onAdded={(payload) => {
             onFabricsChange((current) =>
@@ -157,6 +168,14 @@ export function CatalogContentsPanel({
             onChange({ ...catalog, fabricIds: payload.fabricIds, catalogSections: payload.catalogSections ?? catalog.catalogSections });
           }}
         />
+      ) : null}
+
+      {hasSections ? (
+        <div className="space-y-1">
+          {(catalog.fabricIds ?? [])
+            .filter((id) => id && !sections.some((section) => section.fabricIds.includes(id)))
+            .map((id) => renderFabricRow(id))}
+        </div>
       ) : null}
 
       {!hasSections ? (

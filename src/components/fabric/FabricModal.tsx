@@ -7,6 +7,8 @@ import { SpecsTable } from "@/components/fabric/SpecsTable";
 import { useI18n } from "@/components/i18n/I18n";
 import { VariantDots } from "@/components/flipbook/VariantDots";
 import { catalogProductCoverMockup, modalFabricView } from "@/lib/catalog";
+import { isDesignCatalog } from "@/lib/catalogKind";
+import { designNumber, designWidthCm } from "@/lib/designCatalog";
 import { fabricModalShellStyle } from "@/lib/fabricModalLayout";
 import { fabricKind } from "@/lib/fabricKind";
 import { ToneSwitch } from "@/components/fabric/ToneSwitch";
@@ -54,10 +56,12 @@ export function FabricModal({
   const kind = fabricKind(fabric);
   const showFlat = catalog.showFlatDesign || kind === "printed";
   const fabricView = modalFabricView(fabric, showFlat, catalog);
+  const designOnly = Boolean(base.designCatalogEntry) || isDesignCatalog(catalog);
+  const widthCm = designWidthCm(base);
   const productMockup = catalogProductCoverMockup(fabric, catalog.showProductTypes);
   const fabricSrc = fabricView?.src ?? "";
   const productRaw = productMockup?.webUrl || productMockup?.url || "";
-  const productSrc = productRaw && productRaw !== fabricSrc ? productRaw : "";
+  const productSrc = !designOnly && productRaw && productRaw !== fabricSrc ? productRaw : "";
   const productLabel =
     productTypes.find((item) => item.id === productMockup?.productType)?.name[lang] ??
     productMockup?.productType ??
@@ -90,7 +94,7 @@ export function FabricModal({
       className="fixed inset-0 z-40 flex items-center justify-center bg-[#1c1915]/75 p-2 sm:p-4"
       role="dialog"
       aria-modal="true"
-      aria-label={fabric.name[lang]}
+      aria-label={designOnly ? designNumber(base) : fabric.name[lang]}
       onClick={onClose}
     >
       <div
@@ -108,6 +112,7 @@ export function FabricModal({
             productSrc={productSrc}
             modalScale={catalog.layout.fabricModalScale}
             onZoomed={onZoomed}
+            maxZoom={designOnly ? 2 : 4}
           />
           {options.length > 1 ? (
             <div className="shrink-0 pt-1">
@@ -124,15 +129,19 @@ export function FabricModal({
         <aside className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto border-t border-ink/10 p-4 md:w-[18rem] md:border-l md:border-t-0 md:p-5 lg:w-[20rem]">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h2 className="font-display text-2xl leading-tight">{fabric.name[lang]}</h2>
-              <p className="font-mono mt-1 text-xs text-ink/60">{fabric.art}</p>
+              <h2 className="font-display text-2xl leading-tight">{designOnly ? designNumber(base) : fabric.name[lang]}</h2>
+              {designOnly ? (
+                widthCm ? <p className="mt-1 text-sm text-ink/70">{widthCm} {t("common.cm")}</p> : null
+              ) : (
+                <p className="font-mono mt-1 text-xs text-ink/60">{fabric.art}</p>
+              )}
             </div>
             <button type="button" className="shrink-0 rounded-full p-1 hover:bg-black/5" aria-label={t("common.close")} onClick={onClose}>
               <X className="h-5 w-5" />
             </button>
           </div>
-          {base.toned ? <p className="text-[11px] leading-relaxed text-ink/60">{t("tone.pantone")}</p> : null}
-          {typeName && typeName !== fabric.name[lang] ? <p className="text-xs text-ink/70">{typeName}</p> : null}
+          {!designOnly && typeName && typeName !== fabric.name[lang] ? <p className="text-xs text-ink/70">{typeName}</p> : null}
+          {base.toned && !designOnly ? <p className="text-[11px] leading-relaxed text-ink/60">{t("tone.pantone")}</p> : null}
           <SpecsTable fabric={fabric} catalog={catalog} />
           <div className="grid gap-2">
             <button type="button" className={`${ACTION} border border-ink/15 bg-white/60 hover:border-ink/35`} onClick={onToggleSave}>

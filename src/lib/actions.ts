@@ -31,7 +31,7 @@ import {
 } from "@/lib/db";
 import { emptyFabric } from "@/lib/fabricDraft";
 import { persistFabric } from "@/lib/fabricSave";
-import { catalogWithFabrics, catalogWithoutFabric } from "@/lib/catalogMembership";
+import { catalogAssignFabric, catalogWithFabrics, catalogWithoutFabric } from "@/lib/catalogMembership";
 import { catalogFabricIdOrder, catalogHasManualSections } from "@/lib/catalogSections";
 import { fallbackTranslate } from "@/lib/glossary";
 import { uniqueSlug } from "@/lib/ids";
@@ -136,7 +136,8 @@ export async function deleteFabricAction(id: string) {
 export async function addCatalogDesignEntryAction(input: {
   catalogSlug: string;
   art: string;
-  nameRu: string;
+  nameRu?: string;
+  width?: string;
   design: Fabric["design"];
   sectionId?: string;
 }) {
@@ -147,12 +148,14 @@ export async function addCatalogDesignEntryAction(input: {
   const catalog = await getCatalog(input.catalogSlug);
   if (!catalog) return { ok: false as const, error: "missing" as const };
   const art = input.art.trim();
-  const nameRu = input.nameRu.trim();
-  if (!art || !nameRu || !input.design.webUrl) return { ok: false as const, error: "invalid" as const };
+  const nameRu = (input.nameRu ?? "").trim() || art;
+  const width = (input.width ?? "").trim();
+  if (!art || !input.design.webUrl) return { ok: false as const, error: "invalid" as const };
   const fabric: Fabric = {
     ...emptyFabric(session.uid, "printed"),
     art,
     name: { ru: nameRu, en: "", uz: "" },
+    width,
     design: { ...input.design, seamless: input.design.seamless ?? true },
     designCatalogEntry: true,
     status: "published",
@@ -218,11 +221,15 @@ export async function removeFabricFromCatalogAction(fabricId: string, slug: stri
 }
 
 /** One read and one write per catalogue that actually changed. */
-export async function syncFabricCatalogsAction(fabricId: string, add: string[], remove: string[]) {
+export async function syncFabricCatalogsAction(
+  fabricId: string,
+  assign: { slug: string; sectionId: string | null }[],
+  remove: string[],
+) {
   return catchQuota(async () => {
     await actor(canEditCatalogs);
-    const addSet = new Set(add);
-    const slugs = [...new Set([...add, ...remove])].filter(Boolean);
+    const assignBySlug = new Map(assign.map((item) => [item.slug, item.sectionId]));
+    const slugs = [...new Set([...assign.map((item) => item.slug), ...remove])].filter(Boolean);
     if (!fabricId || !slugs.length) return { ok: true as const };
     const loaded = await Promise.all(slugs.map(async (slug) => ({ slug, catalog: await getCatalog(slug) })));
     if (loaded.some((item) => !item.catalog)) return { ok: false as const, error: "missing" as const };
@@ -230,7 +237,9 @@ export async function syncFabricCatalogsAction(fabricId: string, add: string[], 
     for (const item of loaded) {
       const catalog = item.catalog;
       if (!catalog) continue;
-      const next = addSet.has(item.slug) ? catalogWithFabrics(catalog, [fabricId]) : catalogWithoutFabric(catalog, fabricId);
+      const next = assignBySlug.has(item.slug)
+        ? catalogAssignFabric(catalog, fabricId, assignBySlug.get(item.slug) ?? null)
+        : catalogWithoutFabric(catalog, fabricId);
       await saveCatalog({ ...next, updatedAt: now });
       touchCatalog(item.slug);
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useI18n } from "@/components/i18n/I18n";
 import { publicMediaSrc } from "@/lib/publicMedia";
 
@@ -11,6 +11,7 @@ export function ZoomViewer({
   seamless,
   onZoomed,
   chrome = "full",
+  maxZoom = 4,
 }: {
   src: string;
   alt: string;
@@ -18,6 +19,7 @@ export function ZoomViewer({
   seamless: boolean;
   onZoomed?: () => void;
   chrome?: "full" | "minimal";
+  maxZoom?: number;
 }) {
   const { t } = useI18n();
   const media = publicMediaSrc(src, 1200);
@@ -25,6 +27,8 @@ export function ZoomViewer({
   const [tile, setTile] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ dist: number; zoom: number } | null>(null);
   const onZoomedRef = useRef(onZoomed);
   onZoomedRef.current = onZoomed;
   const [ruler, setRuler] = useState(48);
@@ -35,22 +39,64 @@ export function ZoomViewer({
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       setZoom((current) => {
-        const next = Math.min(4, Math.max(1, current * (event.deltaY < 0 ? 1.08 : 0.92)));
+        const next = Math.min(maxZoom, Math.max(1, current * (event.deltaY < 0 ? 1.08 : 0.92)));
         if (next > 1.4) onZoomedRef.current?.();
         return Math.round(next * 100) / 100;
       });
     };
     node.addEventListener("wheel", onWheel, { passive: false });
     return () => node.removeEventListener("wheel", onWheel);
-  }, []);
+  }, [maxZoom]);
 
   useEffect(() => {
     const width = imageRef.current?.getBoundingClientRect().width ?? 240;
     if (seamless && rapportCm > 0) setRuler(Math.max(24, (width / zoom) * (10 / rapportCm) * (tile ? 1 / 3 : 1)));
   }, [zoom, tile, rapportCm, seamless, src]);
 
+  function applyZoom(next: number) {
+    const capped = Math.min(maxZoom, Math.max(1, next));
+    const rounded = Math.round(capped * 100) / 100;
+    if (rounded > 1.4) onZoomedRef.current?.();
+    setZoom(rounded);
+  }
+
+  function pointerDown(event: PointerEvent<HTMLDivElement>) {
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      /* Synthetic and some mobile pointers still zoom without capture. */
+    }
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      pinch.current = { dist: Math.hypot(a!.x - b!.x, a!.y - b!.y) || 1, zoom };
+    }
+  }
+
+  function pointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (!pointers.current.has(event.pointerId)) return;
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (!pinch.current || pointers.current.size < 2) return;
+    const [a, b] = [...pointers.current.values()];
+    const dist = Math.hypot(a!.x - b!.x, a!.y - b!.y);
+    applyZoom(pinch.current.zoom * (dist / pinch.current.dist));
+  }
+
+  function pointerUp(event: PointerEvent<HTMLDivElement>) {
+    pointers.current.delete(event.pointerId);
+    if (pointers.current.size < 2) pinch.current = null;
+  }
+
   return (
-    <div ref={box} className="relative h-full overflow-hidden bg-[#ebe4d8]">
+    <div
+      ref={box}
+      className="relative h-full overflow-hidden bg-[#ebe4d8]"
+      style={{ touchAction: "none" }}
+      onPointerDown={pointerDown}
+      onPointerMove={pointerMove}
+      onPointerUp={pointerUp}
+      onPointerCancel={pointerUp}
+    >
       {tile ? (
         <div
           role="img"

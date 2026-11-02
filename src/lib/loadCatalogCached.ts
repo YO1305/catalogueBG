@@ -5,6 +5,8 @@ import { catalogFabricIdOrder } from "@/lib/catalogSections";
 import { CATALOG_REVALIDATE_SEC, catalogCacheTag } from "@/lib/catalogMeta";
 import { getCatalog, getDictionaries, getFabrics, getFabricsByIds } from "@/lib/db";
 import { localizeCatalogModel } from "@/lib/localize";
+import { isDesignCatalog } from "@/lib/catalogKind";
+import { ensureCatalogDesignViews } from "@/lib/ensureDesignView";
 import { sanitizePublicFabric } from "@/lib/publicFabric";
 import type { Catalog } from "@/types";
 
@@ -20,7 +22,8 @@ export async function buildPublicCatalogModel(slug: string) {
   if (!catalog || catalog.status === "archived") return null;
   const [allFabrics, dictionaries] = await Promise.all([fabricsForCatalog(catalog), getDictionaries()]);
   const resolved = resolveFabrics(catalog, allFabrics);
-  const fabrics = resolved.map((fabric) => sanitizePublicFabric(fabric, catalog));
+  const withViews = isDesignCatalog(catalog) ? await ensureCatalogDesignViews(resolved) : resolved;
+  const fabrics = withViews.map((fabric) => sanitizePublicFabric(fabric, catalog));
   const pages = buildPages(catalog, fabrics);
   const safe: Catalog = { ...catalog, pinHash: undefined };
   const coverFabric = fabrics.find((fabric) => fabric.id === catalog.cover.fabricId) ?? fabrics[0];

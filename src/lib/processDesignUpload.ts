@@ -3,6 +3,7 @@ import { uploadPublicBlob } from "@/lib/blob/clientUpload";
 export type ProcessedDesign = {
   webUrl: string;
   thumbUrl: string;
+  viewUrl?: string;
   originalUrl: string;
   widthPx: number;
   heightPx: number;

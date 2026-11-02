@@ -85,6 +85,8 @@ export type FabricDesign = {
   originalUrl: string;
   webUrl: string;
   thumbUrl: string;
+  /** Публичный WebP 2000px для окна дизайн-каталога. Старые записи могут быть без него. */
+  viewUrl?: string;
   widthPx: number;
   heightPx: number;
   seamless: boolean;

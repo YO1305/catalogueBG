@@ -4,10 +4,13 @@ export function catalogHasManualSections(catalog: Catalog): boolean {
   return Boolean(catalog.catalogSections?.some((section) => section.fabricIds.length > 0));
 }
 
-/** Порядок дизайнов в каталоге с учётом разделов. */
+/** Порядок дизайнов: разделы, затем ткани без раздела. */
 export function catalogFabricIdOrder(catalog: Catalog): string[] {
   if (catalogHasManualSections(catalog)) {
-    return (catalog.catalogSections ?? []).flatMap((section) => section.fabricIds);
+    const fromSections = (catalog.catalogSections ?? []).flatMap((section) => section.fabricIds);
+    const seen = new Set(fromSections);
+    const extra = (catalog.fabricIds ?? []).filter((id) => id && !seen.has(id));
+    return [...fromSections, ...extra];
   }
   return catalog.fabricIds ?? [];
 }

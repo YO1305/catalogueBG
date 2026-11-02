@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { catalogSlugDiff, catalogWithoutFabric, slugsWithFabric } from "./catalogMembership";
+import { catalogAssignFabric, catalogPickDiff, catalogSlugDiff, catalogWithoutFabric, picksWithFabric } from "./catalogMembership";
 import type { Catalog } from "../types";
 
 function catalog(partial: Partial<Catalog> & Pick<Catalog, "slug">): Catalog {
@@ -42,6 +42,27 @@ test("removing a fabric drops it from sections and the flat list", () => {
   );
   assert.deepEqual(next.fabricIds, ["keep", "other"]);
   assert.deepEqual(next.catalogSections?.[0]?.fabricIds, ["keep"]);
-  assert.equal(slugsWithFabric([next], "drop").length, 0);
-  assert.deepEqual(slugsWithFabric([next], "keep"), ["gold"]);
+  assert.equal(picksWithFabric([next], "drop").length, 0);
+  assert.deepEqual(picksWithFabric([next], "keep"), [{ slug: "gold", sectionId: "s1" }]);
+});
+
+test("assign moves a fabric into another section and can leave it without one", () => {
+  const base = catalog({
+    slug: "gold",
+    fabricIds: ["a"],
+    catalogSections: [
+      { id: "s1", title: { ru: "Gold", en: "", uz: "" }, fabricIds: ["a"] },
+      { id: "s2", title: { ru: "Silver", en: "", uz: "" }, fabricIds: [] },
+    ],
+  });
+  const moved = catalogAssignFabric(base, "a", "s2");
+  assert.deepEqual(moved.catalogSections?.[0]?.fabricIds, []);
+  assert.deepEqual(moved.catalogSections?.[1]?.fabricIds, ["a"]);
+  const loose = catalogAssignFabric(moved, "a", null);
+  assert.deepEqual(loose.catalogSections?.flatMap((section) => section.fabricIds), []);
+  assert.equal(loose.fabricIds?.includes("a"), true);
+  assert.deepEqual(catalogPickDiff([{ slug: "gold", sectionId: "s1" }], [{ slug: "gold", sectionId: "s2" }]), {
+    assign: [{ slug: "gold", sectionId: "s2" }],
+    remove: [],
+  });
 });

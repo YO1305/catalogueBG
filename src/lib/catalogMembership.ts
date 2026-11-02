@@ -6,8 +6,23 @@ export function catalogIncludesFabric(catalog: Catalog, fabricId: string) {
   return (catalog.catalogSections ?? []).some((section) => section.fabricIds.includes(fabricId));
 }
 
-export function slugsWithFabric(catalogs: Catalog[], fabricId: string) {
-  return catalogs.filter((catalog) => catalogIncludesFabric(catalog, fabricId)).map((catalog) => catalog.slug);
+export type CatalogPick = { slug: string; sectionId: string | null };
+
+export function picksWithFabric(catalogs: Catalog[], fabricId: string): CatalogPick[] {
+  return catalogs.flatMap((catalog) => {
+    if (!catalogIncludesFabric(catalog, fabricId)) return [];
+    const section = (catalog.catalogSections ?? []).find((item) => item.fabricIds.includes(fabricId));
+    return [{ slug: catalog.slug, sectionId: section?.id ?? null }];
+  });
+}
+
+export function catalogPickDiff(before: CatalogPick[], after: CatalogPick[]) {
+  const previous = new Map(before.map((pick) => [pick.slug, pick.sectionId]));
+  const next = new Set(after.map((pick) => pick.slug));
+  return {
+    assign: after.filter((pick) => previous.get(pick.slug) !== pick.sectionId),
+    remove: before.filter((pick) => !next.has(pick.slug)).map((pick) => pick.slug),
+  };
 }
 
 export function catalogSlugDiff(before: string[], after: string[]) {
@@ -19,7 +34,25 @@ export function catalogSlugDiff(before: string[], after: string[]) {
   };
 }
 
-/** Append ids and switch the catalogue to the manual list. */
+/** Put one fabric in a section, or in the catalogue with no section. */
+export function catalogAssignFabric(catalog: Catalog, fabricId: string, sectionId: string | null): Catalog {
+  const sections = (catalog.catalogSections ?? []).map((section) => ({
+    ...section,
+    fabricIds: section.fabricIds.filter((id) => id !== fabricId),
+  }));
+  if (sectionId) {
+    const index = sections.findIndex((section) => section.id === sectionId);
+    if (index >= 0) {
+      const section = sections[index];
+      if (section) sections[index] = { ...section, fabricIds: [...section.fabricIds, fabricId] };
+    }
+  }
+  const catalogSections = catalog.catalogSections ? sections : undefined;
+  const fabricIds = [...new Set([...(catalog.fabricIds ?? []).filter((id) => id !== fabricId), fabricId])];
+  const next: Catalog = { ...catalog, mode: "manual", catalogSections, fabricIds };
+  return { ...next, fabricIds: catalogFabricIdOrder(next) };
+}
+
 export function catalogWithFabrics(catalog: Catalog, ids: string[]): Catalog {
   return {
     ...catalog,

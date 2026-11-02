@@ -25,6 +25,7 @@ export function FabricModalGallery({
   productSrc,
   modalScale,
   onZoomed,
+  maxZoom = 4,
 }: {
   fabricLabel: string;
   fabricSrc: string;
@@ -34,6 +35,7 @@ export function FabricModalGallery({
   productSrc: string;
   modalScale?: number;
   onZoomed?: () => void;
+  maxZoom?: number;
 }) {
   const two = Boolean(fabricSrc && productSrc);
   const factor = fabricModalScaleFactor({ fabricModalScale: modalScale });
@@ -44,7 +46,7 @@ export function FabricModalGallery({
       <div className={`grid w-full max-h-full gap-4 ${two ? "grid-cols-2" : "grid-cols-1 place-items-center"}`}>
         {fabricSrc ? (
           <MediaTile label={fabricLabel} tileStyle={tileStyle}>
-            <ZoomViewer src={fabricSrc} alt={fabricLabel} rapportCm={rapportCm} seamless={fabricSeamless} onZoomed={onZoomed} chrome="minimal" />
+            <ZoomViewer src={fabricSrc} alt={fabricLabel} rapportCm={rapportCm} seamless={fabricSeamless} onZoomed={onZoomed} chrome="minimal" maxZoom={maxZoom} />
           </MediaTile>
         ) : null}
         {productSrc ? (

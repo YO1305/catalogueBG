@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useI18n } from "@/components/i18n/I18n";
+import { CatalogSectionField } from "@/components/admin/CatalogSectionField";
 import { Input, Label } from "@/components/ui/field";
 import { addCatalogDesignEntryAction } from "@/lib/actions";
 import { isHandledActionFail, runAdminAction } from "@/lib/runAdminAction";
@@ -11,22 +12,25 @@ import type { CatalogSection, Fabric } from "@/types";
 
 export function CatalogDesignQuickAdd({
   slug,
-  sectionId,
+  sections = [],
+  sectionId: sectionProp,
   disabled,
   onAdded,
 }: {
   slug: string;
+  sections?: CatalogSection[];
   sectionId?: string;
   disabled?: boolean;
   onAdded: (payload: { fabric: Fabric; fabricIds: string[]; catalogSections?: CatalogSection[] }) => void;
 }) {
   const { t } = useI18n();
   const [art, setArt] = useState("");
-  const [name, setName] = useState("");
+  const [width, setWidth] = useState("");
+  const [sectionId, setSectionId] = useState<string | null>(sectionProp ?? sections[0]?.id ?? null);
   const [busy, setBusy] = useState(false);
 
   async function onPick(file: File) {
-    if (!slug || !art.trim() || !name.trim()) {
+    if (!slug || !art.trim()) {
       toast(t("catalogs.designEntryNeedMeta"));
       return;
     }
@@ -41,12 +45,13 @@ export function CatalogDesignQuickAdd({
         addCatalogDesignEntryAction({
           catalogSlug: slug,
           art: art.trim(),
-          nameRu: name.trim(),
-          sectionId,
+          width: width.trim(),
+          sectionId: sectionId || undefined,
           design: {
             originalUrl: processed.originalUrl,
             webUrl: processed.webUrl,
             thumbUrl: processed.thumbUrl,
+            viewUrl: processed.viewUrl,
             widthPx: processed.widthPx,
             heightPx: processed.heightPx,
             seamless: true,
@@ -62,7 +67,7 @@ export function CatalogDesignQuickAdd({
       }
       toast(t("catalogs.designEntryDone"));
       setArt("");
-      setName("");
+      setWidth("");
       onAdded({
         fabric: result.fabric,
         fabricIds: result.fabricIds,
@@ -79,7 +84,8 @@ export function CatalogDesignQuickAdd({
       <p className="mt-1 text-xs text-ink/55">{t("catalogs.designEntryHint")}</p>
       <div className="mt-3 space-y-2">
         <Input value={art} placeholder={t("catalogs.designEntryArt")} disabled={disabled || busy} onChange={(event) => setArt(event.target.value)} />
-        <Input value={name} placeholder={t("common.name")} disabled={disabled || busy} onChange={(event) => setName(event.target.value)} />
+        <Input value={width} inputMode="decimal" placeholder={t("catalogs.designEntryWidth")} disabled={disabled || busy} onChange={(event) => setWidth(event.target.value)} />
+        <CatalogSectionField sections={sections} value={sectionId} onChange={setSectionId} />
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp,image/tiff"

@@ -1,12 +1,21 @@
+import { isDesignCatalog } from "@/lib/catalogKind";
+import { designCatalogPublicDesign } from "@/lib/designCatalog";
 import { fabricKind } from "@/lib/fabricKind";
 import type { Catalog, Fabric, FabricDesign } from "@/types";
 
 function stripDesign(design: FabricDesign): FabricDesign {
-  return { ...design, webUrl: "", thumbUrl: "", originalUrl: "" };
+  return { ...design, webUrl: "", thumbUrl: "", originalUrl: "", viewUrl: "" };
 }
 
 /** Убирает URL плоского рисунка из данных, уходящих на публичную страницу каталога (SPEC 5.8.5). */
 export function sanitizePublicFabric(fabric: Fabric, catalog: Catalog): Fabric {
+  if (isDesignCatalog(catalog) || fabric.designCatalogEntry) {
+    return {
+      ...fabric,
+      design: designCatalogPublicDesign(fabric.design),
+      variants: fabric.variants?.map((variant) => ({ ...variant, design: designCatalogPublicDesign(variant.design) })),
+    };
+  }
   if (catalog.showFlatDesign) return fabric;
   const kind = fabricKind(fabric);
   if (kind === "printed") {

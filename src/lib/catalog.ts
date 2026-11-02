@@ -81,7 +81,7 @@ export function catalogProductCoverMockup(fabric: Fabric, showProductTypes: stri
 /** Превью в списке страниц каталога. */
 export function catalogDesignPreviewSrc(fabric: Fabric, catalog: Catalog, showProductTypes: string[]): string {
   if (isDesignCatalog(catalog) || fabric.designCatalogEntry) {
-    return fabric.design.webUrl || fabric.design.thumbUrl || "";
+    return fabric.design.thumbUrl || fabric.design.webUrl || "";
   }
   const mockup = catalogCoverMockup(fabric, showProductTypes);
   return renderedMockupSrc(mockup) || fabric.design.webUrl || fabric.design.thumbUrl || "";
@@ -167,6 +167,9 @@ export function buildPages(catalog: Catalog, fabrics: Fabric[]): BuiltPage[] {
       content.push({ kind: "section", group: "manual", groupId: section.id });
       pushDesigns(group);
     }
+    const placed = new Set((catalog.catalogSections ?? []).flatMap((section) => section.fabricIds));
+    const rest = fabrics.filter((fabric) => !placed.has(fabric.id));
+    if (rest.length) pushDesigns(rest);
   } else if (catalog.layout.sectionBy === "none") {
     pushDesigns(fabrics);
   } else {

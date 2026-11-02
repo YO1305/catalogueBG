@@ -100,7 +100,7 @@ export function FabricEditor({
         )}
         <div><h2 className="font-display text-lg">{t("wizard.data")}</h2></div>
         <WizardCardStep fabric={fabric} collections={lists.collections} fabricTypes={lists.fabricTypes} finishes={lists.finishes} productTypes={lists.productTypes} onChange={update} hideCollection onCreateCollection={onCreateCollection} onCreateFabricType={onCreateFabricType} onCreateFinish={editor.onCreateFinish} />
-        <FabricCatalogPickSection catalogs={catalogs} selected={save.catalogSlugs} onChange={save.setCatalogSlugs} />
+        <FabricCatalogPickSection catalogs={catalogs} selected={save.picks} onChange={save.setPicks} />
       </div>
       <div className="mt-6 flex flex-wrap gap-2 border-t border-black/10 pt-4">
         <Button type="button" variant="outline" disabled={save.busy || save.mockupBusy} onClick={() => void save.finish(false)}>{draftLabel}</Button>

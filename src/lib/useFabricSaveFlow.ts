@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useI18n } from "@/components/i18n/I18n";
 import { syncFabricCatalogsAction } from "@/lib/actions";
-import { catalogSlugDiff, slugsWithFabric } from "@/lib/catalogMembership";
+import { catalogPickDiff, picksWithFabric, type CatalogPick } from "@/lib/catalogMembership";
 import type { FabricSavePhase, SaveReceipt } from "@/lib/fabricSavePhase";
 import type { MockupSaveStep } from "@/lib/mockup/clientRender";
 import { isHandledActionFail, runAdminAction } from "@/lib/runAdminAction";
@@ -32,8 +32,8 @@ type EditorSave = {
 export function useFabricSaveFlow(initial: Fabric, isNew: boolean, catalogs: Catalog[], kind: FabricKind, editor: EditorSave) {
   const { lang, t } = useI18n();
   const router = useRouter();
-  const [catalogSlugs, setCatalogSlugs] = useState(() => slugsWithFabric(catalogs, initial.id));
-  const [baselineSlugs, setBaselineSlugs] = useState(() => slugsWithFabric(catalogs, initial.id));
+  const [picks, setPicks] = useState<CatalogPick[]>(() => picksWithFabric(catalogs, initial.id));
+  const [baselinePicks, setBaselinePicks] = useState<CatalogPick[]>(() => picksWithFabric(catalogs, initial.id));
   const [savedAt, setSavedAt] = useState<string | null>(isNew ? null : initial.updatedAt);
   const [phase, setPhase] = useState<FabricSavePhase>({ step: "idle" });
   const [receipt, setReceipt] = useState<SaveReceipt | null>(null);
@@ -43,22 +43,22 @@ export function useFabricSaveFlow(initial: Fabric, isNew: boolean, catalogs: Cat
   const seenId = useRef(initial.id);
   if (seenId.current !== initial.id) {
     seenId.current = initial.id;
-    setCatalogSlugs(slugsWithFabric(catalogs, initial.id));
-    setBaselineSlugs(slugsWithFabric(catalogs, initial.id));
+    setPicks(picksWithFabric(catalogs, initial.id));
+    setBaselinePicks(picksWithFabric(catalogs, initial.id));
     setSavedAt(isNew ? null : initial.updatedAt);
     setReceipt(null);
     setPhase({ step: "idle" });
   }
 
-  function catalogTotal(selected: string[]) {
-    const diff = catalogSlugDiff(baselineSlugs, selected);
-    return diff.add.length + diff.remove.length;
+  function catalogTotal(selected: CatalogPick[]) {
+    const diff = catalogPickDiff(baselinePicks, selected);
+    return diff.assign.length + diff.remove.length;
   }
 
-  function namesFor(slugs: string[]) {
-    return slugs.map((slug) => {
-      const catalog = catalogs.find((item) => item.slug === slug);
-      return catalog ? catalog.title[lang] || catalog.title.ru : slug;
+  function namesFor(selected: CatalogPick[]) {
+    return selected.map((pick) => {
+      const catalog = catalogs.find((item) => item.slug === pick.slug);
+      return catalog ? catalog.title[lang] || catalog.title.ru : pick.slug;
     });
   }
 
@@ -71,23 +71,23 @@ export function useFabricSaveFlow(initial: Fabric, isNew: boolean, catalogs: Cat
     return fallback;
   }
 
-  async function persistCatalogs(fabricId: string, selected: string[]) {
-    const diff = catalogSlugDiff(baselineSlugs, selected);
-    const total = diff.add.length + diff.remove.length;
+  async function persistCatalogs(fabricId: string, selected: CatalogPick[]) {
+    const diff = catalogPickDiff(baselinePicks, selected);
+    const total = diff.assign.length + diff.remove.length;
     if (!total) return true;
     setPhase({ step: "catalogs", done: 1, total });
-    const linked = await runAdminAction(t, () => syncFabricCatalogsAction(fabricId, diff.add, diff.remove));
+    const linked = await runAdminAction(t, () => syncFabricCatalogsAction(fabricId, diff.assign, diff.remove));
     if (!linked || isHandledActionFail(linked) || !linked.ok) {
       const failed = linked && !linked.ok ? linked : undefined;
       setPhase({ step: "error", message: failText(failed, t("designs.saveCatalogFailed")) });
       return false;
     }
-    setBaselineSlugs(selected);
+    setBaselinePicks(selected);
     return true;
   }
 
   async function finish(saveLive: boolean) {
-    const selected = catalogSlugs;
+    const selected = picks;
     setIntent(saveLive ? "publish" : "draft");
     setBusy(true);
     setReceipt(null);
@@ -114,7 +114,7 @@ export function useFabricSaveFlow(initial: Fabric, isNew: boolean, catalogs: Cat
   }
 
   async function saveMockup(slot: Slot, onProgress?: (step: MockupSaveStep) => void, signal?: AbortSignal) {
-    const selected = catalogSlugs;
+    const selected = picks;
     setMockupBusy(true);
     setPhase(editor.fabric.persisted ? { step: "mockup", mockup: "render" } : { step: "fabric", catalogTotal: catalogTotal(selected) });
     let openedEdit = false;
@@ -155,5 +155,5 @@ export function useFabricSaveFlow(initial: Fabric, isNew: boolean, catalogs: Cat
     }
   }
 
-  return { catalogSlugs, setCatalogSlugs, savedAt, phase, receipt, busy, mockupBusy, intent, finish, saveMockup };
+  return { picks, setPicks, savedAt, phase, receipt, busy, mockupBusy, intent, finish, saveMockup };
 }
